@@ -2,7 +2,7 @@
 
 2D top-down auto-combat roguelike strategy game. You do not control the robot by reflexes; you program its combat brain, run the simulation, read the result, and refine the rule stack.
 
-Live build: https://sycamore-grove.github.io/Overlogic/
+Live build: https://lunora-gather.github.io/Overlogic/
 
 ## What You Play
 
