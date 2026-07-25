@@ -296,6 +296,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
+  assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));
   assert.equal(entity('condition', 'hp_low', 'HP Low'), '生命值较低');
   setLocale('zh-TW', { notify: false });
   assert.equal(t('menu.start'), '開始模擬');

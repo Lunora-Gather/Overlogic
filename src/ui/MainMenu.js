@@ -113,7 +113,7 @@ export class MainMenu {
       const difficulty = this.runDifficulty.value;
       this.runConfigHint.textContent = [
         t(`menu.config.${difficulty}`),
-        daily ? t('menu.config.daily') : t('menu.config.standard'),
+        daily ? t('menu.config.daily') : t('menu.config.modeStandard'),
       ].join(' · ');
     }
   }
