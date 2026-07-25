@@ -85,7 +85,10 @@ export class BossProtocolWarden extends EnemyBase {
 
   _phase4(dt, r) {
     // 1. Orbit rapidly around (0,0)
-    this.orbitAngle = (this.orbitAngle || 0) + dt * 2.0;
+    // Keep tangential speed below the basic projectile speed. At 2 rad/s the
+    // boss moved ~13 m/s and could become effectively unhittable by the
+    // 12 m/s starter weapon, turning the last phase into a reward-lock.
+    this.orbitAngle = (this.orbitAngle || 0) + dt * 0.55;
     const orbitRadius = 6.5;
     this.x = Math.cos(this.orbitAngle) * orbitRadius;
     this.y = Math.sin(this.orbitAngle) * orbitRadius;
@@ -100,16 +103,16 @@ export class BossProtocolWarden extends EnemyBase {
         p.setup(
           { x: this.x, y: this.y },
           { x: Math.cos(ang), y: Math.sin(ang) },
-          8.0, // speed
+          7.0, // speed
           3.0, // life
-          8,   // dmg
+          6,   // dmg
           'boss_enraged',
           false
         );
         p.setCtx(this.ctx);
         this.ctx.projectiles.push(p);
       }
-      this.actionTimer = 0.3;
+      this.actionTimer = 0.55;
       AudioManager.play('basic_attack');
     }
   }

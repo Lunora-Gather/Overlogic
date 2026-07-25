@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import { execFileSync } from 'node:child_process';
-import { installBrowserShims } from './test-env.mjs';
+import { installBrowserShims, withSeededRandom } from './test-env.mjs';
 import { simulateBattle } from './simulate-balance.mjs';
 
 installBrowserShims();
@@ -80,6 +80,14 @@ function verifyGameplayContracts() {
   assert.equal(GameState.currentMapColumn, 4);
 
   GameState.resetRun();
+  GameState.rules[1].priority = 100;
+  assert.equal(GameState.normalizeRulePriorities(), true);
+  assert.deepEqual(
+    [...GameState.rules].sort((a, b) => b.priority - a.priority).map((rule) => rule.priority),
+    [100, 90, 80],
+  );
+
+  GameState.resetRun();
   GameState.currentMapColumn = GameState.mapNodes.length - 1;
   assert.equal(GameManager.state, 'main');
   GameManager.onBattleFinished(true);
@@ -142,6 +150,10 @@ function verifySaveMigration() {
 function verifyUiSafetyContracts() {
   assert.equal(escapeHtml('<img src=x onerror=alert(1)>'), '&lt;img src=x onerror=alert(1)&gt;');
   assert.equal(escapeHtml(`"quoted" & 'single'`), '&quot;quoted&quot; &amp; &#39;single&#39;');
+  const html = fs.readFileSync('index.html', 'utf8');
+  assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
+  assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
+  assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
 }
 
 function verifyRuleTelemetryContracts() {
@@ -165,6 +177,24 @@ function verifySimulation() {
     assert.equal(result.won, true, `default rules should clear ${result.battleName}`);
     assert(result.damageDealt > 0, 'simulation should record player damage');
   }
+
+  // A realistic upgraded starter build must be able to finish the standard
+  // boss without depending on a specific action-unlock reward.
+  GameState.stats.max_hp = 125;
+  GameState.stats.basic_dmg = 15.625;
+  GameState.stats.armor_piercing = 3;
+  GameState.stats.superconductors = 1;
+  GameState.persistentHp = 125;
+  GameState._advanceTeachRulesTo(4);
+  const shieldRule = GameState.rules.find(rule => rule.actionId === 'shield');
+  shieldRule.conditionValue = 0.6;
+  shieldRule.priority = 95;
+  const attackRule = GameState.rules.find(rule => rule.actionId === 'basic_attack');
+  attackRule.targetPriority = 'boss';
+  const boss = withSeededRandom(20260725, () =>
+    simulateBattle(GameDatabase.getBattle(8), { maxTime: 120 })
+  );
+  assert.equal(boss.won, true, 'standard boss should remain beatable with an upgraded starter kit');
 }
 
 verifySyntax();

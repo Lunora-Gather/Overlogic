@@ -71,6 +71,20 @@ export class BattleHUD {
       if (this.arena) this.arena.stop();
       GameManager.goLogicEdit();
     });
+    document.addEventListener('keydown', (event) => {
+      if (document.getElementById('screen-combat')?.classList.contains('hidden')) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (event.key.toLowerCase() === 'p') {
+        event.preventDefault();
+        this.btnPause.click();
+      } else if (event.key === '.' && this.arena?.paused) {
+        event.preventDefault();
+        this.btnStep.click();
+      } else if (event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        this.btnSpeed.click();
+      }
+    });
   }
 
   onBattleStart(battle) {

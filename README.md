@@ -16,11 +16,15 @@ Live build: https://lunora-gather.github.io/Overlogic/
 
 - Responsive editor, battle, reward, report, and victory screens for desktop and mobile.
 - Searchable condition/action lists and active rule filtering.
+- Battle-specific readiness checks, persistent-HP risk warnings, and optional countermeasure rules.
+- Click or keyboard-select modules to prefill the rule builder; priority conflicts can be normalized in one action.
 - Three local loadout slots with quick save/load controls.
-- Persistent settings for volume, mute, and camera shake.
+- Persistent settings for volume, mute, camera shake, and reduced motion.
 - Tooltips for modules and map nodes.
 - Post-battle charts, action frequency, damage breakdowns, and contextual rule suggestions.
 - Save migration and bad-save recovery for older or corrupted local storage data.
+
+During combat, press `P` to pause/resume, `.` to single-step while paused, and `S` to change simulation speed.
 
 ## Run Locally
 
@@ -49,7 +53,7 @@ npm run balance
 
 `npm run verify` checks syntax, data contracts, save migration, reward flow, report suggestions, combat completion contracts, and a headless combat simulation.
 
-`npm run balance` runs deterministic headless simulations for the early battles and fails if the default rule set cannot clear Calibration.
+`npm run balance` gates the early battles and reports deterministic diagnostics for the full enemy roster. Verification also checks that an upgraded starter-kit build can finish the standard boss without depending on a specific action unlock.
 
 ## Deployment
 

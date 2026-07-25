@@ -48,7 +48,12 @@ class GameStateClass {
     this._redoStack = [];
     this.lastReport = {};
     this._ruleCounter = 0;
-    this.settings = { volume: 0.8, mute: false, screenShake: true };
+    this.settings = {
+      volume: 0.8,
+      mute: false,
+      screenShake: true,
+      reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+    };
     // simple pub/sub for UI re-render
     this._listeners = { rules: [], stats: [], progress: [] };
     this.loadSettings();
@@ -68,6 +73,8 @@ class GameStateClass {
         this.settings.volume = parsed.volume ?? 0.8;
         this.settings.mute = parsed.mute ?? false;
         this.settings.screenShake = parsed.screenShake ?? true;
+        this.settings.reduceMotion = parsed.reduceMotion ??
+          (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
       }
       // Apply to AudioManager
       AudioManager.volumeVal = this.settings.volume;
@@ -394,6 +401,17 @@ class GameStateClass {
       this.saveToStorage();
       this._emit('rules');
     }
+  }
+
+  normalizeRulePriorities() {
+    const ordered = [...this.rules].sort((a, b) => b.priority - a.priority);
+    const next = ordered.map((rule, index) => Math.max(0, 100 - index * 10));
+    if (ordered.every((rule, index) => rule.priority === next[index])) return false;
+    this._pushState();
+    ordered.forEach((rule, index) => { rule.priority = next[index]; });
+    this.saveToStorage();
+    this._emit('rules');
+    return true;
   }
 
   _initMap() {

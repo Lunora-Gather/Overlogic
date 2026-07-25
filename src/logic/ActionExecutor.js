@@ -149,7 +149,7 @@ export class ActionExecutor {
     if (len === 0) { dx = 1; dy = 0; } else { dx /= len; dy /= len; }
     if (!toward) { dx = -dx; dy = -dy; }
     this.robot.doDash({ x: dx, y: dy }, this.stats.stat('dash_distance', 3), 0.15);
-    this.robot.energy -= this.energyCost('dash_toward');
+    this.robot.energy -= this.energyCost(toward ? 'dash_toward' : 'dash_away');
     this._startCd(toward ? 'dash_toward' : 'dash_away');
     AudioManager.play('dash');
     return true;

@@ -9,6 +9,9 @@ export class BackgroundAnim {
     this.gridSize = 50; // grid cell size in pixels
     this.maxParticles = 35;
     this.speed = 1.2;
+    this.running = false;
+    this.rafId = null;
+    this.reduceMotion = false;
     this.init();
     this.loop = this.loop.bind(this);
   }
@@ -16,6 +19,10 @@ export class BackgroundAnim {
   init() {
     this.resize();
     window.addEventListener('resize', () => this.resize());
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) this.stop();
+      else this.start();
+    });
 
     // Spawn initial grid-aligned particles
     for (let i = 0; i < this.maxParticles; i++) {
@@ -26,9 +33,10 @@ export class BackgroundAnim {
   resize() {
     this.width = window.innerWidth || 1024;
     this.height = window.innerHeight || 768;
-    this.canvas.width = this.width * window.devicePixelRatio;
-    this.canvas.height = this.height * window.devicePixelRatio;
-    this.g.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = this.width * pixelRatio;
+    this.canvas.height = this.height * pixelRatio;
+    this.g.scale(pixelRatio, pixelRatio);
   }
 
   createParticle() {
@@ -57,14 +65,35 @@ export class BackgroundAnim {
   }
 
   start() {
-    requestAnimationFrame(this.loop);
+    if (this.running) return;
+    this.running = true;
+    if (this.reduceMotion) {
+      this.g.clearRect(0, 0, this.width, this.height);
+      this.draw();
+      this.running = false;
+      return;
+    }
+    this.rafId = requestAnimationFrame(this.loop);
+  }
+
+  stop() {
+    this.running = false;
+    if (this.rafId !== null) cancelAnimationFrame(this.rafId);
+    this.rafId = null;
+  }
+
+  setReducedMotion(enabled) {
+    this.reduceMotion = !!enabled;
+    this.stop();
+    this.start();
   }
 
   loop() {
+    if (!this.running || document.hidden) return;
     this.g.clearRect(0, 0, this.width, this.height);
     this.update();
     this.draw();
-    requestAnimationFrame(this.loop);
+    this.rafId = requestAnimationFrame(this.loop);
   }
 
   update() {

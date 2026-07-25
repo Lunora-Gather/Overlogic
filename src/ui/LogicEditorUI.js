@@ -38,6 +38,7 @@ export class LogicEditorUI {
     this.btnSandbox = document.getElementById('btn-sandbox');
     this.mapNodesContainer = document.getElementById('map-nodes');
     this.rulesSearch = document.getElementById('rules-search');
+    this.missionBriefing = document.getElementById('mission-briefing');
 
     if (this.condSearch) {
       this.condSearch.addEventListener('input', () => this.renderModules());
@@ -52,9 +53,9 @@ export class LogicEditorUI {
     this.lastSavedSlot = 1;
     this._bind();
     // re-render when state changes
-    GameState.on('rules', () => this.renderRules());
-    GameState.on('stats', () => this.renderStats());
-    GameState.on('progress', () => this.renderHeader());
+    GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); });
+    GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); });
+    GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
   }
 
   show() {
@@ -63,6 +64,7 @@ export class LogicEditorUI {
 
   renderAll() {
     this.renderHeader();
+    this.renderBriefing();
     this.renderModules();
     this.renderRules();
     this.renderStats();
@@ -140,6 +142,132 @@ export class LogicEditorUI {
     return [...enemies, ...tags].join(' · ');
   }
 
+  _battleAdvice(battle) {
+    if (!battle) return null;
+    const enemyIds = new Set((battle.enemySpawns || []).map(spawn => spawn.enemyId));
+    const availableConditions = new Set(GameState.availableConditionIds());
+    const availableActions = new Set(GameState.availableActionIds());
+    const hasHazards = ['battle_4', 'battle_5', 'battle_6', 'battle_7', 'battle_8', 'battle_9', 'battle_10'].includes(battle.id);
+
+    const options = [];
+    if (hasHazards) {
+      options.push({
+        conditionId: 'on_hazard', conditionValue: null, actionId: 'dash_away',
+        priority: 95, targetPriority: 'nearest',
+        label: 'Evacuate hazard tiles', reason: 'This arena contains persistent damage zones.',
+      });
+    }
+    if ([...enemyIds].some(id => ['charger', 'boss_warden', 'apex_warden'].includes(id))) {
+      options.push({
+        conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
+        priority: 90, targetPriority: 'caster',
+        label: 'Interrupt telegraphed attacks', reason: 'Chargers and wardens expose interrupt windows.',
+      });
+    }
+    if (enemyIds.has('shooter') || enemyIds.has('emp_drone')) {
+      options.push({
+        conditionId: 'enemy_far', conditionValue: 5, actionId: 'dash_toward',
+        priority: 50, targetPriority: 'nearest',
+        label: 'Close on ranged units', reason: 'Ranged enemies punish passive spacing.',
+      });
+    }
+    if ((battle.enemySpawns || []).reduce((sum, spawn) => sum + spawn.count, 0) >= 7) {
+      options.push({
+        conditionId: 'surrounded', conditionValue: [4, 3],
+        actionId: availableActions.has('emp_burst') ? 'emp_burst' : 'dash_away',
+        priority: 92, targetPriority: 'nearest',
+        label: 'Break out when surrounded', reason: 'Large waves can trap the robot before cooldowns recover.',
+      });
+    }
+    options.push({
+      conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack',
+      priority: 10, targetPriority: 'nearest',
+      label: 'Keep a reliable attack fallback', reason: 'A low-priority attack prevents idle combat time.',
+    });
+
+    return options.find(option =>
+      availableConditions.has(option.conditionId) && availableActions.has(option.actionId)
+    ) || null;
+  }
+
+  _hasEquivalentRule(advice) {
+    return !!advice && GameState.rules.some(rule =>
+      rule.enabled !== false &&
+      rule.conditionId === advice.conditionId &&
+      rule.actionId === advice.actionId
+    );
+  }
+
+  renderBriefing() {
+    if (!this.missionBriefing) return;
+    const battle = GameState.getActiveBattle();
+    if (!battle) {
+      this.missionBriefing.innerHTML = '<div class="brief-copy"><strong>Route event ready.</strong><span>Select the active node to continue.</span></div>';
+      return;
+    }
+
+    const enabledRules = GameState.rules.filter(rule => rule.enabled !== false);
+    const warnings = this.analyzeRules();
+    const hasOffense = enabledRules.some(rule =>
+      ['basic_attack', 'interrupt_shot', 'drop_mine', 'emp_burst', 'dash_through'].includes(rule.actionId)
+    );
+    const hasDefense = enabledRules.some(rule =>
+      ['shield', 'dash_away', 'repair', 'emp_burst'].includes(rule.actionId)
+    );
+    const advice = this._battleAdvice(battle);
+    const hasCounter = this._hasEquivalentRule(advice);
+    const currentHp = GameState.persistentHp ?? GameState.stats.max_hp;
+    const hpRatio = currentHp / Math.max(1, GameState.stats.max_hp);
+    const healthy = hpRatio >= 0.45;
+    const checks = [hasOffense, hasDefense, warnings.size === 0, hasCounter, healthy];
+    const score = Math.round(checks.filter(Boolean).length / checks.length * 100);
+    const risk = score >= 80 ? 'READY' : score >= 60 ? 'CAUTION' : 'RISKY';
+    const riskClass = risk.toLowerCase();
+    const warningCount = [...warnings.values()].reduce((sum, items) => sum + items.length, 0);
+    const enemyCount = (battle.enemySpawns || []).reduce((sum, spawn) => sum + spawn.count, 0);
+
+    this.missionBriefing.innerHTML = `
+      <div class="brief-score ${riskClass}">
+        <span class="brief-score-value">${score}</span>
+        <span>READINESS</span>
+      </div>
+      <div class="brief-copy">
+        <div class="brief-title">
+          <strong>${escapeHtml(risk)}</strong>
+          <span>${enemyCount} hostiles · HP ${Math.round(currentHp)}/${Math.round(GameState.stats.max_hp)}</span>
+        </div>
+        <span class="brief-advice">${escapeHtml(advice?.reason || 'Review the route event before continuing.')}</span>
+      </div>
+      <div class="brief-checks" aria-label="Launch checks">
+        <span class="${hasOffense ? 'ok' : 'bad'}">${hasOffense ? '✓' : '!'} Offense</span>
+        <span class="${hasDefense ? 'ok' : 'bad'}">${hasDefense ? '✓' : '!'} Survival</span>
+        <span class="${warnings.size === 0 ? 'ok' : 'warn'}">${warnings.size === 0 ? '✓ Clean logic' : `⚠ ${warningCount} warning${warningCount === 1 ? '' : 's'}`}</span>
+        <span class="${healthy ? 'ok' : 'bad'}">${healthy ? '✓ Hull stable' : '! Low persistent HP'}</span>
+      </div>
+      <div class="brief-actions">
+        ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : '<span class="counter-ready">✓ Countermeasure loaded</span>'}
+        ${warnings.size > 0 ? '<button type="button" id="btn-fix-priorities" class="btn small ghost">Space priorities</button>' : ''}
+      </div>
+    `;
+
+    const addCounter = document.getElementById('btn-add-counter');
+    if (addCounter && advice) {
+      addCounter.addEventListener('click', () => {
+        GameState.addRule(
+          advice.conditionId, advice.conditionValue, advice.actionId, advice.priority,
+          null, null, null, advice.targetPriority,
+        );
+        AudioManager.play('rule_add');
+      }, { once: true });
+    }
+    const fixPriorities = document.getElementById('btn-fix-priorities');
+    if (fixPriorities) {
+      fixPriorities.addEventListener('click', () => {
+        if (GameState.normalizeRulePriorities()) AudioManager.play('rule_add');
+      }, { once: true });
+    }
+  }
+
   renderModules() {
     const condQuery = this.condSearch ? this.condSearch.value.toLowerCase() : '';
     const actQuery = this.actSearch ? this.actSearch.value.toLowerCase() : '';
@@ -153,19 +281,29 @@ export class LogicEditorUI {
         continue;
       }
       const li = document.createElement('li');
-      li.innerHTML = `<span class="mod-name">${escapeHtml(c.displayName)}</span>` +
+      li.innerHTML = `<span class="mod-name">${escapeHtml(c.displayName)}</span><span class="module-add-hint">+ use</span>` +
         `<span class="mod-desc">${escapeHtml(c.description)}</span>` +
         (c.parameterType !== 'none' ? `<span class="mod-meta">param: ${escapeHtml(c.parameterType)}</span>` : '');
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'condition';
       li.dataset.tooltipId = id;
+      li.tabIndex = 0;
+      li.setAttribute('role', 'button');
+      li.setAttribute('aria-label', `Use condition ${c.displayName}`);
       
-      // Double-click to quick-add
-      li.addEventListener('dblclick', () => {
+      // One click pre-fills the builder; this also works on touch devices.
+      const useCondition = () => {
         this._openAddForm();
         this.fCond.value = id;
         this._refreshFormParam();
         AudioManager.play('button_click');
+      };
+      li.addEventListener('click', useCondition);
+      li.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          useCondition();
+        }
       });
       this.condList.appendChild(li);
     }
@@ -178,19 +316,28 @@ export class LogicEditorUI {
         continue;
       }
       const li = document.createElement('li');
-      li.innerHTML = `<span class="mod-name">${escapeHtml(a.displayName)}</span>` +
+      li.innerHTML = `<span class="mod-name">${escapeHtml(a.displayName)}</span><span class="module-add-hint">+ use</span>` +
         `<span class="mod-desc">${escapeHtml(a.description)}</span>` +
         `<span class="mod-meta">cd ${escapeHtml(a.cooldown)}s · e${escapeHtml(a.energyCost)} · r${escapeHtml(a.range)}</span>`;
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'action';
       li.dataset.tooltipId = id;
+      li.tabIndex = 0;
+      li.setAttribute('role', 'button');
+      li.setAttribute('aria-label', `Use action ${a.displayName}`);
       
-      // Double-click to quick-add
-      li.addEventListener('dblclick', () => {
+      const useAction = () => {
         this._openAddForm();
         this.fAct.value = id;
         this._toggleFormTarget();
         AudioManager.play('button_click');
+      };
+      li.addEventListener('click', useAction);
+      li.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          useAction();
+        }
       });
       this.actList.appendChild(li);
     }
@@ -367,6 +514,7 @@ export class LogicEditorUI {
     const prio = document.createElement('input');
     prio.type = 'number'; prio.min = 0; prio.max = 100; prio.value = r.priority;
     prio.className = 'rule-prio';
+    prio.setAttribute('aria-label', `Priority for rule ${r.id}`);
     prio.style.width = '45px';
     prio.addEventListener('change', () => {
       GameState.setRulePriority(r.id, +prio.value);
@@ -391,6 +539,7 @@ export class LogicEditorUI {
 
     const cond1Sel = this._condSelect(r.conditionId);
     cond1Sel.style.flex = '1';
+    cond1Sel.setAttribute('aria-label', `Primary condition for rule ${r.id}`);
     cond1Sel.addEventListener('change', () => {
       GameState.setRuleCondition(r.id, cond1Sel.value);
       AudioManager.play('button_click');
@@ -406,6 +555,7 @@ export class LogicEditorUI {
     // 4. Operator Select (None / AND)
     const opSel = document.createElement('select');
     opSel.className = 'rule-op';
+    opSel.setAttribute('aria-label', `Condition operator for rule ${r.id}`);
     opSel.style.width = '100%';
     const optNone = document.createElement('option');
     optNone.value = ''; optNone.textContent = 'None';
@@ -440,6 +590,7 @@ export class LogicEditorUI {
     if (r.operator === 'and' || r.operator === 'or') {
       const cond2Sel = this._condSelect(r.conditionId2 || 'hp_low');
       cond2Sel.style.flex = '1';
+      cond2Sel.setAttribute('aria-label', `Secondary condition for rule ${r.id}`);
       cond2Sel.addEventListener('change', () => {
         GameState.setRuleCondition2(r.id, cond2Sel.value);
         AudioManager.play('button_click');
@@ -457,6 +608,7 @@ export class LogicEditorUI {
 
     // 6. Action Select
     const actSel = this._actSelect(r.actionId);
+    actSel.setAttribute('aria-label', `Action for rule ${r.id}`);
     const actWrap = document.createElement('span');
     actWrap.style.display = 'flex';
     actWrap.style.flexDirection = 'column';
@@ -497,6 +649,7 @@ export class LogicEditorUI {
     // 6.5 Targeting Priority Dropdown
     const tarSel = document.createElement('select');
     tarSel.className = 'rule-target-prio';
+    tarSel.setAttribute('aria-label', `Target priority for rule ${r.id}`);
     tarSel.style.width = '100%';
     const targets = [
       { val: 'nearest', label: 'Nearest' },

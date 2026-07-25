@@ -332,6 +332,109 @@ input:focus-visible {
   box-shadow: var(--glow-shadow);
 }
 
+.mission-briefing {
+  width: 100%;
+  min-height: 72px;
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1.25fr) minmax(280px, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background:
+    linear-gradient(90deg, rgba(0, 210, 255, 0.05), transparent 45%),
+    var(--panel);
+  box-shadow: var(--glow-shadow);
+}
+
+.brief-score {
+  width: 64px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid currentColor;
+  border-radius: 5px;
+  color: var(--accent2);
+  font-size: 8px;
+  letter-spacing: 1px;
+}
+
+.brief-score.caution { color: var(--warn2); }
+.brief-score.risky { color: var(--warn); }
+
+.brief-score-value {
+  font: 800 24px/1 "Outfit", sans-serif;
+}
+
+.brief-copy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.brief-title {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+}
+
+.brief-title strong {
+  color: var(--accent);
+  font-size: 13px;
+  letter-spacing: 1.5px;
+}
+
+.brief-title span,
+.brief-advice {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.brief-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.brief-checks span,
+.counter-ready {
+  padding: 4px 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+.brief-checks .ok,
+.counter-ready {
+  color: var(--accent2);
+  border-color: rgba(62, 255, 157, 0.25);
+  background: rgba(62, 255, 157, 0.05);
+}
+
+.brief-checks .warn {
+  color: var(--warn2);
+  border-color: rgba(255, 185, 56, 0.3);
+}
+
+.brief-checks .bad {
+  color: #ff6e6e;
+  border-color: rgba(255, 62, 62, 0.3);
+}
+
+.brief-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .battle-info, .teach-info {
   display: flex;
   flex-direction: column;
@@ -421,6 +524,20 @@ input:focus-visible {
 .module-list .mod-name {
   color: #fff;
   font-weight: bold;
+}
+
+.module-add-hint {
+  float: right;
+  color: var(--accent);
+  opacity: 0;
+  font-size: 9px;
+  letter-spacing: 0.5px;
+  transition: opacity 0.15s;
+}
+
+.module-list li:hover .module-add-hint,
+.module-list li:focus-within .module-add-hint {
+  opacity: 1;
 }
 
 .module-list .mod-desc {
@@ -1756,6 +1873,40 @@ input[type="range"]::-webkit-slider-thumb:hover {
   box-shadow: 0 0 20px rgba(62, 255, 157, 0.4) !important;
 }
 
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.settings-group input[type="checkbox"]:checked {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 8px rgba(0, 210, 255, 0.65);
+}
+
+.settings-group input[type="checkbox"]:checked::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: #020408;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.reduce-motion *,
+.reduce-motion *::before,
+.reduce-motion *::after {
+  scroll-behavior: auto !important;
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 /* ===== Responsive polish pass ===== */
 @media (max-width: 760px) {
   html, body {
@@ -1820,6 +1971,21 @@ input[type="range"]::-webkit-slider-thumb:hover {
 
   .editor-header {
     padding: 16px !important;
+  }
+
+  .mission-briefing {
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 12px;
+  }
+
+  .brief-checks,
+  .brief-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .brief-actions .btn {
+    flex: 1 1 180px;
   }
 
   .editor-header > div:first-child {

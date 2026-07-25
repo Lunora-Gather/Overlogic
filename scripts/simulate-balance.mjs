@@ -140,16 +140,28 @@ export function simulateBattle(battle, options = {}) {
 function runSuite() {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
-  const battles = [0, 1, 2].map((index) => GameDatabase.getBattle(index));
-  return withSeededRandom(20260701, () => battles.map((battle) => simulateBattle(battle)));
+  const earlyBattles = [0, 1, 2].map((index) => GameDatabase.getBattle(index));
+  const earlyGate = withSeededRandom(20260701, () =>
+    earlyBattles.map((battle) => simulateBattle(battle))
+  );
+
+  GameState.clearStorage();
+  GameState.normalizeAfterDatabaseLoad();
+  GameState._advanceTeachRulesTo(4);
+  const rosterDiagnostics = withSeededRandom(20260725, () =>
+    Array.from({ length: GameDatabase.getBattleCount() }, (_, index) =>
+      simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
+    )
+  );
+  return { earlyGate, rosterDiagnostics };
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const results = runSuite();
-  const failed = results.filter((result) => !result.won);
+  const failed = results.earlyGate.filter((result) => !result.won);
   if (failed.length > 0) {
     console.error(JSON.stringify(results, null, 2));
     throw new Error('Baseline simulation failed: early battles should be winnable with default rules.');
   }
-  console.log(JSON.stringify({ simulations: results }, null, 2));
+  console.log(JSON.stringify(results, null, 2));
 }

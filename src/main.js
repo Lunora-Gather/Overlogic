@@ -20,8 +20,10 @@ async function main() {
 
   // Initialize and run the cyber background animation
   const bgCanvas = document.getElementById('bg-canvas');
+  let bgAnim = null;
   if (bgCanvas) {
-    const bgAnim = new BackgroundAnim(bgCanvas);
+    bgAnim = new BackgroundAnim(bgCanvas);
+    bgAnim.setReducedMotion(GameState.settings.reduceMotion);
     bgAnim.start();
   }
 
@@ -119,6 +121,7 @@ async function main() {
   const settingVolumeVal = document.getElementById('setting-volume-val');
   const settingMute = document.getElementById('setting-mute');
   const settingShake = document.getElementById('setting-shake');
+  const settingReduceMotion = document.getElementById('setting-reduce-motion');
 
   function openSettings() {
     AudioManager.resume();
@@ -127,6 +130,7 @@ async function main() {
     settingVolumeVal.textContent = `${Math.round(GameState.settings.volume * 100)}%`;
     settingMute.checked = GameState.settings.mute;
     settingShake.checked = GameState.settings.screenShake;
+    settingReduceMotion.checked = GameState.settings.reduceMotion;
 
     settingsOverlay.classList.remove('hidden');
     AudioManager.play('button_click');
@@ -155,7 +159,10 @@ async function main() {
       GameState.settings.volume = parseFloat(settingVolume.value);
       GameState.settings.mute = settingMute.checked;
       GameState.settings.screenShake = settingShake.checked;
+      GameState.settings.reduceMotion = settingReduceMotion.checked;
       GameState.saveSettings();
+      document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
+      if (bgAnim) bgAnim.setReducedMotion(GameState.settings.reduceMotion);
       
       closeSettings();
       AudioManager.play('rule_add'); // Success arpeggio
@@ -260,6 +267,7 @@ async function main() {
   }, { capture: true, passive: true });
 
   // Start at main menu
+  document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
   GameManager.goMainMenu();
 }
 

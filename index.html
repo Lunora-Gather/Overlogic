@@ -69,6 +69,8 @@
       </div>
     </header>
 
+    <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
+
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions">
         <h3>Available Conditions</h3>
@@ -158,12 +160,12 @@
         <div class="bar"><span>TEMP</span><div class="bar-track"><div id="ol-fill" class="bar-fill ol"></div><span id="ol-text" class="bar-text"></span></div></div>
       </div>
       <div class="hud-center">
-        <div id="current-logic" class="current-logic">Current Logic: —</div>
+        <div id="current-logic" class="current-logic" aria-live="polite">Current Logic: —</div>
         <div id="wave-info" class="wave-info">Wave 1/2</div>
         <div id="combat-timer" class="muted">0.0s</div>
       </div>
       <div class="hud-right">
-        <button id="btn-combat-settings" class="btn small" title="Settings">⚙️</button>
+        <button id="btn-combat-settings" class="btn small" title="Settings" aria-label="Combat settings">⚙️</button>
         <button id="btn-pause" class="btn small">Pause</button>
         <button id="btn-step" class="btn small hidden">Step</button>
         <button id="btn-speed" class="btn small">Speed x1</button>
@@ -183,11 +185,11 @@
         </div>
         <div class="console-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px;">
           <h3>Console Log</h3>
-          <div id="combat-console-log" class="combat-console-log"></div>
+          <div id="combat-console-log" class="combat-console-log" role="log" aria-live="polite" aria-relevant="additions"></div>
         </div>
       </aside>
     </div>
-    <div id="phase-toast" class="phase-toast hidden"></div>
+    <div id="phase-toast" class="phase-toast hidden" role="status" aria-live="assertive"></div>
   </section>
 
   <!-- ===== Reward ===== -->
@@ -253,6 +255,10 @@
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
           <label style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Enable Camera Shake</label>
           <input type="checkbox" id="setting-shake" checked style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
+        </div>
+        <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
+          <label for="setting-reduce-motion" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Reduce Motion</label>
+          <input type="checkbox" id="setting-reduce-motion" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
       </div>
       <div style="display: flex; gap: 12px; justify-content: center; width: 100%;">
