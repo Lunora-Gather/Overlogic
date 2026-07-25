@@ -1,9 +1,9 @@
 // EmpDroneEnemy.js — fast harassment drone that drains robot energy on close contact.
 // Behavior: approach → EMP drain → retreat. Yellow color, small body.
-import { EnemyBase } from './EnemyBase.js?v=20260725-3';
-import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-3';
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
-import { t } from '../i18n/I18n.js?v=20260725-3';
+import { EnemyBase } from './EnemyBase.js?v=20260725-4';
+import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
+import { t } from '../i18n/I18n.js?v=20260725-4';
 
 export class EmpDroneEnemy extends EnemyBase {
   constructor() {

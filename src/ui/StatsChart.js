@@ -1,7 +1,7 @@
 // StatsChart.js — Custom 2D Canvas chart renderer for cyberpunk run analytics.
 
-import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
-import { entity, t } from '../i18n/I18n.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
+import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 
 export function drawStatsChart(canvas, report) {
   if (!canvas || !report) return;

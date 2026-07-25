@@ -6,25 +6,25 @@ import { simulateBattle } from './simulate-balance.mjs';
 
 installBrowserShims();
 
-const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-3');
+const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-4');
 await GameDatabase.loadAll();
-const { GameState } = await import('../src/core/GameState.js?v=20260725-3');
-const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js?v=20260725-3');
-const { buildRewardOptions, buildUpgradeOptions, rewardDescription } = await import('../src/systems/RewardManager.js?v=20260725-3');
-const { GameManager } = await import('../src/core/GameManager.js?v=20260725-3');
-const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js?v=20260725-3');
-const { BattleContext } = await import('../src/core/BattleContext.js?v=20260725-3');
-const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js?v=20260725-3');
-const { RobotController } = await import('../src/robot/RobotController.js?v=20260725-3');
-const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-3');
-const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-3');
-const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-3');
-const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-3');
-const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-3');
-const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-3');
-const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-3');
-const { entity, setLocale, t } = await import('../src/i18n/I18n.js?v=20260725-3');
-const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-3');
+const { GameState } = await import('../src/core/GameState.js?v=20260725-4');
+const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js?v=20260725-4');
+const { buildRewardOptions, buildUpgradeOptions, rewardDescription } = await import('../src/systems/RewardManager.js?v=20260725-4');
+const { GameManager } = await import('../src/core/GameManager.js?v=20260725-4');
+const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js?v=20260725-4');
+const { BattleContext } = await import('../src/core/BattleContext.js?v=20260725-4');
+const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js?v=20260725-4');
+const { RobotController } = await import('../src/robot/RobotController.js?v=20260725-4');
+const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-4');
+const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-4');
+const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-4');
+const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-4');
+const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
+const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
+const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
+const { entity, setLocale, t } = await import('../src/i18n/I18n.js?v=20260725-4');
+const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -307,6 +307,7 @@ function verifyUiSafetyContracts() {
   assert.match(entity('action', 'shield', 'Shield', 'description'), /短時間/);
   assert.equal(entity('condition', 'projectile_nearby', 'Projectile Nearby'), '來襲彈體接近');
   assert.equal(entity('action', 'sidestep', 'Evasive Sidestep'), '規避側閃');
+  assert.equal(t('menu.config.modeStandard'), '自由路線與隨機獎勵');
   setLocale('en', { notify: false });
 }
 

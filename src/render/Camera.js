@@ -1,4 +1,4 @@
-import { GameState } from '../core/GameState.js?v=20260725-3';
+import { GameState } from '../core/GameState.js?v=20260725-4';
 
 export class Camera {
   constructor() {

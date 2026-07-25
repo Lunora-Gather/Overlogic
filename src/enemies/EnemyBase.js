@@ -1,8 +1,8 @@
 // EnemyBase.js — base enemy. Subclasses override tickBehavior(dt).
 // Mirrors scripts/enemies/EnemyBase.gd. Pure class with tick + draw.
 
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
-import { spawnBurst, spawnText, spawnEngineTrail } from '../vfx/ParticleSystem.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
+import { spawnBurst, spawnText, spawnEngineTrail } from '../vfx/ParticleSystem.js?v=20260725-4';
 
 export class EnemyBase {
   constructor() {

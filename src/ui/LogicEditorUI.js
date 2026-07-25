@@ -2,12 +2,12 @@
 // lets player add/delete/edit rules + priority + condition param + action. Start button.
 // Mirrors scripts/ui/LogicEditorUI.gd.
 
-import { GameState } from '../core/GameState.js?v=20260725-3';
-import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
-import { GameManager } from '../core/GameManager.js?v=20260725-3';
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
-import { escapeHtml } from './safeHtml.js?v=20260725-3';
-import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-3';
+import { GameState } from '../core/GameState.js?v=20260725-4';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
+import { GameManager } from '../core/GameManager.js?v=20260725-4';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
+import { escapeHtml } from './safeHtml.js?v=20260725-4';
+import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor() {

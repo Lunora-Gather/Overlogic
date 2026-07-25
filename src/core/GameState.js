@@ -1,8 +1,8 @@
 // GameState.js — persistent run state: rules, stats, progress, unlocks.
 // Mirrors scripts/core/GameState.gd. Singleton instance exported.
 
-import { GameDatabase } from './GameDatabase.js?v=20260725-3';
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { GameDatabase } from './GameDatabase.js?v=20260725-4';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 
 const SAVE_VERSION = 4;
 const RUN_MODES = new Set(['standard', 'daily']);

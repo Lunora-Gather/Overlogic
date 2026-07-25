@@ -1,8 +1,8 @@
 // Mine.js — static explosive. Detonates when enemy within trigger radius.
 // Mirrors scripts/vfx/Mine.gd. Pure class with tick + draw.
 
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
-import { spawnBurst, spawnShockwave } from './ParticleSystem.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
+import { spawnBurst, spawnShockwave } from './ParticleSystem.js?v=20260725-4';
 
 export class Mine {
   constructor() {

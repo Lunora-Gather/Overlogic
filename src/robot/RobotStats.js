@@ -2,7 +2,7 @@
 // cooldowns/effect values so passive upgrades + overdrive + overlogic apply uniformly.
 // Mirrors scripts/robot/RobotStats.gd.
 
-import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 
 export class RobotStats {
   constructor() { this.base = {}; }
@@ -56,4 +56,4 @@ export class RobotStats {
 }
 
 // Late import to avoid circular (GameState used only at loadFromGameState call time).
-import { GameState } from '../core/GameState.js?v=20260725-3';
+import { GameState } from '../core/GameState.js?v=20260725-4';

@@ -1,12 +1,12 @@
 // ActionExecutor.js — executes actions on the robot. Tracks per-action cooldowns.
 // Mirrors scripts/logic/ActionExecutor.gd. Lives inside CombatArena tick loop.
 
-import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
-import { Projectile } from '../vfx/Projectile.js?v=20260725-3';
-import { Mine } from '../vfx/Mine.js?v=20260725-3';
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
-import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-3';
-import { t } from '../i18n/I18n.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
+import { Projectile } from '../vfx/Projectile.js?v=20260725-4';
+import { Mine } from '../vfx/Mine.js?v=20260725-4';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
+import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
+import { t } from '../i18n/I18n.js?v=20260725-4';
 
 export class ActionExecutor {
   constructor() {

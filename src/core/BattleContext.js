@@ -2,8 +2,8 @@
 // mines, elapsed time, tracker, overlogic. Math helpers for nearest enemy / arena clamp.
 // Mirrors scripts/core/BattleContext.gd. Pure class, no DOM.
 
-import { CombatStatsTracker } from '../systems/CombatStatsTracker.js?v=20260725-3';
-import { OverlogicSystem } from '../systems/OverlogicSystem.js?v=20260725-3';
+import { CombatStatsTracker } from '../systems/CombatStatsTracker.js?v=20260725-4';
+import { OverlogicSystem } from '../systems/OverlogicSystem.js?v=20260725-4';
 
 const ARENA_HALF = 10;        // 20x20 arena
 const ARENA_MARGIN = 0.4;     // body clamp margin

@@ -1,7 +1,7 @@
 // CrawlerEnemy.js — basic melee chaser with leap attack.
-import { EnemyBase } from './EnemyBase.js?v=20260725-3';
-import { spawnBurst, spawnEngineTrail } from '../vfx/ParticleSystem.js?v=20260725-3';
-import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { EnemyBase } from './EnemyBase.js?v=20260725-4';
+import { spawnBurst, spawnEngineTrail } from '../vfx/ParticleSystem.js?v=20260725-4';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 
 export class CrawlerEnemy extends EnemyBase {
   constructor() {

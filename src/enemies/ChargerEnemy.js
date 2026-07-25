@@ -1,7 +1,7 @@
 // ChargerEnemy.js — charge caster. Telegraph → charge → impact.
 // Mirrors scripts/enemies/ChargerEnemy.gd.
 
-import { EnemyBase } from './EnemyBase.js?v=20260725-3';
+import { EnemyBase } from './EnemyBase.js?v=20260725-4';
 
 export class ChargerEnemy extends EnemyBase {
   constructor() {

@@ -4,21 +4,21 @@ import { resolve } from 'node:path';
 
 installBrowserShims();
 
-const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-3');
+const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-4');
 await GameDatabase.loadAll();
-const { GameState } = await import('../src/core/GameState.js?v=20260725-3');
-const { BattleContext } = await import('../src/core/BattleContext.js?v=20260725-3');
-const { RobotController } = await import('../src/robot/RobotController.js?v=20260725-3');
-const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-3');
-const { LogicBrain } = await import('../src/logic/LogicBrain.js?v=20260725-3');
-const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-3');
-const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-3');
-const { ShooterEnemy } = await import('../src/enemies/ShooterEnemy.js?v=20260725-3');
-const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-3');
-const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js?v=20260725-3');
-const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js?v=20260725-3');
-const { HazardTile } = await import('../src/vfx/HazardTile.js?v=20260725-3');
-const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-3');
+const { GameState } = await import('../src/core/GameState.js?v=20260725-4');
+const { BattleContext } = await import('../src/core/BattleContext.js?v=20260725-4');
+const { RobotController } = await import('../src/robot/RobotController.js?v=20260725-4');
+const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-4');
+const { LogicBrain } = await import('../src/logic/LogicBrain.js?v=20260725-4');
+const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-4');
+const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
+const { ShooterEnemy } = await import('../src/enemies/ShooterEnemy.js?v=20260725-4');
+const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
+const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js?v=20260725-4');
+const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js?v=20260725-4');
+const { HazardTile } = await import('../src/vfx/HazardTile.js?v=20260725-4');
+const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
