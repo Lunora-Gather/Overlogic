@@ -10,8 +10,10 @@ const { GameDatabase } = await import('../src/core/GameDatabase.js');
 await GameDatabase.loadAll();
 const { GameState } = await import('../src/core/GameState.js');
 const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js');
-const { buildRewardOptions, buildUpgradeOptions } = await import('../src/systems/RewardManager.js');
+const { buildRewardOptions, buildUpgradeOptions, rewardDescription } = await import('../src/systems/RewardManager.js');
 const { GameManager } = await import('../src/core/GameManager.js');
+const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js');
+const { BattleContext } = await import('../src/core/BattleContext.js');
 const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js');
 const { escapeHtml } = await import('../src/ui/safeHtml.js');
 
@@ -60,15 +62,48 @@ function verifyGameplayContracts() {
   const firstRewards = new Set(buildRewardOptions(GameState.getActiveBattle()));
   assert(firstRewards.size > 0, 'first battle should expose rewards');
   assert([...firstRewards].every((id) => GameDatabase.getBattle(0).rewardPool.includes(id)), 'first rewards must come from battle 1 pool');
+  assert([...firstRewards].some((id) => GameDatabase.getReward(id)?.rewardType === 'passive'), 'reward choices must include a passive');
+
+  assert.equal(isBossEnemyId('boss_warden'), true);
+  assert.equal(isBossEnemyId('apex_warden'), true);
+  assert.equal(isBossEnemyId('charger'), false);
+  assert.match(rewardDescription(GameDatabase.getReward('pu_max_energy')), /Energy capacity/);
+  assert.match(rewardDescription(GameDatabase.getReward('pu_move_speed')), /movement speed/);
+  assert.match(rewardDescription(GameDatabase.getReward('pu_shield_cd')), /Shield cooldown/);
+
+  const mixedRewardBattle = {
+    rewardPool: ['new_action_repair', 'new_action_drop_mine', 'new_condition_surrounded', 'pu_max_hp'],
+  };
+  withSeededRandom(20260725, () => {
+    for (let index = 0; index < 25; index += 1) {
+      const options = buildRewardOptions(mixedRewardBattle);
+      assert(options.some(id => GameDatabase.getReward(id)?.rewardType === 'passive'), 'mixed reward draws must retain a passive');
+    }
+  });
+
+  const apexHud = {
+    logConsole() {},
+    showPhaseToast() {},
+    showBossBar() {},
+  };
+  const apexArena = new CombatArena({ getContext: () => ({}) }, apexHud);
+  apexArena.ctx = new BattleContext();
+  apexArena._spawnWave([{ enemyId: 'apex_warden', count: 1 }]);
+  assert.equal(apexArena.ctx.boss?.enemyId, 'apex_warden', 'Apex Warden must receive boss HUD and targeting wiring');
 
   const upgradeRewards = buildUpgradeOptions();
   assert.equal(upgradeRewards.length, 3, 'upgrade vault should offer three choices');
   assert(upgradeRewards.every((id) => GameDatabase.getReward(id)?.rewardType === 'passive'), 'upgrade vault should only offer passives');
 
   GameState.persistentHp = 12;
+  GameState.lastReport = { total_damage_dealt: 72, battle_time: 4.3 };
   GameState.onBattleWon('pu_max_hp', 12);
   assert.equal(GameState.stats.max_hp, 120);
   assert.equal(GameState.persistentHp, 32);
+  assert.equal(GameState.runStats.battlesWon, 1);
+  assert.equal(GameState.runStats.totalDamageDealt, 72);
+  assert.equal(GameState.runStats.totalBattleTime, 4.3);
+  assert.deepEqual(GameState.runStats.rewardsChosen, ['pu_max_hp']);
 
   GameState.resetRun();
   GameState.currentMapColumn = 3;

@@ -40,23 +40,20 @@ export class VictoryUI {
     if (!this.statsEl) return;
     const rules = GameState.rules;
     const ruleCount = rules.length;
-    const passives = Object.entries(GameState.stats)
-      .filter(([k, v]) => {
-        const baseKeys = ['max_hp','max_energy','energy_regen','move_speed','basic_dmg','basic_cd',
-          'dash_distance','dash_cd','shield_dur','shield_reduce','shield_cd','interrupt_cd',
-          'overdrive_cd','overdrive_dur'];
-        return !baseKeys.includes(k) && v !== 0 && typeof v === 'number';
-      }).map(([k]) => k);
     const finalHp = report._endHp ?? null;
-    const dmgDealt = report.total_damage_dealt ?? report.totalDmgDealt ?? 0;
-    const battlesWon = GameState.currentMapColumn;
+    const runStats = GameState.runStats || {};
+    const dmgDealt = runStats.totalDamageDealt ?? 0;
+    const battlesWon = runStats.battlesWon ?? 0;
+    const totalTime = runStats.totalBattleTime ?? 0;
+    const upgrades = Array.isArray(runStats.rewardsChosen) ? runStats.rewardsChosen.length : 0;
 
     this.statsEl.innerHTML = `
       <div class="victory-stat"><span class="stat-label">Battles Won</span><span class="stat-value">${battlesWon}</span></div>
       <div class="victory-stat"><span class="stat-label">Final HP</span><span class="stat-value">${finalHp === null ? '—' : Math.round(finalHp)}</span></div>
       <div class="victory-stat"><span class="stat-label">Total Damage</span><span class="stat-value">${Math.round(dmgDealt)}</span></div>
+      <div class="victory-stat"><span class="stat-label">Combat Time</span><span class="stat-value">${totalTime.toFixed(1)}s</span></div>
       <div class="victory-stat"><span class="stat-label">Active Rules</span><span class="stat-value">${ruleCount}</span></div>
-      <div class="victory-stat"><span class="stat-label">Upgrades Acquired</span><span class="stat-value">${GameState.unlockedActionIds.length + GameState.unlockedConditionIds.length + passives.length}</span></div>
+      <div class="victory-stat"><span class="stat-label">Upgrades Acquired</span><span class="stat-value">${upgrades}</span></div>
     `;
   }
 

@@ -4,7 +4,7 @@
 import { GameDatabase } from './GameDatabase.js';
 import { AudioManager } from '../systems/AudioManager.js';
 
-const SAVE_VERSION = 2;
+const SAVE_VERSION = 3;
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
 const MAP_NODE_IDS = [
@@ -47,6 +47,7 @@ class GameStateClass {
     this._undoStack = [];
     this._redoStack = [];
     this.lastReport = {};
+    this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
     this._ruleCounter = 0;
     this.settings = {
       volume: 0.8,
@@ -106,6 +107,7 @@ class GameStateClass {
     this.unlockedConditionIds = [];
     this.unlockedActionIds = [];
     this.lastReport = {};
+    this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
     this._initDefaultRules();
     this.saveToStorage();
     this._emit('rules'); this._emit('stats'); this._emit('progress');
@@ -166,6 +168,11 @@ class GameStateClass {
   // Called when a battle is won. reward_id may be '' for final boss skip.
   // persistentHp: carry the robot's ending HP into the next battle (no full heal).
   onBattleWon(rewardId, endHp = null) {
+    this.runStats.battlesWon += 1;
+    this.runStats.totalDamageDealt += Number(this.lastReport?.total_damage_dealt) || 0;
+    this.runStats.totalBattleTime += Number(this.lastReport?.battle_time) || 0;
+    if (rewardId) this.runStats.rewardsChosen.push(rewardId);
+
     // Persist HP before applying rewards so Max HP upgrades can also grant
     // the newly-installed hull capacity as usable HP for the next battle.
     if (endHp !== null && typeof endHp === 'number' && endHp > 0) {
@@ -214,6 +221,7 @@ class GameStateClass {
       const reward = GameDatabase.getReward(rewardId);
       if (reward) this._applyReward(reward);
       else console.error('GameState: unknown reward', rewardId);
+      this.runStats.rewardsChosen.push(rewardId);
     }
     this.saveToStorage();
     this._emit('progress');
@@ -505,6 +513,7 @@ class GameStateClass {
         unlockedConditionIds: this.unlockedConditionIds,
         unlockedActionIds: this.unlockedActionIds,
         rules: this.rules,
+        runStats: this.runStats,
         _ruleCounter: this._ruleCounter,
         saveVersion: SAVE_VERSION,
       };
@@ -532,6 +541,12 @@ class GameStateClass {
       this.unlockedConditionIds = data.unlockedConditionIds ?? [];
       this.unlockedActionIds = data.unlockedActionIds ?? [];
       this.rules = data.rules ?? [];
+      this.runStats = data.runStats ?? {
+        battlesWon: 0,
+        totalDamageDealt: 0,
+        totalBattleTime: 0,
+        rewardsChosen: [],
+      };
       this._ruleCounter = data._ruleCounter ?? 0;
       this.saveVersion = data.saveVersion ?? 1;
       return true;
@@ -631,6 +646,18 @@ class GameStateClass {
     const mergedStats = { ...baseStats(), ...(this.stats || {}) };
     if (JSON.stringify(mergedStats) !== JSON.stringify(this.stats)) {
       this.stats = mergedStats;
+      changed = true;
+    }
+    const normalizedRunStats = {
+      battlesWon: Math.max(0, Number(this.runStats?.battlesWon) || 0),
+      totalDamageDealt: Math.max(0, Number(this.runStats?.totalDamageDealt) || 0),
+      totalBattleTime: Math.max(0, Number(this.runStats?.totalBattleTime) || 0),
+      rewardsChosen: Array.isArray(this.runStats?.rewardsChosen)
+        ? this.runStats.rewardsChosen.filter(id => GameDatabase.getReward(id))
+        : [],
+    };
+    if (JSON.stringify(normalizedRunStats) !== JSON.stringify(this.runStats)) {
+      this.runStats = normalizedRunStats;
       changed = true;
     }
     if (this.persistentHp !== null) {

@@ -29,6 +29,10 @@ const ENEMY_CLASSES = {
   apex_warden: BossProtocolWarden,   // reuse boss class; stats differ via data JSON
 };
 
+export function isBossEnemyId(enemyId) {
+  return enemyId === 'boss_warden' || enemyId === 'apex_warden';
+}
+
 export class CombatArena {
   constructor(canvas, hud) {
     this.canvas = canvas;
@@ -57,7 +61,7 @@ export class CombatArena {
 
   start(battle) {
     // High DPI / Retina Support
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = 720 * dpr;
     this.canvas.height = 720 * dpr;
     this.dpr = dpr;
@@ -248,14 +252,14 @@ export class CombatArena {
         const pos = this.ctx.clampToArena({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
         e.x = pos.x; e.y = pos.y;
         this.ctx.enemies.push(e);
-        if (s.enemyId === 'boss_warden') {
+        if (isBossEnemyId(s.enemyId)) {
           this.ctx.boss = e;
-          this.hud.logConsole(`CRITICAL WARNING: Boss Protocol Warden detected!`, 'danger');
+          this.hud.logConsole(`CRITICAL WARNING: ${data.displayName} detected!`, 'danger');
           e.onPhaseChanged = (p) => {
             this.camera.shake(0.35, 10);
-            this.hud.showPhaseToast(`PROTOCOL WARDEN: PHASE ${p}`);
+            this.hud.showPhaseToast(`${data.displayName.toUpperCase()}: PHASE ${p}`);
             this._phaseToastTimer = 1.6;
-            this.hud.logConsole(`Boss Alert: Protocol Warden entered Phase ${p}!`, 'danger');
+            this.hud.logConsole(`Boss Alert: ${data.displayName} entered Phase ${p}!`, 'danger');
           };
           e.onLaserFire = () => {
             this.camera.shake(0.4, 15);

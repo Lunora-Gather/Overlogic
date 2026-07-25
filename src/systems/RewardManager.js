@@ -24,12 +24,18 @@ export function buildRewardOptions(battle) {
       }
     }
   }
-  // Shuffle + take 3
+  // Shuffle + take 3, while preserving the design promise that every choice
+  // includes at least one broadly useful passive upgrade.
   for (let i = available.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [available[i], available[j]] = [available[j], available[i]];
   }
-  return available.slice(0, Math.min(3, available.length));
+  const selected = available.slice(0, Math.min(3, available.length));
+  if (hasPassive && !selected.some(rid => GameDatabase.getReward(rid)?.rewardType === 'passive')) {
+    const guaranteedPassive = available.find(rid => GameDatabase.getReward(rid)?.rewardType === 'passive');
+    if (guaranteedPassive) selected[selected.length - 1] = guaranteedPassive;
+  }
+  return [...new Set(selected)];
 }
 
 export function buildUpgradeOptions() {
@@ -48,9 +54,12 @@ export function rewardDescription(reward) {
   if (reward.rewardType === 'passive') {
     switch (reward.targetId) {
       case 'max_hp': return `Increase Maximum Hull HP by +20.`;
+      case 'max_energy': return `Increase Maximum Energy capacity by +30.`;
       case 'energy_regen': return `Boost Energy Regeneration speed by +20%.`;
       case 'basic_dmg': return `Increase basic laser cannon damage by +25%.`;
+      case 'move_speed': return `Increase movement speed by +0.5 m/s.`;
       case 'dash_cd': return `Reduce Dash cooldown by -20%.`;
+      case 'shield_cd': return `Reduce Shield cooldown by -20%.`;
       case 'shield_dur': return `Extend Shield forcefield duration by +1.0s.`;
       case 'overdrive_dur': return `Extend Overdrive matrix duration by +2.0s.`;
       case 'interrupt_cd': return `Reduce Interrupt Shot cooldown by -25%.`;

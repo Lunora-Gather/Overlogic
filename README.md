@@ -22,6 +22,8 @@ Live build: https://lunora-gather.github.io/Overlogic/
 - Persistent settings for volume, mute, camera shake, and reduced motion.
 - Tooltips for modules and map nodes.
 - Post-battle charts, action frequency, damage breakdowns, and contextual rule suggestions.
+- Victory rewards now include the just-finished combat's HP, clear time, damage, and action count.
+- Run-wide victory statistics persist across saves and distinguish combat wins from route events.
 - Save migration and bad-save recovery for older or corrupted local storage data.
 
 During combat, press `P` to pause/resume, `.` to single-step while paused, and `S` to change simulation speed.

@@ -14,7 +14,7 @@ export class Camera {
     this.y += (ty - this.y) * Math.min(1, dt * 4);
   }
   shake(time, mag) {
-    if (GameState && GameState.settings && !GameState.settings.screenShake) return;
+    if (GameState?.settings && (!GameState.settings.screenShake || GameState.settings.reduceMotion)) return;
     this.shakeTime = Math.max(this.shakeTime, time);
     this.shakeMag = mag;
   }
