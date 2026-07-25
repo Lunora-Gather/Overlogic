@@ -1,6 +1,7 @@
 // StatsChart.js — Custom 2D Canvas chart renderer for cyberpunk run analytics.
 
 import { GameDatabase } from '../core/GameDatabase.js';
+import { entity, t } from '../i18n/I18n.js';
 
 export function drawStatsChart(canvas, report) {
   if (!canvas || !report) return;
@@ -49,7 +50,7 @@ export function drawStatsChart(canvas, report) {
   g.fillStyle = '#00d2ff';
   g.font = 'bold 12px monospace';
   const actionTitleY = 20;
-  g.fillText('ACTION USAGE', 20, actionTitleY);
+  g.fillText(t('chart.actionUsage'), 20, actionTitleY);
   
   g.font = '10px monospace';
   const actions = Object.entries(report.action_usage || {}).sort((a, b) => b[1] - a[1]);
@@ -59,11 +60,11 @@ export function drawStatsChart(canvas, report) {
   let ay = 50;
   if (slicedActions.length === 0) {
     g.fillStyle = '#888';
-    g.fillText('(No actions executed)', 20, ay);
+    g.fillText(t('chart.noActions'), 20, ay);
   } else {
     for (const [actId, count] of slicedActions) {
       const act = GameDatabase.getAction(actId);
-      const name = act ? act.displayName : actId;
+      const name = act ? entity('action', actId, act.displayName) : actId;
       
       g.fillStyle = '#8892b0';
       g.fillText(name.toUpperCase(), 20, ay);
@@ -97,7 +98,7 @@ export function drawStatsChart(canvas, report) {
   g.font = 'bold 12px monospace';
   const dmgTitleX = isMobile ? 20 : colW + 20;
   const dmgTitleY = isMobile ? 200 : 20;
-  g.fillText('DAMAGE BY SOURCE', dmgTitleX, dmgTitleY);
+  g.fillText(t('chart.damageSource'), dmgTitleX, dmgTitleY);
 
   g.font = '10px monospace';
   const damageSources = Object.entries(report.damage_by_source || {}).sort((a, b) => b[1] - a[1]);
@@ -109,11 +110,11 @@ export function drawStatsChart(canvas, report) {
 
   if (damageSources.length === 0) {
     g.fillStyle = '#888';
-    g.fillText('(No damage taken)', dmgLabelX, dy);
+    g.fillText(t('chart.noDamage'), dmgLabelX, dy);
   } else {
     for (const [source, dmg] of damageSources.slice(0, maxActions)) {
       const enemy = GameDatabase.getEnemy(source);
-      const name = enemy ? enemy.displayName : source;
+      const name = enemy ? entity('enemy', source, enemy.displayName) : source;
 
       g.fillStyle = '#8892b0';
       g.fillText(name.toUpperCase(), dmgLabelX, dy);

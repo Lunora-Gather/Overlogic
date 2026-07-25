@@ -1,5 +1,6 @@
 // PostBattleReportBuilder.js — deterministic report text from a tracker snapshot.
 import { GameDatabase } from '../core/GameDatabase.js';
+import { entity, t } from '../i18n/I18n.js';
 
 export function buildReport(report, availableActionIds, availableConditionIds = []) {
   const damageBySource = report.damage_by_source || {};
@@ -19,10 +20,10 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     .sort((a, b) => damageBySource[b] - damageBySource[a]);
   for (const s of sources) {
     const ed = GameDatabase.getEnemy(s);
-    const display = (ed && ed.displayName) || s;
-    damageLines.push(`- Took ${Math.round(damageBySource[s])} dmg from ${display}`);
+    const display = ed ? entity('enemy', s, ed.displayName) : s;
+    damageLines.push(t('report.tookDamage', { value: Math.round(damageBySource[s]), source: display }));
   }
-  if (damageLines.length === 0) damageLines.push('- No damage taken');
+  if (damageLines.length === 0) damageLines.push(t('report.noDamage'));
 
   // Most used action
   let mostUsed = '', mostUsedCount = 0;
@@ -30,65 +31,65 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     if (n > mostUsedCount) { mostUsedCount = n; mostUsed = act; }
   }
   const mostUsedName = mostUsed
-    ? (GameDatabase.getAction(mostUsed)?.displayName || mostUsed) : 'none';
-  const mostUsedLine = `- Most used action: ${mostUsedName} (x${mostUsedCount})`;
+    ? entity('action', mostUsed, GameDatabase.getAction(mostUsed)?.displayName || mostUsed) : t('common.none');
+  const mostUsedLine = t('report.mostUsed', { name: mostUsedName, count: mostUsedCount });
 
   // Never used actions (from available set)
   const neverUsed = [];
   for (const act of availableActionIds) {
     if (!actionUsage[act] || actionUsage[act] === 0) {
-      neverUsed.push(GameDatabase.getAction(act)?.displayName || act);
+      neverUsed.push(entity('action', act, GameDatabase.getAction(act)?.displayName || act));
     }
   }
-  const neverUsedLine = `- Never used: ${neverUsed.length > 0 ? neverUsed.join(', ') : 'none'}`;
+  const neverUsedLine = t('report.neverUsed', { names: neverUsed.length > 0 ? neverUsed.join(', ') : t('common.none') });
 
   // Shield
-  let shieldLine = '- Shield: never used';
+  let shieldLine = t('report.shieldNever');
   if (shieldActivatedAtHp >= 0) {
     const pct = Math.round(shieldActivatedAtHp * 100);
     shieldLine = pct < 15
-      ? `- Shield used at ${pct}% HP (too late)`
-      : `- Shield used at ${pct}% HP`;
+      ? t('report.shieldLate', { pct })
+      : t('report.shieldAt', { pct });
   }
 
-  const energyLine = `- Energy overflowed for ${energyOverflowTime.toFixed(1)}s total`;
-  const deathLine = `- Death: HP=${Math.round(deathHp)}, Energy=${Math.round(deathEnergy)}, nearby enemies=${deathNearbyEnemyCount}`;
+  const energyLine = t('report.energyOverflow', { seconds: energyOverflowTime.toFixed(1) });
+  const deathLine = t('report.death', { hp: Math.round(deathHp), energy: Math.round(deathEnergy), count: deathNearbyEnemyCount });
 
   // Suggestions (deterministic with auto-add metadata)
   const suggestions = [];
   
   if (interruptMisses >= 2 && hasCondition('enemy_casting') && hasAction('interrupt_shot')) {
     suggestions.push({
-      text: 'Add IF Enemy Casting THEN Interrupt Shot',
+      text: t('report.suggestInterrupt'),
       rule: { conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot', priority: 90 }
     });
   }
   if (deathNearbyEnemyCount >= 3 && hasCondition('surrounded') && hasAction('dash_away')) {
     suggestions.push({
-      text: 'Add IF Surrounded THEN Dash Away',
+      text: t('report.suggestSurrounded'),
       rule: { conditionId: 'surrounded', conditionValue: [4, 3], actionId: 'dash_away', priority: 85 }
     });
   } else if (deathNearbyEnemyCount >= 3 && hasCondition('enemy_nearby') && hasAction('dash_away')) {
     suggestions.push({
-      text: 'Add IF Enemy Nearby THEN Dash Away',
+      text: t('report.suggestNearby'),
       rule: { conditionId: 'enemy_nearby', conditionValue: 3.5, actionId: 'dash_away', priority: 85 }
     });
   }
   if (shieldActivatedAtHp < 0 || shieldActivatedAtHp < 0.15) {
     suggestions.push({
-      text: 'Raise priority of defensive rules (e.g. Shield or Repair)'
+      text: t('report.suggestDefense')
     });
   }
   if (energyOverflowTime > 5 && hasCondition('energy_high') && hasAction('overdrive')) {
     suggestions.push({
-      text: 'Add IF Energy High THEN Overdrive',
+      text: t('report.suggestEnergy'),
       rule: { conditionId: 'energy_high', conditionValue: 0.8, actionId: 'overdrive', priority: 60 }
     });
   }
   
   if (suggestions.length === 0) {
     suggestions.push({
-      text: 'Try increasing dash priority to keep distance'
+      text: t('report.suggestDash')
     });
   }
 

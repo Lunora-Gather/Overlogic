@@ -13,10 +13,12 @@ import { VictoryUI } from './ui/VictoryUI.js';
 import { AudioManager } from './systems/AudioManager.js';
 import { BackgroundAnim } from './systems/BackgroundAnim.js';
 import { escapeHtml } from './ui/safeHtml.js';
+import { entity, setLocale, t } from './i18n/I18n.js';
 
 async function main() {
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
+  setLocale(GameState.settings.language, { notify: false });
 
   // Initialize and run the cyber background animation
   const bgCanvas = document.getElementById('bg-canvas');
@@ -122,6 +124,7 @@ async function main() {
   const settingMute = document.getElementById('setting-mute');
   const settingShake = document.getElementById('setting-shake');
   const settingReduceMotion = document.getElementById('setting-reduce-motion');
+  const settingLanguage = document.getElementById('setting-language');
 
   function openSettings() {
     AudioManager.resume();
@@ -131,6 +134,7 @@ async function main() {
     settingMute.checked = GameState.settings.mute;
     settingShake.checked = GameState.settings.screenShake;
     settingReduceMotion.checked = GameState.settings.reduceMotion;
+    settingLanguage.value = GameState.settings.language;
 
     settingsOverlay.classList.remove('hidden');
     AudioManager.play('button_click');
@@ -160,7 +164,9 @@ async function main() {
       GameState.settings.mute = settingMute.checked;
       GameState.settings.screenShake = settingShake.checked;
       GameState.settings.reduceMotion = settingReduceMotion.checked;
+      GameState.settings.language = settingLanguage.value;
       GameState.saveSettings();
+      setLocale(GameState.settings.language);
       document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
       if (bgAnim) bgAnim.setReducedMotion(GameState.settings.reduceMotion);
       
@@ -182,18 +188,18 @@ async function main() {
     if (type === 'condition') {
       const c = GameDatabase.getCondition(id);
       if (c) {
-        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(c.displayName)}</strong><br>` +
-                  `<span style="color:var(--muted); font-size:10px;">Condition Code: ${escapeHtml(id)}</span><br>` +
-                  `<p style="margin:6px 0 0 0; font-size:11px;">${escapeHtml(c.description)}</p>` +
-                  (c.parameterType !== 'none' ? `<span style="color:var(--accent2); font-size:10px; display:block; margin-top:4px;">Requires value type: ${escapeHtml(c.parameterType)}</span>` : '');
+        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(entity('condition', id, c.displayName))}</strong><br>` +
+                  `<span style="color:var(--muted); font-size:10px;">${escapeHtml(t('tooltip.conditionCode'))}: ${escapeHtml(id)}</span><br>` +
+                  `<p style="margin:6px 0 0 0; font-size:11px;">${escapeHtml(entity('condition', id, c.description, 'description'))}</p>` +
+                  (c.parameterType !== 'none' ? `<span style="color:var(--accent2); font-size:10px; display:block; margin-top:4px;">${escapeHtml(t('tooltip.valueType'))}: ${escapeHtml(c.parameterType)}</span>` : '');
       }
     } else if (type === 'action') {
       const a = GameDatabase.getAction(id);
       if (a) {
-        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(a.displayName)}</strong><br>` +
-                  `<span style="color:var(--muted); font-size:10px;">Action Code: ${escapeHtml(id)}</span><br>` +
-                  `<p style="margin:6px 0 6px 0; font-size:11px;">${escapeHtml(a.description)}</p>` +
-                  `<span style="color:var(--accent2); font-size:10px; display:block;">Cooldown: ${escapeHtml(a.cooldown)}s · Cost: ${escapeHtml(a.energyCost)} EN · Range: ${escapeHtml(a.range)}m</span>`;
+        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(entity('action', id, a.displayName))}</strong><br>` +
+                  `<span style="color:var(--muted); font-size:10px;">${escapeHtml(t('tooltip.actionCode'))}: ${escapeHtml(id)}</span><br>` +
+                  `<p style="margin:6px 0 6px 0; font-size:11px;">${escapeHtml(entity('action', id, a.description, 'description'))}</p>` +
+                  `<span style="color:var(--accent2); font-size:10px; display:block;">${escapeHtml(t('tooltip.cooldown'))}: ${escapeHtml(a.cooldown)}s · ${escapeHtml(t('tooltip.cost'))}: ${escapeHtml(a.energyCost)} EN · ${escapeHtml(t('tooltip.range'))}: ${escapeHtml(a.range)}m</span>`;
       }
     } else if (type === 'map-node') {
       // Find the node from GameState mapNodes
@@ -203,19 +209,21 @@ async function main() {
         if (n) { foundNode = n; break; }
       }
       if (foundNode) {
-        const typeLabels = { combat: '⚔️ Combat Simulation', repair: '🔧 Nano-Repair Node', upgrade: '💎 Upgrade Vault' };
+        const typeLabels = { combat: t('map.combat'), repair: t('map.repair'), upgrade: t('map.upgrade') };
         let detail = '';
         if (foundNode.type === 'combat') {
           const b = GameDatabase.getBattle(foundNode.battleIndex);
           if (b) {
-            detail = `<span style="color:#ff3e3e; display:block; margin-top:4px;">Enemies: ${escapeHtml(b.enemySpawns.map(s => `${s.count}x ${s.enemyId}`).join(', '))}</span>`;
+            detail = `<span style="color:#ff3e3e; display:block; margin-top:4px;">${escapeHtml(t('map.enemies'))}: ${escapeHtml(b.enemySpawns.map(s => `${s.count}× ${entity('enemy', s.enemyId, s.enemyId)}`).join(', '))}</span>`;
           }
         } else if (foundNode.type === 'repair') {
-          detail = `<span style="color:#3eff9d; display:block; margin-top:4px;">Increases Max HP by +25. Instantly restores all HP.</span>`;
+          detail = `<span style="color:#3eff9d; display:block; margin-top:4px;">${escapeHtml(t('map.repairDesc'))}</span>`;
         } else if (foundNode.type === 'upgrade') {
-          detail = `<span style="color:var(--accent2); display:block; margin-top:4px;">Choose a powerful passive protocol upgrade.</span>`;
+          detail = `<span style="color:var(--accent2); display:block; margin-top:4px;">${escapeHtml(t('map.upgradeDesc'))}</span>`;
         }
-        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(foundNode.label)}</strong><br>` +
+        const battle = foundNode.type === 'combat' ? GameDatabase.getBattle(foundNode.battleIndex) : null;
+        const nodeName = battle ? entity('battle', battle.id, battle.displayName) : typeLabels[foundNode.type];
+        content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(nodeName)}</strong><br>` +
                   `<span style="color:var(--muted); font-size:10px;">${escapeHtml(typeLabels[foundNode.type] || foundNode.type)}</span>` +
                   detail;
       }

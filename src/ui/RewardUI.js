@@ -5,9 +5,10 @@
 import { GameState } from '../core/GameState.js';
 import { GameDatabase } from '../core/GameDatabase.js';
 import { GameManager } from '../core/GameManager.js';
-import { buildRewardOptions, buildUpgradeOptions, rewardDescription } from '../systems/RewardManager.js';
+import { buildRewardOptions, buildUpgradeOptions, rewardDescription, rewardDisplayName } from '../systems/RewardManager.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { escapeHtml } from './safeHtml.js';
+import { t } from '../i18n/I18n.js';
 
 const TYPE_ICONS = {
   passive: '⚙️',
@@ -20,6 +21,9 @@ export class RewardUI {
     this.el = document.getElementById('screen-reward');
     this.optionsEl = document.getElementById('reward-options');
     this._currentOptions = [];
+    window.addEventListener('overlogic:localechange', () => {
+      if (!this.el.classList.contains('hidden')) this._render();
+    });
   }
 
   show() {
@@ -48,24 +52,24 @@ export class RewardUI {
     const summaryBar = document.createElement('div');
     summaryBar.className = 'reward-summary-bar';
     summaryBar.innerHTML = `
-      <span class="reward-summary-label">${hasCombatReport ? 'Last Combat:' : 'Current State:'}</span>
+      <span class="reward-summary-label">${t(hasCombatReport ? 'reward.lastCombat' : 'reward.currentState')}</span>
       <span class="reward-summary-stat">❤️ HP ${Math.max(0, Math.round(currentHp))}/${Math.round(GameState.stats.max_hp)} (${hpPct}%)</span>
       <span class="reward-summary-stat">⚡ ${GameState.stats.max_energy} EN</span>
       <span class="reward-summary-stat">🗡️ ${Math.round(GameState.stats.basic_dmg * 10) / 10} ATK</span>
       ${hasCombatReport ? `
         <span class="reward-summary-stat">⏱️ ${report.battle_time.toFixed(1)}s</span>
-        <span class="reward-summary-stat">🎯 ${Math.round(report.total_damage_dealt || 0)} damage</span>
-        <span class="reward-summary-stat">⚙️ ${actionCount} actions</span>
+        <span class="reward-summary-stat">🎯 ${t('reward.damage', { value: Math.round(report.total_damage_dealt || 0) })}</span>
+        <span class="reward-summary-stat">⚙️ ${t('reward.actions', { value: actionCount })}</span>
       ` : ''}
       <span class="reward-summary-stat" style="color: #a0a0a0; font-size: 10px;">
-        ${GameState.unlockedActionIds.length} extra actions · ${GameState.unlockedConditionIds.length} extra conditions
+        ${t('reward.extraModules', { actions: GameState.unlockedActionIds.length, conditions: GameState.unlockedConditionIds.length })}
       </span>
     `;
     this.optionsEl.before(summaryBar);
 
     if (this._currentOptions.length === 0) {
       const btn = document.createElement('button');
-      btn.className = 'btn primary big'; btn.textContent = 'Continue';
+      btn.className = 'btn primary big'; btn.textContent = t('common.continue');
       btn.addEventListener('click', () => GameManager.onRewardChosen(''));
       this.optionsEl.appendChild(btn);
       return;
@@ -78,14 +82,14 @@ export class RewardUI {
       card.className = 'reward-card';
       card.tabIndex = 0;
       card.role = 'button';
-      card.setAttribute('aria-label', `Select ${r.displayName}`);
+      card.setAttribute('aria-label', rewardDisplayName(r));
       const icon = TYPE_ICONS[r.rewardType] || '✦';
-      const typeLabel = r.rewardType.replace('_', ' ').toUpperCase();
+      const typeLabel = t(`rewardType.${r.rewardType}`);
       card.innerHTML =
         `<span class="r-type">${icon} ${escapeHtml(typeLabel)}</span>` +
-        `<span class="r-name">${escapeHtml(r.displayName)}</span>` +
+        `<span class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
         `<span class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
-        `<span class="r-pick-hint">Click to Select</span>`;
+        `<span class="r-pick-hint">${escapeHtml(t('reward.select'))}</span>`;
       const choose = () => {
         AudioManager.play('rule_add');
         GameManager.onRewardChosen(rid);

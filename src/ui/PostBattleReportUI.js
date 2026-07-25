@@ -6,6 +6,7 @@ import { buildReport } from '../systems/PostBattleReportBuilder.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { drawStatsChart } from './StatsChart.js';
 import { escapeHtml } from './safeHtml.js';
+import { entity, t } from '../i18n/I18n.js';
 
 export class PostBattleReportUI {
   constructor() {
@@ -62,15 +63,15 @@ export class PostBattleReportUI {
     const unusedActions = allActions.filter(a => !actionUsage[a] && a !== 'basic_attack');
 
     if (usedActions.length > 0) {
-      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">ACTION FREQUENCY</li>`;
+      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.frequency'))}</li>`;
       for (const a of usedActions) {
         const count = actionUsage[a] || 0;
         const bar = '█'.repeat(Math.min(count, 20)) + '░'.repeat(Math.max(0, 20 - count));
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: 130px;">${escapeHtml(a)}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: 130px;">${escapeHtml(entity('action', a, a))}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
       }
     }
     if (unusedActions.length > 0) {
-      logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">⚠ Never triggered: ${escapeHtml(unusedActions.join(', '))}</li>`;
+      logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">${escapeHtml(t('report.neverTriggered', { actions: unusedActions.map(a => entity('action', a, a)).join(', ') }))}</li>`;
     }
     this.repLogic.innerHTML = logicHtml;
     
@@ -91,7 +92,7 @@ export class PostBattleReportUI {
       if (sug.rule) {
         const addBtn = document.createElement('button');
         addBtn.className = 'btn small primary';
-        addBtn.textContent = '+ Auto-Add';
+        addBtn.textContent = t('report.autoAdd');
         addBtn.style.padding = '3px 8px';
         addBtn.style.fontSize = '10px';
         addBtn.style.minHeight = '24px';
@@ -106,7 +107,7 @@ export class PostBattleReportUI {
           );
           AudioManager.play('rule_add');
           addBtn.disabled = true;
-          addBtn.textContent = 'Added ✔';
+          addBtn.textContent = t('report.added');
           addBtn.classList.remove('primary');
           addBtn.style.opacity = '0.6';
         });

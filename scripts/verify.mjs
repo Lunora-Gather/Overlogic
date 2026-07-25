@@ -16,6 +16,8 @@ const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js'
 const { BattleContext } = await import('../src/core/BattleContext.js');
 const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js');
 const { escapeHtml } = await import('../src/ui/safeHtml.js');
+const { entity, setLocale, t } = await import('../src/i18n/I18n.js');
+const { difficultyModifiers } = await import('../src/systems/RunModifiers.js');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -58,6 +60,16 @@ function verifyDataContracts() {
 function verifyGameplayContracts() {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
+  GameState.configureRun('daily', 'veteran');
+  assert.equal(GameState.runConfig.mode, 'daily');
+  assert.equal(GameState.runConfig.difficulty, 'veteran');
+  const dailyA = GameState.randomFor('contract');
+  const seqA = [dailyA(), dailyA(), dailyA()];
+  const dailyB = GameState.randomFor('contract');
+  assert.deepEqual(seqA, [dailyB(), dailyB(), dailyB()], 'daily seed random streams must be reproducible');
+  assert.equal(difficultyModifiers('casual').enemyHp < 1, true);
+  assert.equal(difficultyModifiers('veteran').enemyDamage > 1, true);
+  GameState.configureRun('standard', 'standard');
 
   const firstRewards = new Set(buildRewardOptions(GameState.getActiveBattle()));
   assert(firstRewards.size > 0, 'first battle should expose rewards');
@@ -189,6 +201,17 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
+  assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
+  assert(html.includes('id="run-mode"'), 'menu should expose run modes');
+  setLocale('zh-CN', { notify: false });
+  assert.equal(t('menu.start'), '开始模拟');
+  assert.equal(entity('condition', 'hp_low', 'HP Low'), '生命值较低');
+  setLocale('zh-TW', { notify: false });
+  assert.equal(t('menu.start'), '開始模擬');
+  assert.equal(entity('action', 'shield', 'Shield'), '護盾');
+  assert.equal(entity('action', 'basic_attack', 'Basic Attack'), '基礎攻擊');
+  assert.equal(t('editor.prio'), '優先級');
+  setLocale('en', { notify: false });
 }
 
 function verifyRuleTelemetryContracts() {

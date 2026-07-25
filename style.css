@@ -20,6 +20,9 @@
   --boss: #ff2d74;
   --glow-shadow: 0 0 15px rgba(0, 210, 255, 0.25);
   --glow-shadow-heavy: 0 0 25px rgba(0, 210, 255, 0.4);
+  --font-ui: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Rajdhani', 'Outfit', sans-serif;
+  --font-mono: 'Share Tech Mono', 'SF Mono', Consolas, monospace;
 }
 
 * {
@@ -36,14 +39,14 @@ html, body {
 body {
   background-color: var(--bg);
   color: var(--txt);
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: var(--font-ui);
   overflow: hidden;
   user-select: none;
   touch-action: manipulation;
 }
 
 .rule-row, .rule-header, .combat-rule-item, .combat-console-log, .unit-stats, .custom-tooltip {
-  font-family: 'Share Tech Mono', 'SF Mono', Consolas, monospace;
+  font-family: var(--font-mono);
 }
 
 body {
@@ -120,6 +123,7 @@ body {
 }
 
 .logo {
+  font-family: var(--font-display);
   font-size: clamp(48px, 8vw, 96px);
   letter-spacing: clamp(6px, 1.45vw, 18px);
   font-weight: 900;
@@ -140,6 +144,7 @@ body {
 }
 
 .subtitle {
+  font-family: var(--font-display);
   color: var(--muted);
   letter-spacing: 6px;
   font-size: 13px;
@@ -330,6 +335,146 @@ input:focus-visible {
   border-radius: 6px;
   backdrop-filter: blur(12px);
   box-shadow: var(--glow-shadow);
+}
+
+html[data-locale="zh-CN"] {
+  --font-ui: 'Noto Sans SC', 'Microsoft YaHei UI', sans-serif;
+  --font-display: 'Noto Sans SC', 'Microsoft YaHei UI', sans-serif;
+  --font-mono: 'Share Tech Mono', 'Noto Sans SC', monospace;
+}
+
+html[data-locale="zh-TW"] {
+  --font-ui: 'Noto Sans TC', 'Microsoft JhengHei UI', sans-serif;
+  --font-display: 'Noto Sans TC', 'Microsoft JhengHei UI', sans-serif;
+  --font-mono: 'Share Tech Mono', 'Noto Sans TC', monospace;
+}
+
+html[data-locale^="zh"] .btn,
+html[data-locale^="zh"] .subtitle,
+html[data-locale^="zh"] h1,
+html[data-locale^="zh"] h2,
+html[data-locale^="zh"] h3 {
+  letter-spacing: 0.08em;
+  line-height: 1.45;
+}
+
+.locale-switcher {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top));
+  right: max(20px, env(safe-area-inset-right));
+  display: flex;
+  gap: 4px;
+  padding: 5px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: rgba(3, 7, 16, 0.72);
+  backdrop-filter: blur(14px);
+  z-index: 12;
+}
+
+.locale-switcher button {
+  border: 0;
+  border-radius: 6px;
+  padding: 7px 10px;
+  color: var(--muted);
+  background: transparent;
+  font: 600 12px/1 var(--font-ui);
+  cursor: pointer;
+  transition: color .2s, background .2s, box-shadow .2s;
+}
+
+.locale-switcher button.active {
+  color: #031017;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 14px rgba(var(--accent-rgb), .35);
+}
+
+.run-config-panel {
+  width: min(520px, calc(100vw - 40px));
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(8, 14, 29, .72);
+  backdrop-filter: blur(12px);
+}
+
+.run-config-panel label {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+.run-config-panel select,
+#setting-language {
+  min-width: 0;
+  color: var(--txt);
+  background: var(--panel-solid);
+  border: 1px solid var(--line-active);
+  border-radius: 6px;
+  padding: 7px 8px;
+  font: 600 12px/1.2 var(--font-ui);
+}
+
+#daily-seed-label {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--accent2);
+  font: 12px/1.2 var(--font-mono);
+  letter-spacing: .08em;
+}
+
+.how-body {
+  display: grid;
+  gap: 10px;
+  color: var(--txt);
+  line-height: 1.65;
+}
+
+.how-body p:first-child,
+.how-body p:nth-child(3),
+.how-body p:nth-child(4),
+.how-body p:nth-child(5) {
+  color: var(--muted);
+}
+
+.brief-goals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 10px;
+  align-items: center;
+  width: 100%;
+  padding-top: 7px;
+  border-top: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.brief-goals b {
+  color: var(--accent);
+  letter-spacing: .08em;
+}
+
+.brief-goals .ok {
+  color: var(--accent2);
+}
+
+@media (max-width: 600px) {
+  .locale-switcher {
+    top: 10px;
+    right: 10px;
+  }
+  .locale-switcher button { padding: 6px 8px; }
+  .title-block { margin-bottom: 12px; }
+  .run-config-panel { grid-template-columns: 1fr; }
+  #daily-seed-label { grid-column: 1; }
 }
 
 .mission-briefing {

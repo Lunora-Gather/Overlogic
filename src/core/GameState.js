@@ -4,7 +4,10 @@
 import { GameDatabase } from './GameDatabase.js';
 import { AudioManager } from '../systems/AudioManager.js';
 
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
+const RUN_MODES = new Set(['standard', 'daily']);
+const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
+const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
 const MAP_NODE_IDS = [
@@ -48,12 +51,17 @@ class GameStateClass {
     this._redoStack = [];
     this.lastReport = {};
     this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
+    this.runConfig = { mode: 'standard', difficulty: 'standard', seed: null };
+    this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._ruleCounter = 0;
     this.settings = {
       volume: 0.8,
       mute: false,
       screenShake: true,
       reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+      language: 'en',
+      runMode: 'standard',
+      difficulty: 'standard',
     };
     // simple pub/sub for UI re-render
     this._listeners = { rules: [], stats: [], progress: [] };
@@ -76,6 +84,9 @@ class GameStateClass {
         this.settings.screenShake = parsed.screenShake ?? true;
         this.settings.reduceMotion = parsed.reduceMotion ??
           (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+        this.settings.language = LANGUAGES.has(parsed.language) ? parsed.language : 'en';
+        this.settings.runMode = RUN_MODES.has(parsed.runMode) ? parsed.runMode : 'standard';
+        this.settings.difficulty = DIFFICULTIES.has(parsed.difficulty) ? parsed.difficulty : 'standard';
       }
       // Apply to AudioManager
       AudioManager.volumeVal = this.settings.volume;
@@ -108,6 +119,12 @@ class GameStateClass {
     this.unlockedActionIds = [];
     this.lastReport = {};
     this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
+    this.runConfig = {
+      mode: RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard',
+      difficulty: DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard',
+      seed: this.settings.runMode === 'daily' ? this.dailySeed() : null,
+    };
+    this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._initDefaultRules();
     this.saveToStorage();
     this._emit('rules'); this._emit('stats'); this._emit('progress');
@@ -277,6 +294,51 @@ class GameStateClass {
     if (this._undoStack.length >= 50) this._undoStack.shift();
     this._undoStack.push(JSON.stringify(this.rules));
     this._redoStack = [];
+    if (!this.tutorialProgress?.editedRule) {
+      this.tutorialProgress = { ...this.tutorialProgress, editedRule: true };
+      this._emit('progress');
+    }
+  }
+
+  markSandboxRun() {
+    if (this.tutorialProgress?.sandboxRun) return;
+    this.tutorialProgress = { ...this.tutorialProgress, sandboxRun: true };
+    this.saveToStorage();
+    this._emit('progress');
+  }
+
+  dailySeed(date = new Date()) {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return Number(`${year}${month}${day}`);
+  }
+
+  configureRun(mode, difficulty) {
+    this.settings.runMode = RUN_MODES.has(mode) ? mode : 'standard';
+    this.settings.difficulty = DIFFICULTIES.has(difficulty) ? difficulty : 'standard';
+    this.saveSettings();
+    if (this.currentMapColumn === 0 && this.runStats.battlesWon === 0) {
+      this.runConfig = {
+        mode: this.settings.runMode,
+        difficulty: this.settings.difficulty,
+        seed: this.settings.runMode === 'daily' ? this.dailySeed() : null,
+      };
+      this.saveToStorage();
+      this._emit('progress');
+    }
+  }
+
+  randomFor(salt = '') {
+    if (this.runConfig?.mode !== 'daily') return Math.random;
+    let state = hashString(`${this.runConfig.seed ?? this.dailySeed()}:${salt}`) || 0x6d2b79f5;
+    return () => {
+      state |= 0;
+      state = state + 0x6d2b79f5 | 0;
+      let out = Math.imul(state ^ state >>> 15, 1 | state);
+      out = out + Math.imul(out ^ out >>> 7, 61 | out) ^ out;
+      return ((out ^ out >>> 14) >>> 0) / 4294967296;
+    };
   }
   pushUndoState() {
     this._pushState();
@@ -514,6 +576,8 @@ class GameStateClass {
         unlockedActionIds: this.unlockedActionIds,
         rules: this.rules,
         runStats: this.runStats,
+        runConfig: this.runConfig,
+        tutorialProgress: this.tutorialProgress,
         _ruleCounter: this._ruleCounter,
         saveVersion: SAVE_VERSION,
       };
@@ -547,6 +611,12 @@ class GameStateClass {
         totalBattleTime: 0,
         rewardsChosen: [],
       };
+      this.runConfig = data.runConfig ?? {
+        mode: this.settings.runMode,
+        difficulty: this.settings.difficulty,
+        seed: this.settings.runMode === 'daily' ? this.dailySeed() : null,
+      };
+      this.tutorialProgress = data.tutorialProgress ?? { editedRule: false, sandboxRun: false };
       this._ruleCounter = data._ruleCounter ?? 0;
       this.saveVersion = data.saveVersion ?? 1;
       return true;
@@ -660,6 +730,29 @@ class GameStateClass {
       this.runStats = normalizedRunStats;
       changed = true;
     }
+    const normalizedMode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';
+    const normalizedDifficulty = DIFFICULTIES.has(this.runConfig?.difficulty)
+      ? this.runConfig.difficulty
+      : 'standard';
+    const normalizedRunConfig = {
+      mode: normalizedMode,
+      difficulty: normalizedDifficulty,
+      seed: normalizedMode === 'daily'
+        ? (Number(this.runConfig?.seed) || this.dailySeed())
+        : null,
+    };
+    if (JSON.stringify(normalizedRunConfig) !== JSON.stringify(this.runConfig)) {
+      this.runConfig = normalizedRunConfig;
+      changed = true;
+    }
+    const normalizedTutorial = {
+      editedRule: this.tutorialProgress?.editedRule === true,
+      sandboxRun: this.tutorialProgress?.sandboxRun === true,
+    };
+    if (JSON.stringify(normalizedTutorial) !== JSON.stringify(this.tutorialProgress)) {
+      this.tutorialProgress = normalizedTutorial;
+      changed = true;
+    }
     if (this.persistentHp !== null) {
       const hp = Number(this.persistentHp);
       const normalizedHp = Number.isFinite(hp) && hp > 0 ? Math.min(hp, this.stats.max_hp) : null;
@@ -748,6 +841,15 @@ class GameStateClass {
   isDemoCleared() {
     return this.currentMapColumn >= this.mapNodes.length;
   }
+}
+
+function hashString(value) {
+  let hash = 2166136261;
+  for (let i = 0; i < value.length; i++) {
+    hash ^= value.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
 }
 
 export const GameState = new GameStateClass();

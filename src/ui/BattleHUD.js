@@ -7,6 +7,7 @@ import { GameState } from '../core/GameState.js';
 import { GameDatabase } from '../core/GameDatabase.js';
 import { formatCond } from '../logic/LogicRule.js';
 import { escapeHtml } from './safeHtml.js';
+import { entity, t } from '../i18n/I18n.js';
 
 export class BattleHUD {
   constructor(arena) {
@@ -31,6 +32,14 @@ export class BattleHUD {
     this._lastRuleId = null;
     this._lastMeltdownState = false;
     this._bind();
+    window.addEventListener('overlogic:localechange', () => {
+      this.renderRulesPanel();
+      if (this.arena) {
+        this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
+        this.btnSpeed.textContent = t('combat.speed', { speed: this.arena.speed });
+        this.setWave(this.arena.currentWave, this.arena.totalWaves);
+      }
+    });
   }
 
   logConsole(message, type = 'info') {
@@ -51,7 +60,7 @@ export class BattleHUD {
     this.btnPause.addEventListener('click', () => {
       if (!this.arena) return;
       this.arena.togglePause();
-      this.btnPause.textContent = this.arena.paused ? 'Resume' : 'Pause';
+      this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
       this.btnStep.classList.toggle('hidden', !this.arena.paused);
       AudioManager.play('button_click');
     });
@@ -63,7 +72,7 @@ export class BattleHUD {
     this.btnSpeed.addEventListener('click', () => {
       if (!this.arena) return;
       const s = this.arena.toggleSpeed();
-      this.btnSpeed.textContent = `Speed x${s}`;
+      this.btnSpeed.textContent = t('combat.speed', { speed: s });
       AudioManager.play('button_click');
     });
     this.btnQuit.addEventListener('click', () => {
@@ -88,10 +97,10 @@ export class BattleHUD {
   }
 
   onBattleStart(battle) {
-    this.btnPause.textContent = 'Pause';
+    this.btnPause.textContent = t('combat.pause');
     this.btnStep.classList.add('hidden');
-    this.btnSpeed.textContent = 'Speed x1';
-    this.curLogic.textContent = 'Current Logic: —';
+    this.btnSpeed.textContent = t('combat.speed', { speed: 1 });
+    this.curLogic.textContent = t('combat.current', { label: '—' });
     this.curLogic.classList.remove('overlogic');
     this.hideBossBar();
     this.hidePhaseToast();
@@ -100,7 +109,7 @@ export class BattleHUD {
     this._lastMeltdownState = false;
     const consoleEl = document.getElementById('combat-console-log');
     if (consoleEl) consoleEl.innerHTML = '';
-    this.logConsole('Directive Engine initialized...', 'success');
+    this.logConsole(t('log.initialized'), 'success');
   }
 
   setHp(hp, mx) {
@@ -113,15 +122,15 @@ export class BattleHUD {
   }
   setOverlogic(val, active) {
     this.olFill.style.width = `${Math.max(0, Math.min(100, val))}%`;
-    this.olText.textContent = active ? '🔥 MELTDOWN! 🔥' : `${val|0}°C`;
+    this.olText.textContent = active ? t('combat.meltdown') : `${val|0}°C`;
     this.olFill.classList.toggle('meltdown-pulse', active);
 
     const activeBool = !!active;
     if (activeBool && !this._lastMeltdownState) {
-      this.logConsole(`CRITICAL WARNING: CPU meltdown initiated! Cooldowns boosted but heat damage active!`, 'danger');
+      this.logConsole(t('log.meltdown'), 'danger');
       AudioManager.play('boss_laser');
     } else if (!activeBool && this._lastMeltdownState) {
-      this.logConsole(`System Recovery: Core stabilized. Cooldown complete.`, 'success');
+      this.logConsole(t('log.recovered'), 'success');
     }
     this._lastMeltdownState = activeBool;
   }
@@ -129,7 +138,7 @@ export class BattleHUD {
   setOverdrive(on) { /* visual handled in renderer */ }
 
   setCurrentLogic(label, rule, overlogicActive) {
-    const txt = overlogicActive && rule ? `Overlogic Active: ${label}` : `Current Logic: ${label}`;
+    const txt = t(overlogicActive && rule ? 'combat.overlogicActive' : 'combat.current', { label });
     this.curLogic.textContent = txt;
     this.curLogic.classList.toggle('overlogic', !!overlogicActive && !!rule);
 
@@ -149,8 +158,7 @@ export class BattleHUD {
 
       if (this._lastRuleId !== rule.id) {
         this._lastRuleId = rule.id;
-        const prefix = overlogicActive ? 'OVERDRIVE: ' : 'Executed: ';
-        this.logConsole(`${prefix}${label}`, overlogicActive ? 'warn' : 'info');
+        this.logConsole(t(overlogicActive ? 'log.overdrive' : 'log.executed', { label }), overlogicActive ? 'warn' : 'info');
 
         // flash effect on rule switch (DESIGN.md §13.3: 0.2s highlight)
         this.curLogic.classList.remove('flash');
@@ -161,7 +169,7 @@ export class BattleHUD {
     } else {
       if (this._lastRuleId !== null) {
         this._lastRuleId = null;
-        this.logConsole('Standby: default movement', 'info');
+        this.logConsole(t('combat.idle'), 'info');
       }
     }
   }
@@ -185,10 +193,10 @@ export class BattleHUD {
         condStr = `${cond1Str} ${opStr} ${cond2Str}`;
       }
       const a = GameDatabase.getAction(r.actionId);
-      const aName = a ? a.displayName : r.actionId;
-      const targetStr = r.targetPriority && r.targetPriority !== 'nearest' ? ` (${r.targetPriority})` : '';
+      const aName = a ? entity('action', r.actionId, a.displayName) : r.actionId;
+      const targetStr = r.targetPriority && r.targetPriority !== 'nearest' ? ` (${t(`target.${r.targetPriority}`)})` : '';
 
-      li.innerHTML = `IF <span class="c-cond">${escapeHtml(condStr)}</span> THEN <span class="c-act">${escapeHtml(aName + targetStr)}</span> <span class="c-prio">[Prio ${escapeHtml(r.priority|0)}]</span>`;
+      li.innerHTML = `${escapeHtml(t('combat.if'))} <span class="c-cond">${escapeHtml(condStr)}</span> ${escapeHtml(t('combat.then'))} <span class="c-act">${escapeHtml(aName + targetStr)}</span> <span class="c-prio">[${escapeHtml(t('editor.prio'))} ${escapeHtml(r.priority|0)}]</span>`;
       rulesList.appendChild(li);
     }
   }
@@ -217,7 +225,7 @@ export class BattleHUD {
       
       switch (state) {
         case 'executing':
-          badge.textContent = 'Active';
+          badge.textContent = t('combat.active');
           badge.style.background = 'rgba(0, 255, 195, 0.2)';
           badge.style.color = '#00ffc3';
           badge.style.border = '1px solid #00ffc3';
@@ -229,19 +237,19 @@ export class BattleHUD {
           badge.style.border = '1px solid #00d2ff';
           break;
         case 'energy':
-          badge.textContent = 'Low EN';
+          badge.textContent = t('combat.lowEnergy');
           badge.style.background = 'rgba(255, 230, 0, 0.15)';
           badge.style.color = '#ffe24b';
           badge.style.border = '1px solid #ffe24b';
           break;
         case 'condition_false':
-          badge.textContent = 'Skip';
+          badge.textContent = t('combat.skip');
           badge.style.background = 'rgba(255, 255, 255, 0.05)';
           badge.style.color = 'rgba(255, 255, 255, 0.3)';
           badge.style.border = '1px solid rgba(255, 255, 255, 0.15)';
           break;
         case 'overridden':
-          badge.textContent = 'Ready';
+          badge.textContent = t('combat.ready');
           badge.style.background = 'rgba(255, 255, 255, 0.1)';
           badge.style.color = 'rgba(255, 255, 255, 0.7)';
           badge.style.border = '1px solid rgba(255, 255, 255, 0.3)';
@@ -253,7 +261,7 @@ export class BattleHUD {
     }
   }
 
-  setWave(cur, total) { this.waveInfo.textContent = `Wave ${cur}/${total}`; }
+  setWave(cur, total) { this.waveInfo.textContent = t('combat.wave', { current: cur, total }); }
   setTimer(t) { this.timerEl.textContent = `${t.toFixed(1)}s`; }
 
   showBossBar(name) { this.bossName.textContent = name; this.bossWrap.classList.remove('hidden'); }

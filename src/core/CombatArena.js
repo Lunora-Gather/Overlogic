@@ -18,8 +18,10 @@ import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js';
 import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js';
 import { spawnBurst } from '../vfx/ParticleSystem.js';
 import { HazardTile } from '../vfx/HazardTile.js';
+import { difficultyModifiers } from '../systems/RunModifiers.js';
+import { entity, t } from '../i18n/I18n.js';
 
-const WAVE_INTERVAL = 2;     // seconds between waves
+const WAVE_CLEAR_DELAY = 1.15;
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
   shooter: ShooterEnemy,
@@ -57,6 +59,8 @@ export class CombatArena {
     this._noEnemyTime = 0;     // for overlogic OOC decay
     this.onFinished = null;    // callback(won)
     this._phaseToastTimer = 0;
+    this._waveClearTimer = 0;
+    this.random = Math.random;
   }
 
   start(battle) {
@@ -73,6 +77,8 @@ export class CombatArena {
     this.paused = false;
     this.speed = 1;
     this.currentWave = 0;
+    this._waveClearTimer = 0;
+    this.random = GameState.randomFor(`arena:${battle.id}:${GameState.currentMapColumn}`);
 
     // Fresh context + robot + brain
     this.ctx = new BattleContext();
@@ -89,27 +95,27 @@ export class CombatArena {
       // Swarm / Iron Tide — plasma hazards
       this.ctx.hazards.push(new HazardTile(-4, -4, 2.0));
       this.ctx.hazards.push(new HazardTile(4, 4, 2.0));
-      this.hud.logConsole(`System Warning: 2 Plasma Hazards detected in sector!`, 'warn');
+      this.hud.logConsole(t('log.hazards', { count: 2 }), 'warn');
     } else if (battle.id === 'battle_5' || battle.id === 'battle_7') {
       // Shadow Grid / Mixed Protocol — 3 hazards
       this.ctx.hazards.push(new HazardTile(-5, 3, 2.2));
       this.ctx.hazards.push(new HazardTile(5, -3, 2.2));
       this.ctx.hazards.push(new HazardTile(0, 0, 1.8));
-      this.hud.logConsole(`System Warning: 3 Plasma Hazards detected in sector!`, 'warn');
+      this.hud.logConsole(t('log.hazards', { count: 3 }), 'warn');
     } else if (battle.id === 'battle_8') {
       // Crucible — heavy hazards
       this.ctx.hazards.push(new HazardTile(-6, -6, 2.5));
       this.ctx.hazards.push(new HazardTile(6, 6, 2.5));
       this.ctx.hazards.push(new HazardTile(-6, 6, 2.5));
       this.ctx.hazards.push(new HazardTile(6, -6, 2.5));
-      this.hud.logConsole(`CRITICAL: 4 High-Output Plasma Hazards active in Crucible Arena!`, 'danger');
+      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
     } else if (battle.id === 'battle_9' || battle.id === 'battle_10') {
       // Warden / Apex Warden boss arenas
       this.ctx.hazards.push(new HazardTile(-6, -6, 2.5));
       this.ctx.hazards.push(new HazardTile(6, 6, 2.5));
       this.ctx.hazards.push(new HazardTile(-6, 6, 2.5));
       this.ctx.hazards.push(new HazardTile(6, -6, 2.5));
-      this.hud.logConsole(`CRITICAL: 4 High-Output Plasma Hazards active in Warden Arena!`, 'danger');
+      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
     }
 
     this.executor = new ActionExecutor();
@@ -133,11 +139,12 @@ export class CombatArena {
     this.robot.onOverdrive = (on) => this.hud.setOverdrive(on);
     this.robot.onDied = () => this._finish(false);
     this.robot.onDamage = (amount, source) => {
-      this.hud.logConsole(`System Alert: Took ${amount.toFixed(0)} DMG from ${source}`, 'warn');
+      const sourceName = entity('enemy', source, source);
+      this.hud.logConsole(t('log.damage', { amount: amount.toFixed(0), source: sourceName }), 'warn');
       this.camera.shake(0.25, amount * 1.2);
     };
     this.ctx.onEnemyDied = (enemyId, displayName) => {
-      this.hud.logConsole(`Unit Terminated: ${displayName}`, 'success');
+      this.hud.logConsole(t('log.terminated', { name: entity('enemy', enemyId, displayName) }), 'success');
     };
 
     // Build wave spawn schedule
@@ -151,7 +158,7 @@ export class CombatArena {
     let waveNum = 0;
     for (const w of Object.keys(waves).sort((a, b) => +a - +b)) {
       waveNum += 1;
-      this.pendingWaves.push({ wave: +w, spawns: waves[w], at: waveNum === 1 ? 0 : (waveNum - 1) * WAVE_INTERVAL });
+      this.pendingWaves.push({ wave: +w, spawns: waves[w] });
     }
 
     // Boss wiring
@@ -177,17 +184,9 @@ export class CombatArena {
     this.ctx.time = this.battleTime;
     this.ctx.timeSpeed = this.speed;
 
-    // Spawn pending waves
-    for (let i = this.pendingWaves.length - 1; i >= 0; i--) {
-      const w = this.pendingWaves[i];
-      if (this.battleTime >= w.at) {
-        this._spawnWave(w.spawns);
-        this.currentWave += 1;
-        this.hud.setWave(this.currentWave, this.totalWaves);
-        this.hud.logConsole(`System Info: Wave ${this.currentWave}/${this.totalWaves} deployed`, 'info');
-        this.pendingWaves.splice(i, 1);
-      }
-    }
+    // Deploy the first wave immediately. Later waves arrive only after the
+    // current wave is cleared, giving rule changes readable tactical pacing.
+    if (this.currentWave === 0 && this.pendingWaves.length > 0) this._deployNextWave();
 
     // Edge-detect casting-seen for stats
     if (this.ctx.tickCastingEdge()) this.ctx.tracker.recordCastingSeen();
@@ -211,6 +210,12 @@ export class CombatArena {
     this.ctx.particles = this.ctx.particles.filter(p => !p.dead);
     // Clean dead enemies (removed immediately on death; brief death burst is spawned in takeDamage)
     this.ctx.enemies = this.ctx.enemies.filter(e => !e.dead);
+    if (this.ctx.liveEnemies() === 0 && this.pendingWaves.length > 0) {
+      this._waveClearTimer += dt;
+      if (this._waveClearTimer >= WAVE_CLEAR_DELAY) this._deployNextWave();
+    } else {
+      this._waveClearTimer = 0;
+    }
 
     // Tracker time + overlogic
     this.ctx.tracker.tick(dt);
@@ -238,7 +243,18 @@ export class CombatArena {
     }
   }
 
+  _deployNextWave() {
+    const next = this.pendingWaves.shift();
+    if (!next) return;
+    this._waveClearTimer = 0;
+    this._spawnWave(next.spawns);
+    this.currentWave += 1;
+    this.hud.setWave(this.currentWave, this.totalWaves);
+    this.hud.logConsole(t('log.wave', { current: this.currentWave, total: this.totalWaves }), 'info');
+  }
+
   _spawnWave(spawns) {
+    const modifiers = difficultyModifiers(GameState.runConfig?.difficulty);
     for (const s of spawns) {
       const data = GameDatabase.getEnemy(s.enemyId);
       if (!data) continue;
@@ -246,26 +262,30 @@ export class CombatArena {
         const Cls = ENEMY_CLASSES[s.enemyId] || CrawlerEnemy;
         const e = new Cls();
         e.init(data, this.ctx);
+        e.maxHp *= modifiers.enemyHp;
+        e.hp = e.maxHp;
+        e.damage *= modifiers.enemyDamage;
         // spawn at arena edge, distributed around ring
-        const ang = (i / Math.max(1, s.count)) * Math.PI * 2 + Math.random() * 0.4;
-        const r = 8 + Math.random() * 1;
+        const ang = (i / Math.max(1, s.count)) * Math.PI * 2 + this.random() * 0.4;
+        const r = 8 + this.random() * 1;
         const pos = this.ctx.clampToArena({ x: Math.cos(ang) * r, y: Math.sin(ang) * r });
         e.x = pos.x; e.y = pos.y;
         this.ctx.enemies.push(e);
         if (isBossEnemyId(s.enemyId)) {
           this.ctx.boss = e;
-          this.hud.logConsole(`CRITICAL WARNING: ${data.displayName} detected!`, 'danger');
+          const localizedBossName = entity('enemy', s.enemyId, data.displayName);
+          this.hud.logConsole(t('log.bossDetected', { name: localizedBossName }), 'danger');
           e.onPhaseChanged = (p) => {
             this.camera.shake(0.35, 10);
-            this.hud.showPhaseToast(`${data.displayName.toUpperCase()}: PHASE ${p}`);
+            this.hud.showPhaseToast(t('log.phase', { name: localizedBossName, phase: p }));
             this._phaseToastTimer = 1.6;
-            this.hud.logConsole(`Boss Alert: ${data.displayName} entered Phase ${p}!`, 'danger');
+            this.hud.logConsole(t('log.bossPhase', { name: localizedBossName, phase: p }), 'danger');
           };
           e.onLaserFire = () => {
             this.camera.shake(0.4, 15);
             AudioManager.play('boss_phase');
           };
-          this.hud.showBossBar(data.displayName);
+          this.hud.showBossBar(localizedBossName);
         }
       }
     }
@@ -288,13 +308,13 @@ export class CombatArena {
       );
       AudioManager.play('defeat');
       GameState.lastReport = this.ctx.tracker.toReport();
-      this.hud.logConsole(`SIMULATION FAILED: Robot chassis destroyed. Core critical dump.`, 'danger');
+      this.hud.logConsole(t('log.failed'), 'danger');
     } else {
       AudioManager.play('victory');
       GameState.lastReport = this.ctx.tracker.toReport();
       // Pass endHp so the next battle starts with this HP
       GameState.lastReport._endHp = endHp;
-      this.hud.logConsole(`SIMULATION SUCCESS: Threat neutralized. Area secured.`, 'success');
+      this.hud.logConsole(t('log.success'), 'success');
     }
     this.hud.hideBossBar();
     if (this.onFinished) this.onFinished(won);

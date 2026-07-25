@@ -7,6 +7,7 @@ import { GameDatabase } from '../core/GameDatabase.js';
 import { GameManager } from '../core/GameManager.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { escapeHtml } from './safeHtml.js';
+import { entity, localizedSearchText, t } from '../i18n/I18n.js';
 
 export class LogicEditorUI {
   constructor() {
@@ -56,6 +57,7 @@ export class LogicEditorUI {
     GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); });
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); });
     GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
+    window.addEventListener('overlogic:localechange', () => this.renderAll());
   }
 
   show() {
@@ -74,14 +76,14 @@ export class LogicEditorUI {
   renderHeader() {
     const battle = GameState.getActiveBattle();
     if (battle) {
-      this.edBattleName.textContent = battle.displayName;
+      this.edBattleName.textContent = entity('battle', battle.id, battle.displayName);
       this.edBattlePreview.textContent = `// ${this._formatBattlePreview(battle)}`;
     } else {
       const colNodes = GameState.mapNodes[GameState.currentMapColumn];
       const activeNode = colNodes ? colNodes.find(n => n.id === GameState.selectedNodeId) : null;
       if (activeNode) {
-        this.edBattleName.textContent = activeNode.label;
-        this.edBattlePreview.textContent = `// Instant Trigger Node`;
+        this.edBattleName.textContent = activeNode.type === 'repair' ? t('map.repair') : t('map.upgrade');
+        this.edBattlePreview.textContent = t('editor.instantNode');
       } else {
         this.edBattleName.textContent = '—';
         this.edBattlePreview.textContent = '';
@@ -98,7 +100,11 @@ export class LogicEditorUI {
       col.forEach(node => {
         const nodeDiv = document.createElement('div');
         nodeDiv.className = 'map-node';
-        nodeDiv.textContent = (node.type === 'combat' ? '⚔️ ' : (node.type === 'repair' ? '🔧 ' : '💎 ')) + node.label;
+        const nodeBattle = node.type === 'combat' ? GameDatabase.getBattle(node.battleIndex) : null;
+        const label = nodeBattle
+          ? entity('battle', nodeBattle.id, nodeBattle.displayName)
+          : (node.type === 'repair' ? t('map.repairName') : t('map.upgradeName'));
+        nodeDiv.textContent = (node.type === 'combat' ? '⚔️ ' : (node.type === 'repair' ? '🔧 ' : '💎 ')) + label;
         nodeDiv.dataset.tooltipType = 'map-node';
         nodeDiv.dataset.nodeId = node.id;
         
@@ -131,14 +137,14 @@ export class LogicEditorUI {
     }
     const enemies = [...byEnemy.entries()].map(([enemyId, count]) => {
       const data = GameDatabase.getEnemy(enemyId);
-      return `${count}x ${data ? data.displayName : enemyId}`;
+      return `${count}× ${data ? entity('enemy', enemyId, data.displayName) : enemyId}`;
     });
     const tags = [];
-    if (maxWave > 1) tags.push(`${maxWave} waves`);
-    if (['battle_4', 'battle_6'].includes(battle.id)) tags.push('2 hazards');
-    if (['battle_5', 'battle_7'].includes(battle.id)) tags.push('3 hazards');
-    if (['battle_8', 'battle_9', 'battle_10'].includes(battle.id)) tags.push('4 hazards');
-    if ((battle.enemySpawns || []).some(s => s.enemyId.includes('warden'))) tags.push('boss');
+    if (maxWave > 1) tags.push(t('preview.waves', { count: maxWave }));
+    if (['battle_4', 'battle_6'].includes(battle.id)) tags.push(t('preview.hazards', { count: 2 }));
+    if (['battle_5', 'battle_7'].includes(battle.id)) tags.push(t('preview.hazards', { count: 3 }));
+    if (['battle_8', 'battle_9', 'battle_10'].includes(battle.id)) tags.push(t('preview.hazards', { count: 4 }));
+    if ((battle.enemySpawns || []).some(s => s.enemyId.includes('warden'))) tags.push(t('preview.boss'));
     return [...enemies, ...tags].join(' · ');
   }
 
@@ -154,21 +160,21 @@ export class LogicEditorUI {
       options.push({
         conditionId: 'on_hazard', conditionValue: null, actionId: 'dash_away',
         priority: 95, targetPriority: 'nearest',
-        label: 'Evacuate hazard tiles', reason: 'This arena contains persistent damage zones.',
+        label: t('advice.hazard.label'), reason: t('advice.hazard.reason'),
       });
     }
     if ([...enemyIds].some(id => ['charger', 'boss_warden', 'apex_warden'].includes(id))) {
       options.push({
         conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
         priority: 90, targetPriority: 'caster',
-        label: 'Interrupt telegraphed attacks', reason: 'Chargers and wardens expose interrupt windows.',
+        label: t('advice.interrupt.label'), reason: t('advice.interrupt.reason'),
       });
     }
     if (enemyIds.has('shooter') || enemyIds.has('emp_drone')) {
       options.push({
         conditionId: 'enemy_far', conditionValue: 5, actionId: 'dash_toward',
         priority: 50, targetPriority: 'nearest',
-        label: 'Close on ranged units', reason: 'Ranged enemies punish passive spacing.',
+        label: t('advice.ranged.label'), reason: t('advice.ranged.reason'),
       });
     }
     if ((battle.enemySpawns || []).reduce((sum, spawn) => sum + spawn.count, 0) >= 7) {
@@ -176,13 +182,13 @@ export class LogicEditorUI {
         conditionId: 'surrounded', conditionValue: [4, 3],
         actionId: availableActions.has('emp_burst') ? 'emp_burst' : 'dash_away',
         priority: 92, targetPriority: 'nearest',
-        label: 'Break out when surrounded', reason: 'Large waves can trap the robot before cooldowns recover.',
+        label: t('advice.swarm.label'), reason: t('advice.swarm.reason'),
       });
     }
     options.push({
       conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack',
       priority: 10, targetPriority: 'nearest',
-      label: 'Keep a reliable attack fallback', reason: 'A low-priority attack prevents idle combat time.',
+      label: t('advice.attack.label'), reason: t('advice.attack.reason'),
     });
 
     return options.find(option =>
@@ -202,7 +208,7 @@ export class LogicEditorUI {
     if (!this.missionBriefing) return;
     const battle = GameState.getActiveBattle();
     if (!battle) {
-      this.missionBriefing.innerHTML = '<div class="brief-copy"><strong>Route event ready.</strong><span>Select the active node to continue.</span></div>';
+      this.missionBriefing.innerHTML = `<div class="brief-copy"><strong>${escapeHtml(t('brief.routeReady'))}</strong><span>${escapeHtml(t('brief.selectNode'))}</span></div>`;
       return;
     }
 
@@ -221,7 +227,7 @@ export class LogicEditorUI {
     const healthy = hpRatio >= 0.45;
     const checks = [hasOffense, hasDefense, warnings.size === 0, hasCounter, healthy];
     const score = Math.round(checks.filter(Boolean).length / checks.length * 100);
-    const risk = score >= 80 ? 'READY' : score >= 60 ? 'CAUTION' : 'RISKY';
+    const risk = score >= 80 ? 'ready' : score >= 60 ? 'caution' : 'risky';
     const riskClass = risk.toLowerCase();
     const warningCount = [...warnings.values()].reduce((sum, items) => sum + items.length, 0);
     const enemyCount = (battle.enemySpawns || []).reduce((sum, spawn) => sum + spawn.count, 0);
@@ -229,24 +235,25 @@ export class LogicEditorUI {
     this.missionBriefing.innerHTML = `
       <div class="brief-score ${riskClass}">
         <span class="brief-score-value">${score}</span>
-        <span>READINESS</span>
+        <span>${escapeHtml(t('brief.readiness'))}</span>
       </div>
       <div class="brief-copy">
         <div class="brief-title">
-          <strong>${escapeHtml(risk)}</strong>
-          <span>${enemyCount} hostiles · HP ${Math.round(currentHp)}/${Math.round(GameState.stats.max_hp)}</span>
+          <strong>${escapeHtml(t(`brief.${risk}`))}</strong>
+          <span>${escapeHtml(t('brief.hostiles', { count: enemyCount }))} · HP ${Math.round(currentHp)}/${Math.round(GameState.stats.max_hp)}</span>
         </div>
-        <span class="brief-advice">${escapeHtml(advice?.reason || 'Review the route event before continuing.')}</span>
+        <span class="brief-advice">${escapeHtml(advice?.reason || t('brief.selectNode'))}</span>
       </div>
       <div class="brief-checks" aria-label="Launch checks">
-        <span class="${hasOffense ? 'ok' : 'bad'}">${hasOffense ? '✓' : '!'} Offense</span>
-        <span class="${hasDefense ? 'ok' : 'bad'}">${hasDefense ? '✓' : '!'} Survival</span>
-        <span class="${warnings.size === 0 ? 'ok' : 'warn'}">${warnings.size === 0 ? '✓ Clean logic' : `⚠ ${warningCount} warning${warningCount === 1 ? '' : 's'}`}</span>
-        <span class="${healthy ? 'ok' : 'bad'}">${healthy ? '✓ Hull stable' : '! Low persistent HP'}</span>
+        <span class="${hasOffense ? 'ok' : 'bad'}">${hasOffense ? '✓' : '!'} ${escapeHtml(t('brief.offense'))}</span>
+        <span class="${hasDefense ? 'ok' : 'bad'}">${hasDefense ? '✓' : '!'} ${escapeHtml(t('brief.survival'))}</span>
+        <span class="${warnings.size === 0 ? 'ok' : 'warn'}">${warnings.size === 0 ? `✓ ${escapeHtml(t('brief.clean'))}` : `⚠ ${escapeHtml(t('brief.warnings', { count: warningCount }))}`}</span>
+        <span class="${healthy ? 'ok' : 'bad'}">${healthy ? `✓ ${escapeHtml(t('brief.hullStable'))}` : `! ${escapeHtml(t('brief.lowHp'))}`}</span>
       </div>
       <div class="brief-actions">
-        ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : '<span class="counter-ready">✓ Countermeasure loaded</span>'}
-        ${warnings.size > 0 ? '<button type="button" id="btn-fix-priorities" class="btn small ghost">Space priorities</button>' : ''}
+        ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : `<span class="counter-ready">✓ ${escapeHtml(t('brief.counterLoaded'))}</span>`}
+        ${warnings.size > 0 ? `<button type="button" id="btn-fix-priorities" class="btn small ghost">${escapeHtml(t('brief.spacePriorities'))}</button>` : ''}
+        ${battle.id === 'battle_1' ? `<div class="brief-goals"><b>${escapeHtml(t('brief.goals'))}</b><span class="${GameState.tutorialProgress.editedRule ? 'ok' : ''}">${GameState.tutorialProgress.editedRule ? '✓' : '○'} ${escapeHtml(t('brief.goalEdit'))}</span><span class="${GameState.tutorialProgress.sandboxRun ? 'ok' : ''}">${GameState.tutorialProgress.sandboxRun ? '✓' : '○'} ${escapeHtml(t('brief.goalSandbox'))}</span></div>` : ''}
       </div>
     `;
 
@@ -277,19 +284,19 @@ export class LogicEditorUI {
     for (const id of GameState.availableConditionIds()) {
       const c = GameDatabase.getCondition(id);
       if (!c) continue;
-      if (condQuery && !c.displayName.toLowerCase().includes(condQuery) && !c.description.toLowerCase().includes(condQuery)) {
+      if (condQuery && !localizedSearchText('condition', id, c.displayName, c.description).includes(condQuery)) {
         continue;
       }
       const li = document.createElement('li');
-      li.innerHTML = `<span class="mod-name">${escapeHtml(c.displayName)}</span><span class="module-add-hint">+ use</span>` +
-        `<span class="mod-desc">${escapeHtml(c.description)}</span>` +
+      li.innerHTML = `<span class="mod-name">${escapeHtml(entity('condition', id, c.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
+        `<span class="mod-desc">${escapeHtml(entity('condition', id, c.description, 'description'))}</span>` +
         (c.parameterType !== 'none' ? `<span class="mod-meta">param: ${escapeHtml(c.parameterType)}</span>` : '');
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'condition';
       li.dataset.tooltipId = id;
       li.tabIndex = 0;
       li.setAttribute('role', 'button');
-      li.setAttribute('aria-label', `Use condition ${c.displayName}`);
+      li.setAttribute('aria-label', t('editor.useCondition', { name: entity('condition', id, c.displayName) }));
       
       // One click pre-fills the builder; this also works on touch devices.
       const useCondition = () => {
@@ -312,19 +319,19 @@ export class LogicEditorUI {
     for (const id of GameState.availableActionIds()) {
       const a = GameDatabase.getAction(id);
       if (!a) continue;
-      if (actQuery && !a.displayName.toLowerCase().includes(actQuery) && !a.description.toLowerCase().includes(actQuery)) {
+      if (actQuery && !localizedSearchText('action', id, a.displayName, a.description).includes(actQuery)) {
         continue;
       }
       const li = document.createElement('li');
-      li.innerHTML = `<span class="mod-name">${escapeHtml(a.displayName)}</span><span class="module-add-hint">+ use</span>` +
-        `<span class="mod-desc">${escapeHtml(a.description)}</span>` +
+      li.innerHTML = `<span class="mod-name">${escapeHtml(entity('action', id, a.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
+        `<span class="mod-desc">${escapeHtml(entity('action', id, a.description, 'description'))}</span>` +
         `<span class="mod-meta">cd ${escapeHtml(a.cooldown)}s · e${escapeHtml(a.energyCost)} · r${escapeHtml(a.range)}</span>`;
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'action';
       li.dataset.tooltipId = id;
       li.tabIndex = 0;
       li.setAttribute('role', 'button');
-      li.setAttribute('aria-label', `Use action ${a.displayName}`);
+      li.setAttribute('aria-label', t('editor.useAction', { name: entity('action', id, a.displayName) }));
       
       const useAction = () => {
         this._openAddForm();
@@ -358,7 +365,7 @@ export class LogicEditorUI {
       if (prioGroups[prio].length > 1) {
         for (const r of prioGroups[prio]) {
           if (!warnings.has(r.id)) warnings.set(r.id, []);
-          warnings.get(r.id).push(`Priority Conflict: Multiple active rules share priority ${prio}. Order is unstable.`);
+          warnings.get(r.id).push(t('warning.priorityConflict', { priority: prio }));
         }
       }
     }
@@ -378,9 +385,9 @@ export class LogicEditorUI {
         ) {
           if (!warnings.has(rB.id)) warnings.set(rB.id, []);
           if (rA.actionId === rB.actionId && rA.targetPriority === rB.targetPriority) {
-            warnings.get(rB.id).push(`Redundant: This rule is identical to the higher-priority rule at priority ${rA.priority}.`);
+            warnings.get(rB.id).push(t('warning.redundant', { priority: rA.priority }));
           } else {
-            warnings.get(rB.id).push(`Unreachable: Overridden by the higher-priority rule (priority ${rA.priority}) with the same condition.`);
+            warnings.get(rB.id).push(t('warning.unreachable', { priority: rA.priority }));
           }
         }
       }
@@ -396,7 +403,9 @@ export class LogicEditorUI {
         if (!activeRuleIds.has(r.id) || ruleUsage[r.id] > 0) continue;
         if (!warnings.has(r.id)) warnings.set(r.id, []);
         const reason = this._dominantDiagnostic(diagnostics[r.id]);
-        warnings.get(r.id).push(`Last run: never fired${reason ? `; mostly blocked by ${reason}.` : '.'}`);
+        warnings.get(r.id).push(reason
+          ? t('warning.neverFiredReason', { reason })
+          : t('warning.neverFired'));
       }
     }
     return warnings;
@@ -405,11 +414,11 @@ export class LogicEditorUI {
   _dominantDiagnostic(counts) {
     if (!counts || typeof counts !== 'object') return '';
     const labels = {
-      cooldown: 'cooldown',
-      energy: 'low energy',
-      condition_false: 'false condition',
-      overridden: 'higher-priority rules',
-      disabled: 'disabled state',
+      cooldown: t('diagnostic.cooldown'),
+      energy: t('diagnostic.energy'),
+      condition_false: t('diagnostic.conditionFalse'),
+      overridden: t('diagnostic.overridden'),
+      disabled: t('diagnostic.disabled'),
     };
     let best = null;
     for (const [key, count] of Object.entries(counts)) {
@@ -431,13 +440,13 @@ export class LogicEditorUI {
       header.className = 'rule-header';
       header.innerHTML = `
         <span></span>
-        <span style="text-align: center;">PRIO</span>
-        <span>IF CONDITION 1</span>
-        <span>AND/OR</span>
-        <span>IF CONDITION 2</span>
-        <span>THEN ACTION</span>
-        <span>TARGET</span>
-        <span style="text-align: center;">DEL</span>
+        <span style="text-align: center;">${escapeHtml(t('editor.prio'))}</span>
+        <span>${escapeHtml(t('editor.condition1'))}</span>
+        <span>${escapeHtml(t('editor.operator'))}</span>
+        <span>${escapeHtml(t('editor.condition2'))}</span>
+        <span>${escapeHtml(t('editor.thenAction'))}</span>
+        <span>${escapeHtml(t('editor.target'))}</span>
+        <span style="text-align: center;">${escapeHtml(t('editor.delete'))}</span>
       `;
       this.ruleList.appendChild(header);
     } else {
@@ -446,10 +455,8 @@ export class LogicEditorUI {
       guide.className = 'rule-empty-guide';
       guide.innerHTML = `
         <div class="guide-icon">⚡</div>
-        <div class="guide-title">No Rules Programmed</div>
-        <div class="guide-desc">Your robot has no logic — it will default to pursuing enemies.<br>
-          Click <strong>+ Add Rule</strong> above to define your first directive.</div>
-        <div class="guide-example">Example: <span class="kbd">IF hp_low → THEN shield</span></div>
+        <div class="guide-title">${escapeHtml(t('editor.noRules'))}</div>
+        <div class="guide-desc">${escapeHtml(t('editor.noRulesDesc'))}</div>
       `;
       this.ruleList.appendChild(guide);
     }
@@ -558,7 +565,7 @@ export class LogicEditorUI {
     opSel.setAttribute('aria-label', `Condition operator for rule ${r.id}`);
     opSel.style.width = '100%';
     const optNone = document.createElement('option');
-    optNone.value = ''; optNone.textContent = 'None';
+    optNone.value = ''; optNone.textContent = t('common.none');
     if (!r.operator) optNone.selected = true;
     opSel.appendChild(optNone);
 
@@ -652,10 +659,10 @@ export class LogicEditorUI {
     tarSel.setAttribute('aria-label', `Target priority for rule ${r.id}`);
     tarSel.style.width = '100%';
     const targets = [
-      { val: 'nearest', label: 'Nearest' },
-      { val: 'lowest_hp', label: 'Lowest HP' },
-      { val: 'caster', label: 'Caster' },
-      { val: 'boss', label: 'Boss' }
+      { val: 'nearest', label: t('target.nearest') },
+      { val: 'lowest_hp', label: t('target.lowest_hp') },
+      { val: 'caster', label: t('target.caster') },
+      { val: 'boss', label: t('target.boss') }
     ];
     for (const t of targets) {
       const opt = document.createElement('option');
@@ -758,7 +765,7 @@ export class LogicEditorUI {
     for (const id of GameState.availableConditionIds()) {
       const c = GameDatabase.getCondition(id);
       const opt = document.createElement('option');
-      opt.value = id; opt.textContent = c ? c.displayName : id;
+      opt.value = id; opt.textContent = c ? entity('condition', id, c.displayName) : id;
       if (id === selected) opt.selected = true;
       sel.appendChild(opt);
     }
@@ -770,7 +777,7 @@ export class LogicEditorUI {
     for (const id of GameState.availableActionIds()) {
       const a = GameDatabase.getAction(id);
       const opt = document.createElement('option');
-      opt.value = id; opt.textContent = a ? a.displayName : id;
+      opt.value = id; opt.textContent = a ? entity('action', id, a.displayName) : id;
       if (id === selected) opt.selected = true;
       sel.appendChild(opt);
     }
@@ -1002,6 +1009,7 @@ export class LogicEditorUI {
     if (this.btnSandbox) {
       this.btnSandbox.addEventListener('click', () => {
         AudioManager.play('button_click');
+        GameState.markSandboxRun();
         GameManager.goSandbox();
       });
     }
@@ -1031,7 +1039,7 @@ export class LogicEditorUI {
             this.lastSavedSlot = slot; // update last used slot
             AudioManager.play('button_click');
             const originalText = btnSave.textContent;
-            btnSave.textContent = 'SAVED!';
+            btnSave.textContent = t('editor.saved');
             btnSave.classList.add('success-flash');
             setTimeout(() => {
               btnSave.textContent = originalText;
@@ -1078,16 +1086,16 @@ export class LogicEditorUI {
     for (const id of conds) {
       const c = GameDatabase.getCondition(id);
       
-      const opt = document.createElement('option'); opt.value = id; opt.textContent = c ? c.displayName : id;
+      const opt = document.createElement('option'); opt.value = id; opt.textContent = c ? entity('condition', id, c.displayName) : id;
       this.fCond.appendChild(opt);
       
-      const opt2 = document.createElement('option'); opt2.value = id; opt2.textContent = c ? c.displayName : id;
+      const opt2 = document.createElement('option'); opt2.value = id; opt2.textContent = c ? entity('condition', id, c.displayName) : id;
       this.fCond2.appendChild(opt2);
     }
     this.fAct.innerHTML = '';
     for (const id of GameState.availableActionIds()) {
       const a = GameDatabase.getAction(id);
-      const opt = document.createElement('option'); opt.value = id; opt.textContent = a ? a.displayName : id;
+      const opt = document.createElement('option'); opt.value = id; opt.textContent = a ? entity('action', id, a.displayName) : id;
       this.fAct.appendChild(opt);
     }
     this.fPrio.value = 50;

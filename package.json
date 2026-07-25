@@ -4,6 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "serve": "node scripts/serve.mjs",
     "verify": "node scripts/verify.mjs",
     "balance": "node scripts/simulate-balance.mjs"
   }

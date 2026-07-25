@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -17,34 +17,41 @@
   <section id="screen-main" class="screen">
     <div class="title-block">
       <h1 class="logo">OVERLOGIC</h1>
-      <p class="subtitle">// design the brain, not the hands</p>
+      <p class="subtitle" data-i18n="menu.subtitle">// design the brain, not the hands</p>
+    </div>
+    <div class="locale-switcher" id="locale-switcher" aria-label="Language">
+      <button type="button" data-locale="en">EN</button>
+      <button type="button" data-locale="zh-CN">简中</button>
+      <button type="button" data-locale="zh-TW">繁中</button>
+    </div>
+    <div class="run-config-panel">
+      <label><span data-i18n="menu.mode">Run Mode</span>
+        <select id="run-mode">
+          <option value="standard" data-i18n="mode.standard">Standard</option>
+          <option value="daily" data-i18n="mode.daily">Daily Seed</option>
+        </select>
+      </label>
+      <label><span data-i18n="menu.difficulty">Difficulty</span>
+        <select id="run-difficulty">
+          <option value="casual" data-i18n="difficulty.casual">Casual</option>
+          <option value="standard" data-i18n="difficulty.standard">Standard</option>
+          <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
+        </select>
+      </label>
+      <span id="daily-seed-label" class="daily-seed-label hidden"></span>
     </div>
     <div class="menu-buttons">
-      <button id="btn-start" class="btn primary">Start Simulation</button>
-      <button id="btn-how" class="btn">How to Play</button>
-      <button id="btn-settings" class="btn">Settings ⚙️</button>
-      <button id="btn-reset" class="btn ghost">Reset Progress</button>
-      <button id="btn-exit" class="btn ghost">Exit</button>
+      <button id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
+      <button id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
+      <button id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
+      <button id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
+      <button id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
     </div>
     <div id="how-overlay" class="overlay hidden">
       <div class="overlay-card">
-        <h2>How to Play</h2>
-        <div style="text-align: left; max-width: 500px; margin: 0 auto;">
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #4be1ff;">① You control the logic, not the robot.</span><br>
-          Write rules that your robot follows autonomously during combat.</div>
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #4be1ff;">② Rule structure:</span><br>
-          <span class="kbd">IF [condition] THEN [action]</span> with an optional AND/OR second condition.<br>
-          Higher priority rules execute first when valid.</div>
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #4be1ff;">③ Every 0.15s</span> your robot evaluates all rules and executes the highest-priority valid one.</div>
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #4be1ff;">④ HP persists</span> between battles — manage your health carefully. Use Repair nodes wisely!</div>
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #4be1ff;">⑤ Win battles → Pick rewards</span> — unlock new actions, conditions, and stat upgrades.<br>
-          Lose → Read the debug report → Fix one rule → Retry.</div>
-          <div style="margin-bottom: 12px;"><span class="kbd" style="color: #ffb938;">Example rules:</span><br>
-          <span class="kbd">IF hp_low (&lt;30%) → THEN shield</span><br>
-          <span class="kbd">IF enemy_casting → THEN interrupt_shot</span><br>
-          <span class="kbd">IF hp_above (70%) OR energy_high (80%) → THEN overdrive</span></div>
-        </div>
-        <button id="btn-how-close" class="btn primary">Close</button>
+        <h2 data-i18n="how.title">How to Play</h2>
+        <div id="how-body" class="how-body"></div>
+        <button id="btn-how-close" class="btn primary" data-i18n="common.close">Close</button>
       </div>
     </div>
   </section>
@@ -54,17 +61,17 @@
     <header class="editor-header" style="flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 24px;">
       <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
         <div class="battle-info">
-          <span class="label">Next Battle</span>
+          <span class="label" data-i18n="editor.nextBattle">Next Battle</span>
           <span id="ed-battle-name" class="value">—</span>
           <span id="ed-battle-preview" class="muted">—</span>
         </div>
         <div class="teach-info">
-          <span class="label">Directive Layer</span>
+          <span class="label" data-i18n="editor.directiveLayer">Directive Layer</span>
           <span id="ed-teach" class="value">1</span>
         </div>
       </div>
       <div class="map-panel" style="border-top: 1px solid var(--line); padding-top: 8px; width: 100%;">
-        <span class="label" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">// CHOOSE PROTOCOL ROUTE</span>
+        <span class="label" data-i18n="editor.chooseRoute" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">// CHOOSE PROTOCOL ROUTE</span>
         <div id="map-nodes" class="map-nodes" style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 12px;"></div>
       </div>
     </header>
@@ -73,39 +80,39 @@
 
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions">
-        <h3>Available Conditions</h3>
-        <input type="text" id="cond-search" class="search-input" placeholder="Search conditions...">
+        <h3 data-i18n="editor.conditions">Available Conditions</h3>
+        <input type="text" id="cond-search" class="search-input" data-i18n-placeholder="editor.searchConditions" placeholder="Search conditions...">
         <ul id="cond-list" class="module-list"></ul>
       </aside>
 
       <main class="panel panel-rules" id="panel-rules">
-        <h3 style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;">Active Rules 
-          <button id="btn-add-rule" class="btn small">+ Add Rule</button>
-          <button id="btn-undo" class="btn small ghost" style="padding:2px 8px;" title="Undo (Ctrl+Z)">Undo</button>
-          <button id="btn-redo" class="btn small ghost" style="padding:2px 8px;" title="Redo (Ctrl+Y)">Redo</button>
-          <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" placeholder="Filter rules...">
+        <h3 style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;"><span data-i18n="editor.activeRules">Active Rules</span>
+          <button id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
+          <button id="btn-undo" class="btn small ghost" style="padding:2px 8px;" title="Undo (Ctrl+Z)" data-i18n="editor.undo">Undo</button>
+          <button id="btn-redo" class="btn small ghost" style="padding:2px 8px;" title="Redo (Ctrl+Y)" data-i18n="editor.redo">Redo</button>
+          <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" placeholder="Filter rules...">
         </h3>
         
         <!-- Slots Bar -->
         <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
-          <span style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
+          <span data-i18n="editor.loadouts" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
           <div class="slot-item" style="display: flex; align-items: center; gap: 6px;">
             <span id="slot-led-1" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
             <span style="font-size: 11px; color: var(--txt); margin-right: 4px;">Slot 1</span>
-            <button id="btn-load-1" class="btn small" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button id="btn-save-1" class="btn small primary" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+            <button id="btn-load-1" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+            <button id="btn-save-1" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
           </div>
           <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
             <span id="slot-led-2" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
             <span style="font-size: 11px; color: var(--txt); margin-right: 4px;">Slot 2</span>
-            <button id="btn-load-2" class="btn small" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button id="btn-save-2" class="btn small primary" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+            <button id="btn-load-2" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+            <button id="btn-save-2" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
           </div>
           <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
             <span id="slot-led-3" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
             <span style="font-size: 11px; color: var(--txt); margin-right: 4px;">Slot 3</span>
-            <button id="btn-load-3" class="btn small" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button id="btn-save-3" class="btn small primary" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+            <button id="btn-load-3" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+            <button id="btn-save-3" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
           </div>
         </div>
 
@@ -113,30 +120,30 @@
           <select id="f-cond"></select>
           <span id="f-cond-param"></span>
           <select id="f-op" style="width: 80px;">
-            <option value="">None</option>
+            <option value="" data-i18n="common.none">None</option>
             <option value="and">AND</option>
             <option value="or">OR</option>
           </select>
           <select id="f-cond2" class="hidden"></select>
           <span id="f-cond2-param" class="hidden"></span>
-          <span class="muted">THEN</span>
+          <span class="muted">→</span>
           <select id="f-act"></select>
           <select id="f-target" class="hidden" style="width: 100px;">
-            <option value="nearest">Nearest</option>
-            <option value="lowest_hp">Lowest HP</option>
-            <option value="caster">Caster</option>
-            <option value="boss">Boss</option>
+            <option value="nearest" data-i18n="target.nearest">Nearest</option>
+            <option value="lowest_hp" data-i18n="target.lowest_hp">Lowest HP</option>
+            <option value="caster" data-i18n="target.caster">Caster</option>
+            <option value="boss" data-i18n="target.boss">Boss</option>
           </select>
           <input id="f-prio" type="number" min="0" max="100" value="50" title="priority">
-          <button id="f-add" class="btn small primary">Add</button>
-          <button id="f-cancel" class="btn small ghost">Cancel</button>
+          <button id="f-add" class="btn small primary" data-i18n="common.add">Add</button>
+          <button id="f-cancel" class="btn small ghost" data-i18n="common.cancel">Cancel</button>
         </div>
         <ul id="rule-list" class="rule-list"></ul>
       </main>
 
       <aside class="panel" id="panel-actions">
-        <h3>Available Actions</h3>
-        <input type="text" id="act-search" class="search-input" placeholder="Search actions...">
+        <h3 data-i18n="editor.actions">Available Actions</h3>
+        <input type="text" id="act-search" class="search-input" data-i18n-placeholder="editor.searchActions" placeholder="Search actions...">
         <ul id="act-list" class="module-list"></ul>
       </aside>
     </div>
@@ -145,8 +152,8 @@
       <div id="unit-stats" class="unit-stats"></div>
       <div style="display: flex; gap: 12px; align-items: center;">
         <button id="btn-editor-settings" class="btn ghost" style="padding: 14px 18px; display: flex; align-items: center; justify-content: center; min-height: 48px;" title="Settings">⚙️</button>
-        <button id="btn-sandbox" class="btn secondary big" style="border-color: #ffb938; color: #ffb938; text-shadow: 0 0 8px rgba(255, 185, 56, 0.45);">Sandbox Test ⚙️</button>
-        <button id="btn-run" class="btn primary big">Run Simulation ▶</button>
+        <button id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox" style="border-color: #ffb938; color: #ffb938; text-shadow: 0 0 8px rgba(255, 185, 56, 0.45);">Sandbox Test ⚙️</button>
+        <button id="btn-run" class="btn primary big" data-i18n="editor.run">Run Simulation ▶</button>
       </div>
     </footer>
   </section>
@@ -166,10 +173,10 @@
       </div>
       <div class="hud-right">
         <button id="btn-combat-settings" class="btn small" title="Settings" aria-label="Combat settings">⚙️</button>
-        <button id="btn-pause" class="btn small">Pause</button>
-        <button id="btn-step" class="btn small hidden">Step</button>
+        <button id="btn-pause" class="btn small" data-i18n="combat.pause">Pause</button>
+        <button id="btn-step" class="btn small hidden" data-i18n="combat.step">Step</button>
         <button id="btn-speed" class="btn small">Speed x1</button>
-        <button id="btn-quit" class="btn small ghost">Quit</button>
+        <button id="btn-quit" class="btn small ghost" data-i18n="combat.quit">Quit</button>
       </div>
     </div>
     <div id="boss-bar-wrap" class="boss-bar hidden">
@@ -180,11 +187,11 @@
       <canvas id="arena" width="720" height="720"></canvas>
       <aside class="panel combat-rules-panel">
         <div class="directives-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-          <h3>Active Directives</h3>
+          <h3 data-i18n="combat.directives">Active Directives</h3>
           <ul id="combat-rules-list" class="combat-rules-list" style="flex: 1; overflow-y: auto;"></ul>
         </div>
         <div class="console-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px;">
-          <h3>Console Log</h3>
+          <h3 data-i18n="combat.console">Console Log</h3>
           <div id="combat-console-log" class="combat-console-log" role="log" aria-live="polite" aria-relevant="additions"></div>
         </div>
       </aside>
@@ -194,76 +201,84 @@
 
   <!-- ===== Reward ===== -->
   <section id="screen-reward" class="screen hidden">
-    <h2>Protocol Upgrade</h2>
-    <p class="muted">Choose One</p>
+    <h2 data-i18n="reward.title">Protocol Upgrade</h2>
+    <p class="muted" data-i18n="reward.choose">Choose One</p>
     <div id="reward-options" class="reward-grid"></div>
   </section>
 
   <!-- ===== Post Battle Report ===== -->
   <section id="screen-report" class="screen hidden">
-    <h2 class="fail-title">Simulation Failed</h2>
-    <p class="muted">Your logic failed. Debug and retry.</p>
+    <h2 class="fail-title" data-i18n="report.failed">Simulation Failed</h2>
+    <p class="muted" data-i18n="report.subtitle">Your logic failed. Debug and retry.</p>
     <div class="report-grid">
-      <div class="report-card"><h3>Damage Report</h3><ul id="rep-damage"></ul></div>
-      <div class="report-card"><h3>Logic Report</h3><ul id="rep-logic"></ul></div>
-      <div class="report-card"><h3>Suggested Fix</h3><ul id="rep-suggest"></ul></div>
+      <div class="report-card"><h3 data-i18n="report.damage">Damage Report</h3><ul id="rep-damage"></ul></div>
+      <div class="report-card"><h3 data-i18n="report.logic">Logic Report</h3><ul id="rep-logic"></ul></div>
+      <div class="report-card"><h3 data-i18n="report.suggest">Suggested Fix</h3><ul id="rep-suggest"></ul></div>
       <div class="report-card" style="grid-column: span 3; display: flex; flex-direction: column; align-items: center;">
-        <h3>Performance Analysis</h3>
+        <h3 data-i18n="report.performance">Performance Analysis</h3>
         <canvas id="chart-report" width="680" height="200" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
       </div>
     </div>
     <div class="report-actions">
-      <button id="btn-retry" class="btn primary">Retry Battle</button>
-      <button id="btn-edit" class="btn">Edit Logic</button>
-      <button id="btn-restart" class="btn ghost">Restart Run</button>
+      <button id="btn-retry" class="btn primary" data-i18n="report.retry">Retry Battle</button>
+      <button id="btn-edit" class="btn" data-i18n="report.edit">Edit Logic</button>
+      <button id="btn-restart" class="btn ghost" data-i18n="report.restart">Restart Run</button>
     </div>
   </section>
 
   <!-- ===== Victory ===== -->
   <section id="screen-victory" class="screen hidden">
-    <h1 class="logo">SIMULATION COMPLETE</h1>
-    <p class="subtitle">// your logic survived</p>
-    <p class="muted">The machine learned from you.</p>
+    <h1 class="logo" data-i18n="victory.title">SIMULATION COMPLETE</h1>
+    <p class="subtitle" data-i18n="victory.subtitle">// your logic survived</p>
+    <p class="muted" data-i18n="victory.flavor">The machine learned from you.</p>
     <div id="victory-run-stats" class="victory-stats-grid"></div>
     <div class="report-card" style="max-width: 680px; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px;">
-      <h3>Final Battle Performance</h3>
+      <h3 data-i18n="victory.performance">Final Battle Performance</h3>
       <canvas id="chart-victory" width="680" height="200" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
     </div>
     <div class="report-card" style="max-width: 680px; width: 100%; margin-top: 16px;">
-      <h3>Your Final Logic (Rule Replay)</h3>
+      <h3 data-i18n="victory.rules">Your Final Logic (Rule Replay)</h3>
       <div id="victory-rules-summary"></div>
     </div>
-    <button id="btn-victory-menu" class="btn primary big" style="margin-top: 24px;">Return to Menu</button>
+    <button id="btn-victory-menu" class="btn primary big" data-i18n="victory.menu" style="margin-top: 24px;">Return to Menu</button>
   </section>
 
   <!-- ===== Settings Overlay ===== -->
   <div id="settings-overlay" class="overlay hidden">
     <div class="overlay-card settings-card">
-      <h2>System Configuration</h2>
+      <h2 data-i18n="settings.title">System Configuration</h2>
       <div class="settings-list" style="display: flex; flex-direction: column; gap: 16px; margin: 20px 0; text-align: left; width: 100%; max-width: 320px;">
         <div class="settings-group" style="display: flex; flex-direction: column; gap: 8px;">
-          <label style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
+          <label data-i18n="settings.volume" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
           <div style="display: flex; align-items: center; gap: 12px;">
             <input type="range" id="setting-volume" min="0" max="1" step="0.05" value="0.8" style="flex: 1; cursor: pointer;">
             <span id="setting-volume-val" style="font-family: monospace; font-size: 12px; color: var(--txt); width: 40px; text-align: right;">80%</span>
           </div>
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
-          <label style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Mute Audio</label>
+          <label data-i18n="settings.mute" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Mute Audio</label>
           <input type="checkbox" id="setting-mute" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
-          <label style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Enable Camera Shake</label>
+          <label data-i18n="settings.shake" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Enable Camera Shake</label>
           <input type="checkbox" id="setting-shake" checked style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
-          <label for="setting-reduce-motion" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Reduce Motion</label>
+          <label for="setting-reduce-motion" data-i18n="settings.motion" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Reduce Motion</label>
           <input type="checkbox" id="setting-reduce-motion" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
+        </div>
+        <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
+          <label for="setting-language" data-i18n="settings.language" style="font-size:12px;text-transform:uppercase;color:var(--accent);letter-spacing:1px;">Interface Language</label>
+          <select id="setting-language" class="settings-select">
+            <option value="en">English</option>
+            <option value="zh-CN">简体中文</option>
+            <option value="zh-TW">繁體中文</option>
+          </select>
         </div>
       </div>
       <div style="display: flex; gap: 12px; justify-content: center; width: 100%;">
-        <button id="btn-settings-save" class="btn primary">Apply</button>
-        <button id="btn-settings-close" class="btn ghost">Close</button>
+        <button id="btn-settings-save" class="btn primary" data-i18n="common.apply">Apply</button>
+        <button id="btn-settings-close" class="btn ghost" data-i18n="common.close">Close</button>
       </div>
     </div>
   </div>

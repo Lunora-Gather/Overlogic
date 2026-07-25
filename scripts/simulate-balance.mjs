@@ -18,6 +18,7 @@ const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js');
 const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js');
 const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js');
 const { HazardTile } = await import('../src/vfx/HazardTile.js');
+const { difficultyModifiers } = await import('../src/systems/RunModifiers.js');
 
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
@@ -46,7 +47,8 @@ function addHazards(ctx, battle) {
   }
 }
 
-function spawnWave(ctx, spawns) {
+function spawnWave(ctx, spawns, random = Math.random) {
+  const modifiers = difficultyModifiers(GameState.runConfig?.difficulty);
   for (const spawn of spawns) {
     const data = GameDatabase.getEnemy(spawn.enemyId);
     if (!data) throw new Error(`Missing enemy ${spawn.enemyId}`);
@@ -54,8 +56,11 @@ function spawnWave(ctx, spawns) {
     for (let i = 0; i < spawn.count; i += 1) {
       const enemy = new EnemyClass();
       enemy.init(data, ctx);
-      const angle = (i / Math.max(1, spawn.count)) * Math.PI * 2 + Math.random() * 0.4;
-      const radius = 8 + Math.random();
+      enemy.maxHp *= modifiers.enemyHp;
+      enemy.hp = enemy.maxHp;
+      enemy.damage *= modifiers.enemyDamage;
+      const angle = (i / Math.max(1, spawn.count)) * Math.PI * 2 + random() * 0.4;
+      const radius = 8 + random();
       const pos = ctx.clampToArena({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
       enemy.x = pos.x;
       enemy.y = pos.y;
@@ -90,16 +95,17 @@ export function simulateBattle(battle, options = {}) {
   }
   const pending = [...waves.keys()]
     .sort((a, b) => a - b)
-    .map((wave, index) => ({ at: index === 0 ? 0 : index * 2, spawns: waves.get(wave) }));
+    .map((wave) => ({ spawns: waves.get(wave) }));
+  const random = GameState.randomFor(`arena:${battle.id}:${GameState.currentMapColumn}`);
 
   let time = 0;
   let won = false;
+  let waveClearTime = 0;
+  let deployed = false;
   while (time < maxTime && !robot.dead) {
-    for (let i = pending.length - 1; i >= 0; i -= 1) {
-      if (time >= pending[i].at) {
-        spawnWave(ctx, pending[i].spawns);
-        pending.splice(i, 1);
-      }
+    if (!deployed && pending.length > 0) {
+      spawnWave(ctx, pending.shift().spawns, random);
+      deployed = true;
     }
     ctx.time = time;
     if (ctx.tickCastingEdge()) ctx.tracker.recordCastingSeen();
@@ -116,6 +122,15 @@ export function simulateBattle(battle, options = {}) {
     ctx.tracker.tick(dt);
     const inCombat = ctx.liveEnemies() > 0;
     ctx.overlogic.tick(dt, inCombat);
+    if (!inCombat && pending.length > 0) {
+      waveClearTime += dt;
+      if (waveClearTime >= 1.15) {
+        spawnWave(ctx, pending.shift().spawns, random);
+        waveClearTime = 0;
+      }
+    } else {
+      waveClearTime = 0;
+    }
     if (pending.length === 0 && ctx.liveEnemies() === 0) {
       won = true;
       break;

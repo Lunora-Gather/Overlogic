@@ -3,9 +3,11 @@
 
 import { GameManager } from '../core/GameManager.js';
 import { GameState } from '../core/GameState.js';
+import { GameDatabase } from '../core/GameDatabase.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { drawStatsChart } from './StatsChart.js';
 import { escapeHtml } from './safeHtml.js';
+import { entity, t } from '../i18n/I18n.js';
 
 export class VictoryUI {
   constructor() {
@@ -48,12 +50,12 @@ export class VictoryUI {
     const upgrades = Array.isArray(runStats.rewardsChosen) ? runStats.rewardsChosen.length : 0;
 
     this.statsEl.innerHTML = `
-      <div class="victory-stat"><span class="stat-label">Battles Won</span><span class="stat-value">${battlesWon}</span></div>
-      <div class="victory-stat"><span class="stat-label">Final HP</span><span class="stat-value">${finalHp === null ? '—' : Math.round(finalHp)}</span></div>
-      <div class="victory-stat"><span class="stat-label">Total Damage</span><span class="stat-value">${Math.round(dmgDealt)}</span></div>
-      <div class="victory-stat"><span class="stat-label">Combat Time</span><span class="stat-value">${totalTime.toFixed(1)}s</span></div>
-      <div class="victory-stat"><span class="stat-label">Active Rules</span><span class="stat-value">${ruleCount}</span></div>
-      <div class="victory-stat"><span class="stat-label">Upgrades Acquired</span><span class="stat-value">${upgrades}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.battles')}</span><span class="stat-value">${battlesWon}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.finalHp')}</span><span class="stat-value">${finalHp === null ? '—' : Math.round(finalHp)}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.totalDamage')}</span><span class="stat-value">${Math.round(dmgDealt)}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.time')}</span><span class="stat-value">${totalTime.toFixed(1)}s</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.activeRules')}</span><span class="stat-value">${ruleCount}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.upgrades')}</span><span class="stat-value">${upgrades}</span></div>
     `;
   }
 
@@ -61,13 +63,15 @@ export class VictoryUI {
     if (!this.rulesEl) return;
     const rules = [...GameState.rules].sort((a, b) => b.priority - a.priority);
     if (rules.length === 0) {
-      this.rulesEl.innerHTML = '<p class="muted" style="font-size:12px;">No rules defined.</p>';
+      this.rulesEl.innerHTML = `<p class="muted" style="font-size:12px;">${escapeHtml(t('editor.noRules'))}</p>`;
       return;
     }
     const items = rules.map(r => {
-      const cond = r.conditionId || '?';
-      const act = r.actionId || '?';
-      const op = r.operator && r.conditionId2 ? ` ${r.operator.toUpperCase()} ${r.conditionId2}` : '';
+      const condition = GameDatabase.getCondition?.(r.conditionId);
+      const action = GameDatabase.getAction?.(r.actionId);
+      const cond = entity('condition', r.conditionId, condition?.displayName || r.conditionId || '?');
+      const act = entity('action', r.actionId, action?.displayName || r.actionId || '?');
+      const op = r.operator && r.conditionId2 ? ` ${r.operator.toUpperCase()} ${entity('condition', r.conditionId2, r.conditionId2)}` : '';
       return `<li><span class="rule-prio-badge">${escapeHtml(r.priority)}</span> IF <span class="rule-cond">${escapeHtml(cond + op)}</span> → <span class="rule-act">${escapeHtml(act)}</span></li>`;
     }).join('');
     this.rulesEl.innerHTML = `<ul class="victory-rules-list">${items}</ul>`;
