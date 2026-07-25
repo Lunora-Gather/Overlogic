@@ -41,14 +41,6 @@ async function main() {
     window.scrollTo(0, 0);
   }, { passive: true });
 
-  const screenCombat = document.getElementById('screen-combat');
-  if (screenCombat) {
-    screenCombat.addEventListener('scroll', () => {
-      screenCombat.scrollTop = 0;
-      screenCombat.scrollLeft = 0;
-    }, { passive: true });
-  }
-
   const canvas = document.getElementById('arena');
   let arena = null;
 
@@ -125,6 +117,8 @@ async function main() {
   const settingShake = document.getElementById('setting-shake');
   const settingReduceMotion = document.getElementById('setting-reduce-motion');
   const settingLanguage = document.getElementById('setting-language');
+  let settingsReturnFocus = null;
+  let resumeCombatAfterSettings = false;
 
   function openSettings() {
     AudioManager.resume();
@@ -136,12 +130,30 @@ async function main() {
     settingReduceMotion.checked = GameState.settings.reduceMotion;
     settingLanguage.value = GameState.settings.language;
 
+    settingsReturnFocus = document.activeElement;
+    resumeCombatAfterSettings = GameManager.state === 'combat' && arena && !arena.paused;
+    if (resumeCombatAfterSettings) {
+      arena.setPaused(true);
+      battleHUD.btnPause.textContent = t('combat.resume');
+      battleHUD.btnStep.classList.remove('hidden');
+    }
     settingsOverlay.classList.remove('hidden');
+    settingsOverlay.setAttribute('aria-hidden', 'false');
+    btnSettingsSave?.focus();
     AudioManager.play('button_click');
   }
 
   function closeSettings() {
     settingsOverlay.classList.add('hidden');
+    settingsOverlay.setAttribute('aria-hidden', 'true');
+    if (resumeCombatAfterSettings && arena && !arena._finished) {
+      arena.setPaused(false);
+      battleHUD.btnPause.textContent = t('combat.pause');
+      battleHUD.btnStep.classList.add('hidden');
+    }
+    resumeCombatAfterSettings = false;
+    if (settingsReturnFocus instanceof HTMLElement) settingsReturnFocus.focus();
+    settingsReturnFocus = null;
     AudioManager.play('button_click');
   }
 
@@ -149,6 +161,15 @@ async function main() {
   if (btnSettingsEditor) btnSettingsEditor.addEventListener('click', openSettings);
   if (btnSettingsCombat) btnSettingsCombat.addEventListener('click', openSettings);
   if (btnSettingsClose) btnSettingsClose.addEventListener('click', closeSettings);
+  settingsOverlay?.addEventListener('click', (event) => {
+    if (event.target === settingsOverlay) closeSettings();
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && settingsOverlay && !settingsOverlay.classList.contains('hidden')) {
+      event.preventDefault();
+      closeSettings();
+    }
+  });
 
   if (settingVolume) {
     settingVolume.addEventListener('input', () => {

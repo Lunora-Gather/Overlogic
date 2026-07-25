@@ -83,6 +83,7 @@ export class CombatArena {
     // Fresh context + robot + brain
     this.ctx = new BattleContext();
     this.ctx.hud = this.hud;
+    this.ctx.random = this.random;
     this.stats = new RobotStats();
     this.stats.loadFromGameState();
     this.robot = new RobotController();
@@ -212,6 +213,11 @@ export class CombatArena {
     this.ctx.enemies = this.ctx.enemies.filter(e => !e.dead);
     if (this.ctx.liveEnemies() === 0 && this.pendingWaves.length > 0) {
       this._waveClearTimer += dt;
+      this.hud.setWaveIncoming(
+        this.currentWave + 1,
+        this.totalWaves,
+        Math.max(0, WAVE_CLEAR_DELAY - this._waveClearTimer),
+      );
       if (this._waveClearTimer >= WAVE_CLEAR_DELAY) this._deployNextWave();
     } else {
       this._waveClearTimer = 0;

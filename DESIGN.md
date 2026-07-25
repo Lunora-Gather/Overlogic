@@ -170,7 +170,7 @@ function TickLogicBrain(robot, ctx, rules):
 | `skill_ready` | Skill Ready | actionId | `basic_attack` | — | — | [扩展] |
 | `boss_phase` | Boss Phase | phase(int) | 2 | 1 | 3 | [扩展] |
 | `enemy_hp_low` | Enemy HP Low | percent(0–1) | 0.25 | 0.05 | 0.95 | [扩展] |
-| `projectile_nearby` | Projectile Nearby | radius(m) | 2 | 0.5 | 8 | [扩展] |
+| `projectile_nearby` | Projectile Nearby | radius(m) | 2.4 | 0.8 | 8 | ✅ |
 
 **判定语义**（工程化补全）：
 
@@ -179,6 +179,7 @@ function TickLogicBrain(robot, ctx, rules):
 - `hp_low`：`robot.hp / robot.maxHp ≤ percent`。
 - `energy_high`：`robot.energy / robot.maxEnergy ≥ percent`。
 - `enemy_casting`：场上任一敌人处于 `Casting`/`Charging` 状态即成立。
+- `projectile_nearby`：仅检测正在接近且飞行路径会进入机体附近的敌方弹体。
 
 ### 6.2 动作模块（Demo 至少 6 个）
 
@@ -187,6 +188,7 @@ function TickLogicBrain(robot, ctx, rules):
 | `basic_attack` | Basic Attack | 0.4 | 0 | 8 | dmg=8 | ✅ |
 | `dash_toward` | Dash Toward | 3 | 10 | dash=3m | — | ✅ |
 | `dash_away` | Dash Away | 3 | 10 | dash=3m | — | ✅ |
+| `sidestep` | Evasive Sidestep | 2.5 | 8 | self | dash=2.6m, invuln=0.16s | ✅ |
 | `shield` | Shield | 8 | 25 | self | dur=2s, dmgReduce=0.70 | ✅ |
 | `interrupt_shot` | Interrupt Shot | 5 | 20 | 8 | dmg=6, interrupts casting | ✅ |
 | `overdrive` | Overdrive | 15 | 40 | self | dur=5s, atkSpd+50%, moveSpd+25% | ✅ |
@@ -198,6 +200,7 @@ function TickLogicBrain(robot, ctx, rules):
 - **Basic Attack**：选最近敌人，若在 `range` 内发射子弹（子弹速度 `12 m/s`，生命 `2s`），命中造成 `effectValue.dmg`；若不在范围内，执行默认靠近。
 - **Dash Toward**：朝最近敌人方向位移 `dash` m，0.15s 内完成，期间无敌（碰撞免伤）。
 - **Dash Away**：朝远离最近敌人方向位移 `dash` m；若将撞墙，沿墙切线方向滑动到可行位置。
+- **Evasive Sidestep**：根据最近威胁弹体的飞行向量选择横向方向，穿越其弹道并获得短暂无敌。
 - **Shield**：开启护盾，持续 `dur` 秒，期间受到伤害 ×`(1 − dmgReduce)`；显示护盾罩特效。
 - **Interrupt Shot**：优先瞄准处于 `Casting`/`Charging` 的最近敌人；命中 Casting 敌人立即打断其技能并造成 `dmg`；若无 Casting 敌人则不执行（规则视为不可用，跳过）。
 - **Overdrive**：进入超载状态 `dur` 秒；期间攻击冷却 ×`1/1.5`、移动速度 ×`1.25`；期间能量恢复降为 `0`；机器人外观变色。
@@ -561,39 +564,40 @@ Your Logic Survived
 
 ---
 
-## 15. Overlogic 值（核心机制，Demo 正向增益）
+## 15. Overlogic 值（高风险爆发机制）
 
 ### 15.1 数值
 
 - 范围 `0–100`，初始 `0`，战斗结束后清零。
-- UI 显示为一条彩色条；达阈值 `≥70` 时显示 `Overlogic Active`。
+- UI 显示为 CPU 温度条；达阈值 `≥85` 时进入 `Overlogic Active`。
 
 ### 15.2 增加规则（Demo）
 
 | 事件 | 增量 |
 |------|------|
-| 连续快速切换规则（0.5s 内 ≥3 条不同规则触发） | +8 |
-| 使用 Overdrive | +10 |
-| 打断 Boss 技能成功 | +15 |
+| 连续快速切换规则（0.5s 内 ≥3 条不同规则触发） | +12 |
+| 使用 Overdrive | +18 |
+| 精准打断技能成功 | +8 |
 | 血量 < 20% 时击杀敌人（反杀） | +12 |
 | 短时间（1s 内）多条规则连续触发 | +5 |
 
-### 15.3 阈值效果（Demo 仅正向）
+### 15.3 阈值效果
 
-达 `≥70` 进入 `Overlogic Active`（持续至值回落 < 40）：
+达 `≥85` 进入 `Overlogic Active`（持续至值回落 `≤35`）：
 
-- 攻击冷却 ×`0.7`
-- 技能冷却 ×`0.7`
+- 攻击与技能冷却 ×`0.5`
+- 弹体与地雷伤害 ×`1.5`
+- 每秒承受最大生命 `5%` 的过热伤害
 - UI 出现视觉扰动（扫描线、轻微色偏）
 - Current Logic 显示变为 `Overlogic Active: {rule}`
 
 ### 15.4 衰减
 
-每秒自然衰减 `−2`；脱战（无敌人 1s）后衰减 `−5/s`。
+战斗中每秒自然衰减 `−3`；激活后每秒衰减 `−9`，形成可预测的短爆发窗口；脱战时衰减 `−10/s`。
 
-### 15.5 失控惩罚 [扩展]
+### 15.5 失控代价
 
-预留 `OverlogicValue` 字段与失控逻辑挂钩点，Demo 不实现。
+过热伤害迫使玩家在爆发效率与机体安全之间权衡；热能回收协议可通过持续执行规则主动降温。
 
 ---
 

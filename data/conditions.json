@@ -2,6 +2,7 @@
   "conditions": [
     { "id": "enemy_nearby", "displayName": "Enemy Nearby", "description": "A nearby enemy exists within radius.", "parameterType": "float", "defaultValue": 8.0, "minValue": 1.0, "maxValue": 20.0, "teachUnlock": 1 },
     { "id": "enemy_far", "displayName": "Enemy Far", "description": "Nearest enemy distance >= minDistance.", "parameterType": "float", "defaultValue": 5.0, "minValue": 2.0, "maxValue": 20.0, "teachUnlock": 2 },
+    { "id": "projectile_nearby", "displayName": "Projectile Nearby", "description": "A hostile projectile is within the warning radius.", "parameterType": "float", "defaultValue": 2.4, "minValue": 0.8, "maxValue": 8.0, "teachUnlock": 2 },
     { "id": "hp_low", "displayName": "HP Low", "description": "Robot HP <= percent of max.", "parameterType": "percent", "defaultValue": 0.30, "minValue": 0.05, "maxValue": 0.95, "teachUnlock": 1 },
     { "id": "hp_above", "displayName": "HP Above", "description": "Robot HP >= percent of max.", "parameterType": "percent", "defaultValue": 0.70, "minValue": 0.05, "maxValue": 0.99, "teachUnlock": 2 },
     { "id": "energy_high", "displayName": "Energy High", "description": "Robot energy >= percent of max.", "parameterType": "percent", "defaultValue": 0.80, "minValue": 0.05, "maxValue": 0.99, "teachUnlock": 4 },

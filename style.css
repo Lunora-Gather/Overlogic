@@ -337,6 +337,354 @@ input:focus-visible {
   box-shadow: var(--glow-shadow);
 }
 
+/* ===== Tactical release refinement ===== */
+.run-config-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  padding: 14px;
+  gap: 10px 12px;
+}
+
+.run-config-panel label {
+  min-width: 0;
+}
+
+.run-config-hint {
+  grid-column: 1 / -1;
+  min-height: 30px;
+  margin: 0;
+  padding: 8px 10px;
+  border: 1px solid rgba(111, 205, 255, 0.09);
+  border-radius: 7px;
+  background: rgba(2, 8, 18, 0.52);
+  color: #8397b7;
+  font-size: 10px;
+  line-height: 1.45;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+
+.daily-seed-label {
+  grid-column: 1 / -1;
+  justify-self: center;
+  margin: 0;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(62, 255, 157, 0.07);
+  color: #7fffc1;
+}
+
+.map-nodes {
+  position: relative;
+  padding: 4px 2px 2px;
+}
+
+.map-nodes::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 4%;
+  right: 4%;
+  height: 1px;
+  z-index: 0;
+  background: linear-gradient(90deg, rgba(0, 210, 255, 0.28), rgba(62, 255, 157, 0.18), rgba(255, 45, 116, 0.2));
+}
+
+.map-col {
+  position: relative;
+  z-index: 1;
+}
+
+.map-node {
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  backdrop-filter: blur(8px);
+}
+
+.map-node[data-node-type="repair"] {
+  border-color: rgba(62, 255, 157, 0.24);
+}
+
+.map-node[data-node-type="upgrade"] {
+  border-color: rgba(180, 122, 255, 0.28);
+}
+
+.map-node.unlocked::after {
+  content: '';
+  width: 5px;
+  height: 5px;
+  margin-left: 5px;
+  border-radius: 50%;
+  background: var(--accent2);
+  box-shadow: 0 0 9px var(--accent2);
+}
+
+.map-node.selected {
+  transform: translateY(-2px);
+}
+
+.mission-briefing {
+  border-left: 2px solid rgba(75, 225, 255, 0.62);
+}
+
+.brief-score {
+  min-width: 76px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(2, 8, 18, 0.52);
+}
+
+.brief-score-value {
+  font-family: var(--font-display);
+  font-variant-numeric: tabular-nums;
+}
+
+.brief-checks span {
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.022);
+}
+
+.slots-bar {
+  border-radius: 9px !important;
+  background: linear-gradient(90deg, rgba(75, 225, 255, 0.035), rgba(62, 255, 157, 0.018)) !important;
+}
+
+.slot-item {
+  min-height: 30px;
+}
+
+.slot-led {
+  outline: 2px solid rgba(255, 255, 255, 0.025);
+  outline-offset: 2px;
+}
+
+.rule-form {
+  padding: 13px;
+  border: 1px solid rgba(75, 225, 255, 0.2);
+  border-radius: 10px;
+  background:
+    linear-gradient(140deg, rgba(18, 36, 58, 0.78), rgba(5, 13, 26, 0.84));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.rule-row {
+  position: relative;
+  min-height: 52px;
+  transition: border-color 150ms ease, background 150ms ease, transform 150ms ease;
+}
+
+.rule-row:hover {
+  transform: translateY(-1px);
+  border-color: rgba(75, 225, 255, 0.22);
+  background: rgba(75, 225, 255, 0.032);
+}
+
+.rule-row:has(input[type="checkbox"]:checked)::before {
+  content: '';
+  position: absolute;
+  top: 9px;
+  bottom: 9px;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: linear-gradient(var(--accent), var(--accent2));
+  opacity: 0.58;
+}
+
+.combat-top {
+  padding: 12px 14px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(0, 210, 255, 0.08), transparent 40%),
+    linear-gradient(160deg, rgba(12, 20, 38, 0.94), rgba(6, 12, 25, 0.92));
+}
+
+.bar-track {
+  overflow: hidden;
+  border: 1px solid rgba(111, 205, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.3);
+}
+
+.bar-fill {
+  border-radius: inherit;
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.18);
+}
+
+.current-logic {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 7px 13px;
+  border: 1px solid rgba(75, 225, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(2, 9, 20, 0.55);
+}
+
+.wave-info.incoming {
+  color: #ffcf73;
+  animation: incomingPulse 700ms ease-in-out infinite alternate;
+}
+
+@keyframes incomingPulse {
+  to { opacity: 0.58; }
+}
+
+.combat-console-log {
+  mask-image: linear-gradient(to bottom, transparent 0, #000 16px, #000 100%);
+}
+
+.console-entry {
+  padding: 4px 6px;
+  border-left: 2px solid transparent;
+  border-radius: 3px;
+}
+
+.console-entry.warn {
+  border-left-color: rgba(255, 185, 56, 0.55);
+  background: rgba(255, 185, 56, 0.035);
+}
+
+.console-entry.danger {
+  border-left-color: rgba(255, 62, 90, 0.62);
+  background: rgba(255, 62, 90, 0.04);
+}
+
+.diag-pursuing {
+  border-color: rgba(0, 210, 255, 0.25) !important;
+}
+
+.diag-action_unavailable {
+  opacity: 0.72;
+}
+
+.reward-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.reward-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(75, 225, 255, 0.65), transparent);
+  opacity: 0;
+  transition: opacity 160ms ease;
+}
+
+.reward-card:hover::before,
+.reward-card:focus-visible::before {
+  opacity: 1;
+}
+
+.r-impact {
+  display: block;
+  margin-top: auto;
+  padding: 7px 9px;
+  border: 1px solid rgba(62, 255, 157, 0.1);
+  border-radius: 6px;
+  background: rgba(62, 255, 157, 0.035);
+  color: #8de9bd;
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  letter-spacing: 0.035em;
+}
+
+.r-pick-hint {
+  margin-top: 8px;
+}
+
+.report-grid {
+  gap: 14px;
+}
+
+.report-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.report-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 18px;
+  width: 42px;
+  height: 1px;
+  background: var(--accent);
+  box-shadow: 0 0 9px var(--accent);
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
+.custom-tooltip {
+  border-radius: 9px;
+  border-color: rgba(75, 225, 255, 0.25);
+  background: rgba(5, 12, 25, 0.97);
+  box-shadow: 0 18px 45px rgba(0, 0, 0, 0.42);
+}
+
+@media (max-width: 760px) {
+  .run-config-panel {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .map-nodes::before {
+    display: none;
+  }
+
+  .editor-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 30;
+    border-color: rgba(75, 225, 255, 0.2);
+    background: rgba(5, 11, 23, 0.96);
+    backdrop-filter: blur(18px);
+  }
+
+  .brief-score {
+    min-width: 64px;
+  }
+
+  .reward-card {
+    min-height: 190px;
+  }
+
+  #screen-report {
+    padding: 28px 16px 36px;
+  }
+
+  #screen-report .fail-title {
+    font-size: 30px;
+    letter-spacing: 0.12em;
+    text-align: center;
+  }
+
+  #screen-report .report-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  #screen-report .report-card {
+    grid-column: 1 / -1 !important;
+    width: 100%;
+    min-width: 0;
+  }
+
+  #screen-report .report-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wave-info.incoming {
+    animation: none;
+  }
+}
+
 html[data-locale="zh-CN"] {
   --font-ui: 'Noto Sans SC', 'Microsoft YaHei UI', sans-serif;
   --font-display: 'Noto Sans SC', 'Microsoft YaHei UI', sans-serif;
@@ -2926,5 +3274,60 @@ select:focus-visible,
 
   .reward-card {
     min-height: 170px;
+  }
+}
+
+/* Tactical refinements intentionally finish the cascade. */
+.run-config-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+  padding: 14px;
+  gap: 10px 12px;
+}
+
+.run-config-hint,
+.daily-seed-label {
+  grid-column: 1 / -1;
+}
+
+.map-node {
+  min-height: 36px;
+  padding: 7px 10px;
+  border-radius: 8px;
+}
+
+.rule-form {
+  padding: 13px;
+  border-radius: 10px;
+}
+
+.rule-row {
+  min-height: 52px;
+}
+
+.combat-top {
+  padding: 12px 14px;
+  background:
+    radial-gradient(circle at 50% 0, rgba(0, 210, 255, 0.08), transparent 40%),
+    linear-gradient(160deg, rgba(12, 20, 38, 0.94), rgba(6, 12, 25, 0.92));
+}
+
+.current-logic {
+  min-height: 34px;
+  padding: 7px 13px;
+  border: 1px solid rgba(75, 225, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(2, 9, 20, 0.55);
+}
+
+@media (max-width: 760px) {
+  .editor-footer {
+    position: relative;
+    bottom: auto;
+    z-index: 1;
+  }
+
+  .reward-card {
+    min-height: 190px;
   }
 }

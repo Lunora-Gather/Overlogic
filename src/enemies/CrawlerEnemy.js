@@ -20,6 +20,7 @@ export class CrawlerEnemy extends EnemyBase {
     if (this.jumpState === 'telegraph') {
       this.jumpState = 'idle';
       this.jumpTimer = 0;
+      this.attackTimer = this.attackCooldown;
     }
   }
 
@@ -72,7 +73,7 @@ export class CrawlerEnemy extends EnemyBase {
           // Land area damage
           const distToPlayer = Math.hypot(r.x - this.x, r.y - this.y);
           if (distToPlayer <= 1.5) {
-            r.takeDamage(this.damage * 1.5, 'crawler_jump');
+            r.takeDamage(this.damage * 1.5, this.enemyId);
           }
           
           // Spawn landing shockwave particles

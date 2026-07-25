@@ -5,6 +5,7 @@ import { Projectile } from '../vfx/Projectile.js';
 import { Mine } from '../vfx/Mine.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { spawnText, spawnEngineTrail, spawnReflectBeam, spawnBurst } from '../vfx/ParticleSystem.js';
+import { t } from '../i18n/I18n.js';
 
 export class RobotController {
   constructor() {
@@ -47,6 +48,7 @@ export class RobotController {
   }
 
   overdriveAtkSpeedMul() { return this.overdriveTimer > 0 ? this.overdriveAtkMul : 1; }
+  get shieldActive() { return this.shieldTimer > 0; }
 
   getHazardRepulsion() {
     const force = { x: 0, y: 0 };
@@ -197,9 +199,12 @@ export class RobotController {
   }
 
   heal(amount) {
+    const before = this.hp;
     this.hp = Math.min(this.maxHp, this.hp + amount);
+    const restored = this.hp - before;
     this._emitHp();
-    spawnText(this.ctx, this.x, this.y - 0.4, `+${Math.round(amount)}`, '#3eff9d', 12);
+    spawnText(this.ctx, this.x, this.y - 0.4, `+${Math.round(restored)}`, '#3eff9d', 12);
+    return restored;
   }
 
   fireBullet(targetPos, dmg, speed, life, kind, specificTarget = null) {
@@ -244,7 +249,7 @@ export class RobotController {
           spawnReflectBeam(this.ctx, this.x, this.y, enemy.x, enemy.y, '#00d2ff');
           spawnBurst(this.ctx, enemy.x, enemy.y, '#00d2ff', 8, 4, 0.25, 3.5);
           if (this.ctx && this.ctx.hud) {
-            this.ctx.hud.logConsole(`System Plating: Deflected ${reflected.toFixed(0)} DMG back to target`, 'success');
+            this.ctx.hud.logConsole(t('log.reflect', { value: reflected.toFixed(0) }), 'success');
           }
         }
       }
@@ -267,7 +272,7 @@ export class RobotController {
         const len = Math.hypot(dx, dy) || 1;
         this.doDash({ x: -dx / len, y: -dy / len }, 3, 1.5);
         if (this.ctx && this.ctx.hud) {
-          this.ctx.hud.logConsole(`SYSTEM RESET: Emergency Recall triggered! Restored 30 HP.`, 'danger');
+          this.ctx.hud.logConsole(t('log.recall'), 'danger');
         }
         AudioManager.play('shield_on');
         this._emitHp();

@@ -134,9 +134,9 @@ class GameStateClass {
     return {
       id: this._nextRuleId(),
       conditionId: condId,
-      conditionValue: condVal,
+      conditionValue: this._normalizeConditionValue(condId, condVal),
       conditionId2: condId2,
-      conditionValue2: condVal2,
+      conditionValue2: condId2 ? this._normalizeConditionValue(condId2, condVal2) : null,
       operator: operator,
       actionId: actId,
       priority: prio,
@@ -164,6 +164,8 @@ class GameStateClass {
   }
 
   _advanceTeachRulesTo(node) {
+    if (node >= 2 && !this._hasRule('projectile_nearby', 'sidestep'))
+      this.rules.push(this._newRule('projectile_nearby', 2.4, 'sidestep', 80));
     if (node >= 2 && !this._hasRule('enemy_far', 'dash_toward'))
       this.rules.push(this._newRule('enemy_far', 5.0, 'dash_toward', 50));
     if (node >= 3 && !this._hasRule('enemy_casting', 'interrupt_shot'))
@@ -300,6 +302,30 @@ class GameStateClass {
     }
   }
 
+  _normalizeConditionValue(conditionId, value) {
+    const condition = GameDatabase.getCondition(conditionId);
+    if (!condition || condition.parameterType === 'none') return null;
+    if (condition.parameterType === 'vec2') {
+      const fallback = Array.isArray(condition.defaultValue) ? condition.defaultValue : [1, 1];
+      const incoming = Array.isArray(value) ? value : fallback;
+      return incoming.slice(0, 2).map((part, index) => {
+        const numeric = Number(part);
+        const safe = Number.isFinite(numeric) ? numeric : Number(fallback[index]) || 0;
+        const min = Number(condition.minValue?.[index]);
+        const max = Number(condition.maxValue?.[index]);
+        const clamped = Math.max(Number.isFinite(min) ? min : -Infinity, Math.min(Number.isFinite(max) ? max : Infinity, safe));
+        return index === 1 ? Math.round(clamped) : clamped;
+      });
+    }
+    const numeric = Number(value);
+    const fallback = Number(condition.defaultValue);
+    const safe = Number.isFinite(numeric) ? numeric : (Number.isFinite(fallback) ? fallback : 0);
+    const min = Number(condition.minValue);
+    const max = Number(condition.maxValue);
+    const clamped = Math.max(Number.isFinite(min) ? min : -Infinity, Math.min(Number.isFinite(max) ? max : Infinity, safe));
+    return condition.parameterType === 'int' ? Math.round(clamped) : clamped;
+  }
+
   markSandboxRun() {
     if (this.tutorialProgress?.sandboxRun) return;
     this.tutorialProgress = { ...this.tutorialProgress, sandboxRun: true };
@@ -398,18 +424,22 @@ class GameStateClass {
   }
   setRuleConditionValue(ruleId, value) {
     const r = this.rules.find(r => r.id === ruleId);
-    if (r && r.conditionValue !== value) {
+    const normalized = r ? this._normalizeConditionValue(r.conditionId, value) : value;
+    if (r && JSON.stringify(r.conditionValue) !== JSON.stringify(normalized)) {
       this._pushState();
-      r.conditionValue = value;
+      r.conditionValue = normalized;
       this.saveToStorage();
       this._emit('rules');
     }
   }
   setRuleConditionValue2(ruleId, value) {
     const r = this.rules.find(r => r.id === ruleId);
-    if (r && r.conditionValue2 !== value) {
+    const normalized = r && r.conditionId2
+      ? this._normalizeConditionValue(r.conditionId2, value)
+      : value;
+    if (r && JSON.stringify(r.conditionValue2) !== JSON.stringify(normalized)) {
       this._pushState();
-      r.conditionValue2 = value;
+      r.conditionValue2 = normalized;
       this.saveToStorage();
       this._emit('rules');
     }
@@ -658,7 +688,14 @@ class GameStateClass {
         const cond2Ok = !r.operator || availConds.includes(r.conditionId2);
         const actOk = availActs.includes(r.actionId);
         return condOk && cond2Ok && actOk;
-      });
+      }).map(r => ({
+        ...r,
+        conditionValue: this._normalizeConditionValue(r.conditionId, r.conditionValue),
+        conditionValue2: r.operator && r.conditionId2
+          ? this._normalizeConditionValue(r.conditionId2, r.conditionValue2)
+          : null,
+        priority: Math.max(0, Math.min(100, r.priority | 0)),
+      }));
       this.saveToStorage();
       this._emit('rules');
       return { ok: true, filtered: this.rules.length < prevLength };
@@ -791,9 +828,9 @@ class GameStateClass {
       return {
         id,
         conditionId: rule.conditionId,
-        conditionValue: rule.conditionValue ?? GameDatabase.getCondition(rule.conditionId)?.defaultValue ?? null,
+        conditionValue: this._normalizeConditionValue(rule.conditionId, rule.conditionValue),
         conditionId2: operator ? rule.conditionId2 : null,
-        conditionValue2: operator ? (rule.conditionValue2 ?? GameDatabase.getCondition(rule.conditionId2)?.defaultValue ?? null) : null,
+        conditionValue2: operator ? this._normalizeConditionValue(rule.conditionId2, rule.conditionValue2) : null,
         operator,
         actionId: rule.actionId,
         priority: Math.max(0, Math.min(100, rule.priority | 0)),

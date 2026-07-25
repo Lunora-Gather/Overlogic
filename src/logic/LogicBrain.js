@@ -6,6 +6,7 @@ import { GameState } from '../core/GameState.js';
 import { GameDatabase } from '../core/GameDatabase.js';
 import { ConditionEvaluator } from './ConditionEvaluator.js';
 import { sortDesc, formatLabel } from './LogicRule.js';
+import { t } from '../i18n/I18n.js';
 
 const TICK_INTERVAL = 0.15;     // seconds (DESIGN.md §5.2)
 
@@ -18,7 +19,7 @@ export class LogicBrain {
     this.evaluator = new ConditionEvaluator();
     this.tickTimer = 0;
     this.currentRule = null;
-    this.currentLabel = 'Idle: default behavior';
+    this.currentLabel = t('combat.idle');
     // overlogic fast-switch detection
     this.recentRuleIds = [];
     this.recentRuleWindow = 0;
@@ -86,6 +87,10 @@ export class LogicBrain {
         diagnostics[r.id] = 'energy';
         continue;
       }
+      if (this.executor.unavailableReason(actId, r)) {
+        diagnostics[r.id] = 'action_unavailable';
+        continue;
+      }
       if (actId === 'interrupt_shot' && this.ctx.castingEnemies().length === 0) {
         diagnostics[r.id] = 'condition_false';
         continue;
@@ -102,7 +107,7 @@ export class LogicBrain {
       this.robot.aimTarget = null;
       this.executor.executeDefault();
       if (this.tracker) this.tracker.recordDiagnostics(diagnostics);
-      this._emit(null, 'Idle: default behavior', diagnostics);
+      this._emit(null, t('combat.idle'), diagnostics);
       return;
     }
 
@@ -119,19 +124,23 @@ export class LogicBrain {
     }
 
     const ok = this.executor.execute(chosen.actionId, chosen);
-    if (this.tracker) this.tracker.recordDiagnostics(diagnostics);
     if (ok) {
       this._trackAndOverlogic(chosen);
       this._emit(chosen, formatLabel(chosen, GameDatabase), diagnostics);
     } else {
-      if (chosen.actionId === 'basic_attack') {
-        this._emit(chosen, formatLabel(chosen, GameDatabase) + ' (Pursuing)', diagnostics);
+      if (['basic_attack', 'interrupt_shot', 'dash_through'].includes(chosen.actionId)) {
+        diagnostics[chosen.id] = 'pursuing';
+        this._emit(chosen, t('combat.pursuingLabel', {
+          label: formatLabel(chosen, GameDatabase),
+        }), diagnostics);
       } else {
+        diagnostics[chosen.id] = 'action_unavailable';
         this.robot.aimTarget = null;
         this.executor.executeDefault();
-        this._emit(null, 'Idle: default behavior', diagnostics);
+        this._emit(null, t('combat.idle'), diagnostics);
       }
     }
+    if (this.tracker) this.tracker.recordDiagnostics(diagnostics);
   }
 
   _trackAndOverlogic(rule) {
@@ -139,7 +148,7 @@ export class LogicBrain {
     if (!this.recentRuleIds.includes(rule.id)) {
       this.recentRuleIds.push(rule.id);
       if (this.recentRuleIds.length >= 3) {
-        this.ctx.overlogic.addEvent('fast_switch', 8);
+        this.ctx.overlogic.addEvent('fast_switch', 12);
       }
     }
   }

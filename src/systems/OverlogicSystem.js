@@ -1,10 +1,11 @@
 // OverlogicSystem.js — tracks Overlogic value and active state.
 // Mirrors scripts/systems/OverlogicSystem.gd. Pure class.
 
-const THRESHOLD = 100;
-const ACTIVE_OFF = 0;
-const DECAY_RATE = 2.5;          // /s in combat
+const THRESHOLD = 85;
+const ACTIVE_OFF = 35;
+const DECAY_RATE = 3;            // /s in combat
 const DECAY_RATE_OOC = 10;      // /s out of combat
+const ACTIVE_DECAY_RATE = 9;     // high-risk burst, then a predictable recovery window
 const MAX_VAL = 100;
 
 export class OverlogicSystem {
@@ -23,7 +24,7 @@ export class OverlogicSystem {
   }
 
   tick(dt, inCombat) {
-    const rate = inCombat ? (this.active ? 5 : DECAY_RATE) : DECAY_RATE_OOC;
+    const rate = inCombat ? (this.active ? ACTIVE_DECAY_RATE : DECAY_RATE) : DECAY_RATE_OOC;
     this.value = clamp(this.value - rate * dt, 0, MAX_VAL);
     this._checkState();
   }

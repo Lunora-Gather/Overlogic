@@ -17,7 +17,9 @@ export class MainMenu {
     this.runMode = document.getElementById('run-mode');
     this.runDifficulty = document.getElementById('run-difficulty');
     this.dailySeedLabel = document.getElementById('daily-seed-label');
+    this.runConfigHint = document.getElementById('run-config-hint');
     this.howBody = document.getElementById('how-body');
+    this._howReturnFocus = null;
     this._bind();
     this.render();
   }
@@ -32,11 +34,22 @@ export class MainMenu {
     this.btnHow.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
+      this._howReturnFocus = document.activeElement;
       this.overlay.classList.remove('hidden');
+      this.overlay.setAttribute('aria-hidden', 'false');
+      this.btnHowClose.focus();
     });
     this.btnHowClose.addEventListener('click', () => {
-      AudioManager.play('button_click');
-      this.overlay.classList.add('hidden');
+      this._closeHow();
+    });
+    this.overlay.addEventListener('click', (event) => {
+      if (event.target === this.overlay) this._closeHow();
+    });
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && !this.overlay.classList.contains('hidden')) {
+        event.preventDefault();
+        this._closeHow();
+      }
     });
     this.btnReset.addEventListener('click', () => {
       AudioManager.resume();
@@ -81,6 +94,14 @@ export class MainMenu {
     this.renderRunConfig();
   }
 
+  _closeHow() {
+    AudioManager.play('button_click');
+    this.overlay.classList.add('hidden');
+    this.overlay.setAttribute('aria-hidden', 'true');
+    if (this._howReturnFocus instanceof HTMLElement) this._howReturnFocus.focus();
+    this._howReturnFocus = null;
+  }
+
   renderRunConfig() {
     if (!this.dailySeedLabel || !this.runMode) return;
     const daily = this.runMode.value === 'daily';
@@ -88,5 +109,12 @@ export class MainMenu {
     this.dailySeedLabel.textContent = daily
       ? t('menu.dailySeed', { seed: GameState.dailySeed() })
       : '';
+    if (this.runConfigHint && this.runDifficulty) {
+      const difficulty = this.runDifficulty.value;
+      this.runConfigHint.textContent = [
+        t(`menu.config.${difficulty}`),
+        daily ? t('menu.config.daily') : t('menu.config.standard'),
+      ].join(' · ');
+    }
   }
 }

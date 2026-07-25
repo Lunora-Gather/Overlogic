@@ -85,10 +85,12 @@ export class RewardUI {
       card.setAttribute('aria-label', rewardDisplayName(r));
       const icon = TYPE_ICONS[r.rewardType] || '✦';
       const typeLabel = t(`rewardType.${r.rewardType}`);
+      const impact = this._impactPreview(r);
       card.innerHTML =
         `<span class="r-type">${icon} ${escapeHtml(typeLabel)}</span>` +
         `<span class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
         `<span class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
+        (impact ? `<span class="r-impact">${escapeHtml(impact)}</span>` : '') +
         `<span class="r-pick-hint">${escapeHtml(t('reward.select'))}</span>`;
       const choose = () => {
         AudioManager.play('rule_add');
@@ -102,5 +104,20 @@ export class RewardUI {
       });
       this.optionsEl.appendChild(card);
     }
+  }
+
+  _impactPreview(reward) {
+    if (reward.rewardType !== 'passive') return t('reward.unlocksDirective');
+    const key = reward.targetId;
+    const before = Number(GameState.stats[key]);
+    if (!Number.isFinite(before)) return '';
+    const multiplicative = new Set([
+      'energy_regen', 'basic_dmg', 'dash_cd', 'shield_cd', 'interrupt_cd',
+    ]);
+    const after = multiplicative.has(key) ? before * reward.value : before + reward.value;
+    const format = (value) => Number.isInteger(value)
+      ? String(value)
+      : String(Math.round(value * 10) / 10);
+    return t('reward.projected', { before: format(before), after: format(after) });
   }
 }

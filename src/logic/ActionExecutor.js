@@ -6,6 +6,7 @@ import { Projectile } from '../vfx/Projectile.js';
 import { Mine } from '../vfx/Mine.js';
 import { AudioManager } from '../systems/AudioManager.js';
 import { spawnBurst } from '../vfx/ParticleSystem.js';
+import { t } from '../i18n/I18n.js';
 
 export class ActionExecutor {
   constructor() {
@@ -44,18 +45,49 @@ export class ActionExecutor {
 
   _startCd(actionId) { this.cooldowns.set(actionId, this.stats.actionCooldown(actionId, this.robot)); }
 
+  // Returns a semantic block reason for actions that would spend resources
+  // without producing an effect. Cooldown and energy are diagnosed separately.
+  unavailableReason(actionId) {
+    switch (actionId) {
+      case 'shield':
+        return this.robot.shieldTimer > 0 ? 'already_active' : '';
+      case 'overdrive':
+        return this.robot.overdriveTimer > 0 ? 'already_active' : '';
+      case 'repair':
+        return this.robot.hp >= this.robot.maxHp - 0.01 ? 'not_needed' : '';
+      case 'drop_mine':
+        return this.ctx.mines.filter(mine => !mine.dead).length >= 3 ? 'capacity' : '';
+      case 'emp_burst': {
+        const radius = GameDatabase.getAction('emp_burst')?.effectValue?.radius || 5;
+        return this.ctx.countEnemiesWithin({ x: this.robot.x, y: this.robot.y }, radius) === 0
+          ? 'no_target'
+          : '';
+      }
+      case 'energy_transfer':
+        if (!this.robot.shieldActive) return 'requires_shield';
+        return this.robot.energy >= this.robot.maxEnergy - 1 ? 'not_needed' : '';
+      case 'sidestep':
+        return this.ctx.nearestHostileProjectileTo({ x: this.robot.x, y: this.robot.y })
+          ? ''
+          : 'no_target';
+      default:
+        return '';
+    }
+  }
+
   // Returns true if action actually executed.
   execute(actionId, rule = null) {
     if (this.isOnCooldown(actionId)) return false;
     const cost = this.energyCost(actionId);
     if (this.robot.energy < cost) return false;
+    if (this.unavailableReason(actionId)) return false;
 
     // Thermal Recycle: actions executed during Meltdown cool CPU temp by -10°C
     if (this.ctx && this.ctx.overlogic && this.ctx.overlogic.active && this.stats.stat('thermal_recycle', 0) > 0) {
       this.ctx.overlogic.value = Math.max(0, this.ctx.overlogic.value - 10);
       this.ctx.overlogic._checkState();
       if (this.ctx.hud) {
-        this.ctx.hud.logConsole(`Thermal Recycle: Action dumped heat! Cooled by -10°C`, 'success');
+        this.ctx.hud.logConsole(t('log.thermalRecycle'), 'success');
       }
     }
 
@@ -63,6 +95,7 @@ export class ActionExecutor {
       case 'basic_attack':    return this._basicAttack(rule);
       case 'dash_toward':     return this._dash(true, rule);
       case 'dash_away':       return this._dash(false, rule);
+      case 'sidestep':        return this._sidestep();
       case 'shield':          return this._shield();
       case 'interrupt_shot':  return this._interruptShot();
       case 'overdrive':       return this._overdrive();
@@ -155,6 +188,30 @@ export class ActionExecutor {
     return true;
   }
 
+  _sidestep() {
+    const projectile = this.ctx.nearestHostileProjectileTo({ x: this.robot.x, y: this.robot.y });
+    if (!projectile) return false;
+    const action = GameDatabase.getAction('sidestep');
+    const effect = action.effectValue;
+    let sideX = -projectile.dir.y;
+    let sideY = projectile.dir.x;
+    const projectileToRobotX = this.robot.x - projectile.x;
+    const projectileToRobotY = this.robot.y - projectile.y;
+    if (projectileToRobotX * sideX + projectileToRobotY * sideY < 0) {
+      sideX = -sideX;
+      sideY = -sideY;
+    }
+    this.robot.doDash(
+      { x: sideX, y: sideY },
+      effect.dashDist || 2.6,
+      effect.invulnTime || 0.16,
+    );
+    this.robot.energy -= this.energyCost('sidestep');
+    this._startCd('sidestep');
+    AudioManager.play('dash');
+    return true;
+  }
+
   _shield() {
     const dur = this.stats.stat('shield_dur', 2);
     const reduce = this.stats.stat('shield_reduce', 0.70);
@@ -176,6 +233,16 @@ export class ActionExecutor {
     if (!target) return false;
     const a = GameDatabase.getAction('interrupt_shot');
     const ev = a.effectValue;
+    if (best > this.stats.actionRange('interrupt_shot')) {
+      const dx = target.x - this.robot.x;
+      const dy = target.y - this.robot.y;
+      const length = Math.hypot(dx, dy) || 1;
+      this.robot.moveIntent = {
+        x: (dx / length) * this.robot.moveSpeed,
+        y: (dy / length) * this.robot.moveSpeed,
+      };
+      return false;
+    }
     this.robot.fireBullet({ x: target.x, y: target.y }, ev.dmg, ev.bulletSpeed, ev.bulletLife, 'interrupt', target);
     this.robot.energy -= this.energyCost('interrupt_shot');
     this._startCd('interrupt_shot');
@@ -190,7 +257,7 @@ export class ActionExecutor {
     this.robot.activateOverdrive(dur, ev.atkSpdMul, ev.moveSpdMul);
     this.robot.energy -= this.energyCost('overdrive');
     this._startCd('overdrive');
-    this.ctx.overlogic.addEvent('overdrive', 10);
+    this.ctx.overlogic.addEvent('overdrive', 18);
     AudioManager.play('shield_on');
     return true;
   }
@@ -234,7 +301,7 @@ export class ActionExecutor {
     this._startCd('emp_burst');
     AudioManager.play('emp_burst');
     if (this.ctx.hud) {
-      this.ctx.hud.logConsole(`EMP Burst: ${hit} unit(s) stunned for ${stunDur}s`, 'success');
+      this.ctx.hud.logConsole(t('log.empBurst', { count: hit, seconds: stunDur }), 'success');
     }
     return true;
   }
@@ -243,16 +310,15 @@ export class ActionExecutor {
     const a = GameDatabase.getAction('energy_transfer');
     const ev = a.effectValue;
     const restore = ev.restore || 35;
+    const before = this.robot.energy;
     this.robot.energy = Math.min(this.robot.maxEnergy, this.robot.energy + restore);
-    // Briefly disable shield if active (costs shield buffer)
-    if (this.robot.shieldActive) {
-      this.robot.shieldActive = false;
-      this.robot.shieldTimer = 0;
-    }
+    // Consume the active shield buffer as the conversion cost.
+    this.robot.shieldTimer = 0;
+    if (this.robot.onShield) this.robot.onShield(false);
     this._startCd('energy_transfer');
     AudioManager.play('energy_transfer');
     if (this.ctx.hud) {
-      this.ctx.hud.logConsole(`Energy Transfer: Restored +${restore} energy`, 'success');
+      this.ctx.hud.logConsole(t('log.energyTransfer', { value: Math.round(this.robot.energy - before) }), 'success');
     }
     return true;
   }
@@ -267,6 +333,13 @@ export class ActionExecutor {
     const a = GameDatabase.getAction('dash_through');
     const ev = a.effectValue;
     const dashDist = ev.dashDist || 4.0;
+    if (len > this.stats.actionRange('dash_through')) {
+      this.robot.moveIntent = {
+        x: dirX * this.robot.moveSpeed,
+        y: dirY * this.robot.moveSpeed,
+      };
+      return false;
+    }
     // Dash through: move past the enemy
     this.robot.doDash({ x: dirX, y: dirY }, dashDist, ev.invulnTime || 0.1);
     // Damage all enemies along the path (within dash line)

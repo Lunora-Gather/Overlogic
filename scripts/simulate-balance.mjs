@@ -97,6 +97,7 @@ export function simulateBattle(battle, options = {}) {
     .sort((a, b) => a - b)
     .map((wave) => ({ spawns: waves.get(wave) }));
   const random = GameState.randomFor(`arena:${battle.id}:${GameState.currentMapColumn}`);
+  ctx.random = random;
 
   let time = 0;
   let won = false;

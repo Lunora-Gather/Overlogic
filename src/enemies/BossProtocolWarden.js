@@ -96,7 +96,7 @@ export class BossProtocolWarden extends EnemyBase {
     // 2. Bullet hell spray
     this.actionTimer -= dt;
     if (this.actionTimer <= 0) {
-      const baseAng = (performance.now() / 600) % (Math.PI * 2);
+      const baseAng = (this.ctx.time / 0.6) % (Math.PI * 2);
       for (let i = 0; i < 6; i++) {
         const ang = baseAng + (i / 6) * Math.PI * 2;
         const p = new Projectile();
@@ -107,7 +107,9 @@ export class BossProtocolWarden extends EnemyBase {
           3.0, // life
           6,   // dmg
           'boss_enraged',
-          false
+          false,
+          null,
+          this.enemyId,
         );
         p.setCtx(this.ctx);
         this.ctx.projectiles.push(p);
@@ -191,7 +193,17 @@ export class BossProtocolWarden extends EnemyBase {
       const offset = spread * (i - (count - 1) / 2);
       const ang = baseAng + offset;
       const p = new Projectile();
-      p.setup({ x: this.x, y: this.y }, { x: Math.cos(ang), y: Math.sin(ang) }, speed, 3, dmg, 'enemy', false);
+      p.setup(
+        { x: this.x, y: this.y },
+        { x: Math.cos(ang), y: Math.sin(ang) },
+        speed,
+        3,
+        dmg,
+        'enemy',
+        false,
+        null,
+        this.enemyId,
+      );
       p.setCtx(this.ctx);
       this.ctx.projectiles.push(p);
     }
@@ -206,7 +218,7 @@ export class BossProtocolWarden extends EnemyBase {
       const crawlerData = GameDatabase.getEnemy('crawler');
       const crawler = new CrawlerEnemy();
       crawler.init(crawlerData, this.ctx);
-      const ang = Math.random() * Math.PI * 2;
+      const ang = (this.ctx.random || Math.random)() * Math.PI * 2;
       const pos = this.ctx.clampToArena({ x: this.x + Math.cos(ang) * 1.5, y: this.y + Math.sin(ang) * 1.5 });
       crawler.x = pos.x; crawler.y = pos.y;
       this.ctx.enemies.push(crawler);

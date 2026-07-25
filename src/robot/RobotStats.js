@@ -37,6 +37,7 @@ export class RobotStats {
       case 'basic_attack':    return this.base.basic_cd;
       case 'dash_toward':
       case 'dash_away':       return this.base.dash_cd;
+      case 'sidestep':        return GameDatabase.getAction('sidestep')?.cooldown || 2.5;
       case 'shield':          return this.base.shield_cd;
       case 'interrupt_shot':  return this.base.interrupt_cd;
       case 'overdrive':       return this.base.overdrive_cd;

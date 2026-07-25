@@ -3,6 +3,7 @@
 import { EnemyBase } from './EnemyBase.js';
 import { spawnBurst } from '../vfx/ParticleSystem.js';
 import { AudioManager } from '../systems/AudioManager.js';
+import { t } from '../i18n/I18n.js';
 
 export class EmpDroneEnemy extends EnemyBase {
   constructor() {
@@ -38,13 +39,12 @@ export class EmpDroneEnemy extends EnemyBase {
 
     switch (this.droneState) {
       case 'approach': {
-        const retreatDist = this.data?.retreatDistance || 4.0;
         if (dist <= this.attackRange && this.empCooldownTimer <= 0) {
           // EMP drain
           const drain = this.data?.empEnergyDrain || 40;
           r.energy = Math.max(0, r.energy - drain);
           if (this.ctx.hud) {
-            this.ctx.hud.logConsole(`EMP Drone: Energy drained by -${drain}!`, 'warn');
+            this.ctx.hud.logConsole(t('log.enemyEmp', { value: drain }), 'warn');
           }
           AudioManager.play('emp_burst');
           spawnBurst(this.ctx, this.x, this.y, '#ffe033', 20, 5, 0.35, 4);

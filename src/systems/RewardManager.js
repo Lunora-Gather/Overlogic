@@ -5,6 +5,18 @@ import { GameDatabase } from '../core/GameDatabase.js';
 import { GameState } from '../core/GameState.js';
 import { entity, t } from '../i18n/I18n.js';
 
+const NON_STACKING_REWARDS = new Set([
+  'pu_superconductors',
+  'pu_emergency_recall',
+  'pu_heavy_impact',
+  'pu_thermal_recycle',
+]);
+
+function wasExhausted(rewardId) {
+  return NON_STACKING_REWARDS.has(rewardId) &&
+    (GameState.runStats?.rewardsChosen || []).includes(rewardId);
+}
+
 export function buildRewardOptions(battle) {
   const random = GameState.randomFor(`reward:${battle?.id || 'unknown'}:${GameState.currentMapColumn}`);
   const pool = battle?.rewardPool || [];
@@ -12,6 +24,7 @@ export function buildRewardOptions(battle) {
   for (const rid of pool) {
     const r = GameDatabase.getReward(rid);
     if (!r) continue;
+    if (wasExhausted(rid)) continue;
     if (r.rewardType === 'new_action' && GameState.unlockedActionIds.includes(r.targetId)) continue;
     if (r.rewardType === 'new_condition' && GameState.unlockedConditionIds.includes(r.targetId)) continue;
     available.push(rid);
@@ -20,8 +33,9 @@ export function buildRewardOptions(battle) {
   let hasPassive = available.some(rid => GameDatabase.getReward(rid).rewardType === 'passive');
   if (!hasPassive) {
     for (const r of GameDatabase.allRewards()) {
-      if (r.rewardType === 'passive' && !available.includes(r.id)) {
+      if (r.rewardType === 'passive' && !wasExhausted(r.id) && !available.includes(r.id)) {
         available.push(r.id);
+        hasPassive = true;
         break;
       }
     }
@@ -43,7 +57,7 @@ export function buildRewardOptions(battle) {
 export function buildUpgradeOptions() {
   const random = GameState.randomFor(`upgrade:${GameState.currentMapColumn}`);
   const passives = GameDatabase.allRewards()
-    .filter(r => r.rewardType === 'passive')
+    .filter(r => r.rewardType === 'passive' && !wasExhausted(r.id))
     .map(r => r.id);
   for (let i = passives.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));

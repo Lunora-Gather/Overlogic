@@ -206,7 +206,7 @@ export class BattleHUD {
       const li = document.getElementById(`combat-rule-${ruleId}`);
       if (!li) continue;
       
-      li.classList.remove('diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing');
+      li.classList.remove('diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing', 'diag-pursuing', 'diag-action_unavailable');
       
       const oldBadge = li.querySelector('.diag-status-badge');
       if (oldBadge) oldBadge.remove();
@@ -254,6 +254,18 @@ export class BattleHUD {
           badge.style.color = 'rgba(255, 255, 255, 0.7)';
           badge.style.border = '1px solid rgba(255, 255, 255, 0.3)';
           break;
+        case 'pursuing':
+          badge.textContent = t('combat.pursuing');
+          badge.style.background = 'rgba(0, 210, 255, 0.12)';
+          badge.style.color = '#7de8ff';
+          badge.style.border = '1px solid rgba(0, 210, 255, 0.45)';
+          break;
+        case 'action_unavailable':
+          badge.textContent = t('combat.blocked');
+          badge.style.background = 'rgba(255, 185, 56, 0.12)';
+          badge.style.color = '#ffcf73';
+          badge.style.border = '1px solid rgba(255, 185, 56, 0.4)';
+          break;
       }
       if (state !== 'disabled') {
         li.appendChild(badge);
@@ -261,7 +273,18 @@ export class BattleHUD {
     }
   }
 
-  setWave(cur, total) { this.waveInfo.textContent = t('combat.wave', { current: cur, total }); }
+  setWave(cur, total) {
+    this.waveInfo.textContent = t('combat.wave', { current: cur, total });
+    this.waveInfo.classList.remove('incoming');
+  }
+  setWaveIncoming(cur, total, seconds) {
+    this.waveInfo.textContent = t('combat.incoming', {
+      current: cur,
+      total,
+      seconds: seconds.toFixed(1),
+    });
+    this.waveInfo.classList.add('incoming');
+  }
   setTimer(t) { this.timerEl.textContent = `${t.toFixed(1)}s`; }
 
   showBossBar(name) { this.bossName.textContent = name; this.bossWrap.classList.remove('hidden'); }

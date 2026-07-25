@@ -100,6 +100,7 @@ export class LogicEditorUI {
       col.forEach(node => {
         const nodeDiv = document.createElement('div');
         nodeDiv.className = 'map-node';
+        nodeDiv.dataset.nodeType = node.type;
         const nodeBattle = node.type === 'combat' ? GameDatabase.getBattle(node.battleIndex) : null;
         const label = nodeBattle
           ? entity('battle', nodeBattle.id, nodeBattle.displayName)
@@ -107,16 +108,26 @@ export class LogicEditorUI {
         nodeDiv.textContent = (node.type === 'combat' ? '⚔️ ' : (node.type === 'repair' ? '🔧 ' : '💎 ')) + label;
         nodeDiv.dataset.tooltipType = 'map-node';
         nodeDiv.dataset.nodeId = node.id;
+        nodeDiv.setAttribute('aria-label', label);
         
         if (node.completed) {
           nodeDiv.classList.add('completed');
         } else if (colIdx === GameState.currentMapColumn) {
           nodeDiv.classList.add('unlocked');
+          nodeDiv.tabIndex = 0;
+          nodeDiv.setAttribute('role', 'button');
           if (node.id === GameState.selectedNodeId) {
             nodeDiv.classList.add('selected');
+            nodeDiv.setAttribute('aria-current', 'step');
           }
-          nodeDiv.addEventListener('click', () => {
+          const selectNode = () => {
             GameState.selectMapNode(node.id);
+          };
+          nodeDiv.addEventListener('click', selectNode);
+          nodeDiv.addEventListener('keydown', (event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            event.preventDefault();
+            selectNode();
           });
         } else if (colIdx < GameState.currentMapColumn) {
           // Passed by another path
@@ -171,6 +182,11 @@ export class LogicEditorUI {
       });
     }
     if (enemyIds.has('shooter') || enemyIds.has('emp_drone')) {
+      options.push({
+        conditionId: 'projectile_nearby', conditionValue: 2.4, actionId: 'sidestep',
+        priority: 80, targetPriority: 'nearest',
+        label: t('advice.projectile.label'), reason: t('advice.projectile.reason'),
+      });
       options.push({
         conditionId: 'enemy_far', conditionValue: 5, actionId: 'dash_toward',
         priority: 50, targetPriority: 'nearest',
@@ -418,6 +434,8 @@ export class LogicEditorUI {
       energy: t('diagnostic.energy'),
       condition_false: t('diagnostic.conditionFalse'),
       overridden: t('diagnostic.overridden'),
+      pursuing: t('diagnostic.pursuing'),
+      action_unavailable: t('diagnostic.unavailable'),
       disabled: t('diagnostic.disabled'),
     };
     let best = null;
@@ -674,7 +692,7 @@ export class LogicEditorUI {
       GameState.setRuleTargetPriority(r.id, tarSel.value);
       AudioManager.play('button_click');
     });
-    const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot'].includes(r.actionId);
+    const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot', 'dash_through'].includes(r.actionId);
     if (!targetsEnemies) {
       tarSel.style.visibility = 'hidden';
     }
@@ -727,7 +745,8 @@ export class LogicEditorUI {
 
     // 7.1 Clone Button
     const clone = document.createElement('button');
-    clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = 'Duplicate Rule';
+    clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = t('editor.duplicate');
+    clone.setAttribute('aria-label', t('editor.duplicate'));
     clone.style.background = 'none';
     clone.style.border = 'none';
     clone.style.cursor = 'pointer';
@@ -748,7 +767,8 @@ export class LogicEditorUI {
 
     // 7.2 Delete Button
     const del = document.createElement('button');
-    del.className = 'del'; del.textContent = '✕'; del.title = 'delete';
+    del.className = 'del'; del.textContent = '✕'; del.title = t('editor.delete');
+    del.setAttribute('aria-label', t('editor.delete'));
     del.addEventListener('click', () => {
       GameState.removeRule(r.id);
       AudioManager.play('rule_add');
@@ -1071,7 +1091,7 @@ export class LogicEditorUI {
   }
 
   _toggleFormTarget() {
-    const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot'].includes(this.fAct.value);
+    const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot', 'dash_through'].includes(this.fAct.value);
     if (targetsEnemies) {
       this.fTarget.classList.remove('hidden');
     } else {

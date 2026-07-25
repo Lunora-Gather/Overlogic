@@ -43,7 +43,17 @@ export class ShooterEnemy extends EnemyBase {
     const p = new Projectile();
     const dx = target.x - this.x, dy = target.y - this.y;
     const len = Math.hypot(dx, dy) || 1;
-    p.setup({ x: this.x, y: this.y }, { x: dx/len, y: dy/len }, this.projectileSpeed, this.projectileLife, this.damage, 'enemy', false);
+    p.setup(
+      { x: this.x, y: this.y },
+      { x: dx / len, y: dy / len },
+      this.projectileSpeed,
+      this.projectileLife,
+      this.damage,
+      'enemy',
+      false,
+      null,
+      this.enemyId,
+    );
     p.setCtx(this.ctx);
     this.ctx.projectiles.push(p);
   }

@@ -20,7 +20,9 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     .sort((a, b) => damageBySource[b] - damageBySource[a]);
   for (const s of sources) {
     const ed = GameDatabase.getEnemy(s);
-    const display = ed ? entity('enemy', s, ed.displayName) : s;
+    const display = s === 'plasma_hazard'
+      ? t('report.plasmaHazard')
+      : (ed ? entity('enemy', s, ed.displayName) : s);
     damageLines.push(t('report.tookDamage', { value: Math.round(damageBySource[s]), source: display }));
   }
   if (damageLines.length === 0) damageLines.push(t('report.noDamage'));

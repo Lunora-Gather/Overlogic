@@ -3,6 +3,7 @@
 
 import { AudioManager } from '../systems/AudioManager.js';
 import { spawnBurst, spawnEngineTrail, spawnText } from './ParticleSystem.js';
+import { t } from '../i18n/I18n.js';
 
 export class Projectile {
   constructor() {
@@ -12,17 +13,19 @@ export class Projectile {
     this.kind = 'basic';      // basic / interrupt / enemy
     this.fromPlayer = true;
     this.specificTarget = null;
+    this.sourceKind = null;
     this.ctx = null;
     this.dead = false;
   }
 
-  setup(start, dir, speed, life, dmg, kind, fromPlayer, specificTarget = null) {
+  setup(start, dir, speed, life, dmg, kind, fromPlayer, specificTarget = null, sourceKind = null) {
     this.x = start.x; this.y = start.y;
     const len = Math.hypot(dir.x, dir.y) || 1;
     this.dir = { x: dir.x / len, y: dir.y / len };
     this.speed = speed; this.life = life; this.dmg = dmg;
     this.kind = kind; this.fromPlayer = fromPlayer;
     this.specificTarget = specificTarget;
+    this.sourceKind = sourceKind;
   }
 
   setCtx(ctx) { this.ctx = ctx; }
@@ -56,12 +59,12 @@ export class Projectile {
           
           // Heavy Impact Stun check
           const r = this.ctx.robot;
-          if (r && r.stats && r.stats.stat('heavy_impact', 0) > 0) {
-            if (Math.random() < 0.25) {
+          if (this.kind === 'basic' && r && r.stats && r.stats.stat('heavy_impact', 0) > 0) {
+            if ((this.ctx.random || Math.random)() < 0.25) {
               e.stunTimer = 0.8;
               spawnText(this.ctx, e.x, e.y - e.bodyRadius - 0.2, 'STUN', '#ffda79', 11);
               if (this.ctx && this.ctx.hud) {
-                this.ctx.hud.logConsole(`Heavy Impact: target stunned for 0.8s`, 'success');
+                this.ctx.hud.logConsole(t('log.heavyImpact'), 'success');
               }
             }
           }
@@ -70,6 +73,7 @@ export class Projectile {
             e.interrupt();
             if (wasCasting) {
               this.ctx.tracker.recordInterruptSuccess();
+              this.ctx.overlogic.addEvent('precision_interrupt', 8);
               AudioManager.play('interrupt_success', this.x);
             }
           }
@@ -80,7 +84,7 @@ export class Projectile {
     } else {
       const r = this.ctx.robot;
       if (r && !r.dead && Math.hypot(r.x - this.x, r.y - this.y) <= r.bodyRadius + 0.15) {
-        r.takeDamage(this.dmg, 'projectile');
+        r.takeDamage(this.dmg, this.sourceKind || 'projectile');
         this._destroy();
       }
     }

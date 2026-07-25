@@ -7,6 +7,7 @@ Live build: https://lunora-gather.github.io/Overlogic/
 ## What You Play
 
 - Program prioritized `IF condition THEN action` rules with optional `AND` / `OR` clauses.
+- Detect approaching projectiles and program evasive sidesteps instead of relying on hidden dodge AI.
 - Choose target priorities such as nearest, lowest HP, caster, or boss.
 - Watch the robot execute rules in real time, with active-rule highlighting and diagnostics.
 - Clear a branching combat map with reward choices, repair nodes, passive upgrades, hazards, and boss variants.
@@ -19,6 +20,9 @@ Live build: https://lunora-gather.github.io/Overlogic/
 - Battle-specific readiness checks, persistent-HP risk warnings, and optional countermeasure rules.
 - Click or keyboard-select modules to prefill the rule builder; priority conflicts can be normalized in one action.
 - Three local loadout slots with quick save/load controls.
+- Utility-aware action scheduling prevents repairs, shields, EMP bursts, and transfers from wasting a turn when they cannot help.
+- Reward cards preview the resulting stat value, while non-stacking protocols are removed after acquisition.
+- Daily runs route gameplay-affecting randomness through the fixed daily seed.
 - Persistent settings for volume, mute, camera shake, and reduced motion.
 - Tooltips for modules and map nodes.
 - Post-battle charts, action frequency, damage breakdowns, and contextual rule suggestions.

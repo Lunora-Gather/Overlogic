@@ -28,6 +28,7 @@ export class ChargerEnemy extends EnemyBase {
     if (this.chargeState === 'casting') {
       this.chargeState = 'idle';
       this.chargeTimer = 0;
+      this.attackTimer = this.attackCooldown;
     }
   }
 

@@ -27,6 +27,10 @@ export class ConditionEvaluator {
         const nd = ctx.nearestEnemyDistance({ x: robot.x, y: robot.y });
         return Number.isFinite(nd) && nd >= d;
       }
+      case 'projectile_nearby': {
+        const radius = +val;
+        return ctx.nearestHostileProjectileDistance({ x: robot.x, y: robot.y }) <= radius;
+      }
       case 'hp_low': {
         const p = +val;
         return robot.hp / robot.maxHp <= p;

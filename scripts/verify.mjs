@@ -15,6 +15,13 @@ const { GameManager } = await import('../src/core/GameManager.js');
 const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js');
 const { BattleContext } = await import('../src/core/BattleContext.js');
 const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js');
+const { RobotController } = await import('../src/robot/RobotController.js');
+const { RobotStats } = await import('../src/robot/RobotStats.js');
+const { ActionExecutor } = await import('../src/logic/ActionExecutor.js');
+const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js');
+const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js');
+const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js');
+const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js');
 const { escapeHtml } = await import('../src/ui/safeHtml.js');
 const { entity, setLocale, t } = await import('../src/i18n/I18n.js');
 const { difficultyModifiers } = await import('../src/systems/RunModifiers.js');
@@ -71,6 +78,62 @@ function verifyGameplayContracts() {
   assert.equal(difficultyModifiers('veteran').enemyDamage > 1, true);
   GameState.configureRun('standard', 'standard');
 
+  assert(GameDatabase.getCondition('projectile_nearby'), 'projectile warning condition must exist');
+  assert(GameDatabase.getAction('sidestep'), 'evasive sidestep action must exist');
+  GameState.resetRun();
+  GameState.advanceTeachNode();
+  assert(GameState.availableConditionIds().includes('projectile_nearby'));
+  assert(GameState.availableActionIds().includes('sidestep'));
+  assert(GameState.rules.some(rule => rule.conditionId === 'projectile_nearby' && rule.actionId === 'sidestep'));
+
+  const tacticalCtx = new BattleContext();
+  const tacticalStats = new RobotStats();
+  tacticalStats.loadFromGameState();
+  const tacticalRobot = new RobotController();
+  tacticalRobot.initFromStats(tacticalStats, tacticalCtx);
+  tacticalCtx.robot = tacticalRobot;
+  tacticalCtx.hud = { logConsole() {} };
+  const tacticalExecutor = new ActionExecutor();
+  tacticalExecutor.setup(tacticalRobot, tacticalCtx, tacticalStats, tacticalCtx.tracker);
+  assert.equal(tacticalExecutor.unavailableReason('repair'), 'not_needed');
+  tacticalRobot.activateShield(2, 0.7);
+  assert.equal(tacticalRobot.shieldActive, true);
+  assert.equal(tacticalExecutor.unavailableReason('shield'), 'already_active');
+  tacticalRobot.energy = 40;
+  assert.equal(tacticalExecutor.unavailableReason('energy_transfer'), '');
+  tacticalRobot.shieldTimer = 0;
+  assert.equal(tacticalExecutor.unavailableReason('energy_transfer'), 'requires_shield');
+  tacticalCtx.projectiles.push({
+    x: 1, y: 0, dir: { x: -1, y: 0 }, fromPlayer: false, dead: false,
+  });
+  const evaluator = new ConditionEvaluator();
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'projectile_nearby', 2.4), true);
+  tacticalCtx.projectiles[0].dir = { x: 1, y: 0 };
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'projectile_nearby', 2.4), false);
+  tacticalCtx.projectiles[0].dir = { x: -1, y: 0 };
+  tacticalRobot.energy = 100;
+  assert.equal(tacticalExecutor.execute('sidestep'), true);
+  assert(tacticalRobot.dashTimer > 0, 'sidestep should create a real evasive dash');
+
+  const charger = new ChargerEnemy();
+  charger.init(GameDatabase.getEnemy('charger'), tacticalCtx);
+  charger.chargeState = 'casting';
+  charger.attackTimer = 0;
+  charger.interrupt();
+  assert(charger.attackTimer > 0, 'interrupting a charger must create a real recast window');
+  const crawler = new CrawlerEnemy();
+  crawler.init(GameDatabase.getEnemy('crawler'), tacticalCtx);
+  crawler.jumpState = 'telegraph';
+  crawler.attackTimer = 0;
+  crawler.interrupt();
+  assert(crawler.attackTimer > 0, 'interrupting a crawler leap must create a real recast window');
+
+  const overlogic = new OverlogicSystem();
+  overlogic.addEvent('test', 85);
+  assert.equal(overlogic.active, true, 'Overlogic should enter its burst state at the readable threshold');
+  overlogic.tick(6, true);
+  assert.equal(overlogic.active, false, 'Overlogic should recover after a bounded combat window');
+
   const firstRewards = new Set(buildRewardOptions(GameState.getActiveBattle()));
   assert(firstRewards.size > 0, 'first battle should expose rewards');
   assert([...firstRewards].every((id) => GameDatabase.getBattle(0).rewardPool.includes(id)), 'first rewards must come from battle 1 pool');
@@ -92,6 +155,27 @@ function verifyGameplayContracts() {
       assert(options.some(id => GameDatabase.getReward(id)?.rewardType === 'passive'), 'mixed reward draws must retain a passive');
     }
   });
+  const moduleOnlyOptions = buildRewardOptions({
+    id: 'module-only-contract',
+    rewardPool: [
+      'new_action_repair',
+      'new_action_drop_mine',
+      'new_condition_surrounded',
+      'new_condition_enemy_hp_low',
+    ],
+  });
+  assert(
+    moduleOnlyOptions.some(id => GameDatabase.getReward(id)?.rewardType === 'passive'),
+    'module-only pools must receive and retain a passive fallback',
+  );
+
+  GameState.runStats.rewardsChosen = ['pu_superconductors'];
+  const exhaustedOptions = buildRewardOptions({
+    id: 'non-stacking-contract',
+    rewardPool: ['pu_superconductors', 'pu_max_hp', 'pu_basic_dmg'],
+  });
+  assert(!exhaustedOptions.includes('pu_superconductors'), 'one-shot passive rewards must not be offered twice');
+  GameState.resetRun();
 
   const apexHud = {
     logConsole() {},
@@ -125,6 +209,13 @@ function verifyGameplayContracts() {
   assert.equal(GameState.stats.max_hp, 125);
   assert.equal(GameState.persistentHp, 125);
   assert.equal(GameState.currentMapColumn, 4);
+
+  GameState.resetRun();
+  const nearbyRule = GameState.rules.find(rule => rule.conditionId === 'enemy_nearby');
+  GameState.setRuleConditionValue(nearbyRule.id, -999);
+  assert.equal(nearbyRule.conditionValue, 1, 'condition parameters must clamp to their data contract');
+  GameState.setRuleConditionValue(nearbyRule.id, 999);
+  assert.equal(nearbyRule.conditionValue, 20, 'condition parameters must clamp to their data contract');
 
   GameState.resetRun();
   GameState.rules[1].priority = 100;
@@ -213,6 +304,8 @@ function verifyUiSafetyContracts() {
   assert.equal(t('editor.prio'), '優先級');
   assert.equal(t('menu.difficulty'), '難度');
   assert.match(entity('action', 'shield', 'Shield', 'description'), /短時間/);
+  assert.equal(entity('condition', 'projectile_nearby', 'Projectile Nearby'), '來襲彈體接近');
+  assert.equal(entity('action', 'sidestep', 'Evasive Sidestep'), '規避側閃');
   setLocale('en', { notify: false });
 }
 

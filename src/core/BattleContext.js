@@ -21,6 +21,7 @@ export class BattleContext {
     this.overlogic = new OverlogicSystem();
     this.boss = null;
     this.timeSpeed = 1;       // combat speed multiplier (x1 / x2)
+    this.random = Math.random; // seeded by CombatArena for gameplay-affecting randomness
     this._lastCasting = false; // for casting-seen edge detection
     this.hazards = [];        // live HazardTile instances
     this.executor = null;     // set by CombatArena after executor is created
@@ -51,6 +52,31 @@ export class BattleContext {
       if (Math.hypot(e.x - pos.x, e.y - pos.y) <= radius) n += 1;
     }
     return n;
+  }
+
+  nearestHostileProjectileTo(pos) {
+    let best = null;
+    let bestD = Infinity;
+    for (const projectile of this.projectiles) {
+      if (projectile.dead || projectile.fromPlayer) continue;
+      const toRobotX = pos.x - projectile.x;
+      const toRobotY = pos.y - projectile.y;
+      const closingDistance = toRobotX * projectile.dir.x + toRobotY * projectile.dir.y;
+      const crossTrackDistance = Math.abs(toRobotX * projectile.dir.y - toRobotY * projectile.dir.x);
+      if (closingDistance <= 0 || crossTrackDistance > 1.1) continue;
+      const distance = Math.hypot(projectile.x - pos.x, projectile.y - pos.y);
+      if (distance < bestD) {
+        best = projectile;
+        bestD = distance;
+      }
+    }
+    return best;
+  }
+
+  nearestHostileProjectileDistance(pos) {
+    const projectile = this.nearestHostileProjectileTo(pos);
+    if (!projectile) return Infinity;
+    return Math.hypot(projectile.x - pos.x, projectile.y - pos.y);
   }
 
   anyEnemyCasting() {
