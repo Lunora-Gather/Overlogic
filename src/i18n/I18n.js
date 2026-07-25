@@ -18,7 +18,7 @@ const EN = {
   'difficulty.standard': 'Standard',
   'difficulty.veteran': 'Veteran',
   'how.title': 'How to Play',
-  'how.body': '① You control the logic, not the robot.|Write prioritized IF condition THEN action rules.|② The robot evaluates rules every 0.15s and executes the highest valid one.|③ HP persists between battles. Choose routes and upgrades carefully.|④ Lose, inspect the debug report, change one rule, and retry.',
+  'how.body': '① You control the logic, not the robot. Write prioritized IF condition THEN action rules.|② The robot evaluates rules every 0.15s and executes the highest valid one.|③ HP persists between battles. Choose routes and upgrades carefully.|④ Lose, inspect the debug report, change one rule, and retry.',
   'common.close': 'Close',
   'common.apply': 'Apply',
   'common.add': 'Add',
@@ -213,7 +213,7 @@ const ZH_CN = {
   'difficulty.standard': '标准',
   'difficulty.veteran': '专家',
   'how.title': '玩法说明',
-  'how.body': '① 你控制的是逻辑，而不是机器人。|编写有优先级的“如果条件成立，就执行动作”规则。|② 机器人每 0.15 秒评估一次规则，并执行优先级最高的有效规则。|③ 生命值会跨战斗保留，请谨慎选择路线与升级。|④ 失败后阅读调试报告，修改一条规则，再次挑战。',
+  'how.body': '① 你控制的是逻辑，而不是机器人。编写有优先级的“如果条件成立，就执行动作”规则。|② 机器人每 0.15 秒评估一次规则，并执行优先级最高的有效规则。|③ 生命值会跨战斗保留，请谨慎选择路线与升级。|④ 失败后阅读调试报告，修改一条规则，再次挑战。',
   'common.close': '关闭', 'common.apply': '应用', 'common.add': '添加', 'common.cancel': '取消', 'common.continue': '继续', 'common.none': '无', 'common.settings': '设置',
   'editor.nextBattle': '下一场战斗', 'editor.directiveLayer': '指令层级', 'editor.chooseRoute': '// 选择协议路线',
   'editor.conditions': '可用条件', 'editor.actions': '可用动作', 'editor.activeRules': '当前规则',
@@ -333,6 +333,9 @@ function toTraditional(value) {
     为: '為', 类: '類', 模: '模', 块: '組', 锁: '鎖', 解: '解', 短: '短',
     冷: '冷', 却: '卻', 显: '顯', 实: '實', 长: '長', 致: '致', 命: '命',
     径: '徑', 恢: '恢', 压: '壓', 缩: '縮', 暂: '暫', 停: '停',
+    难: '難', 间: '間', 启: '啟', 镜: '鏡', 减: '減', 层: '層', 总: '總',
+    仅: '僅', 门: '門', 给: '給', 从: '從', 产: '產', 获: '獲', 导: '導',
+    对: '對', 还: '還', 让: '讓', 气: '氣', 会: '會', 现: '現',
   };
   return [...output].map(char => chars[char] || char).join('');
 }
@@ -344,7 +347,7 @@ const ZH_TW = {
   'difficulty.casual': '休閒', 'difficulty.standard': '標準', 'difficulty.veteran': '專家',
   'mode.standard': '標準模式', 'mode.daily': '每日種子',
   'how.title': '玩法說明',
-  'how.body': '① 你控制的是邏輯，而不是機器人。|編寫有優先級的「如果條件成立，就執行動作」規則。|② 機器人每 0.15 秒評估一次規則，並執行優先級最高的有效規則。|③ 生命值會跨戰鬥保留，請謹慎選擇路線與升級。|④ 失敗後閱讀偵錯報告，修改一條規則，再次挑戰。',
+  'how.body': '① 你控制的是邏輯，而不是機器人。編寫有優先級的「如果條件成立，就執行動作」規則。|② 機器人每 0.15 秒評估一次規則，並執行優先級最高的有效規則。|③ 生命值會跨戰鬥保留，請謹慎選擇路線與升級。|④ 失敗後閱讀偵錯報告，修改一條規則，再次挑戰。',
   'common.close': '關閉', 'common.apply': '套用', 'common.add': '新增', 'common.cancel': '取消', 'common.settings': '設定',
   'editor.nextBattle': '下一場戰鬥', 'editor.directiveLayer': '指令層級', 'editor.chooseRoute': '// 選擇協議路線',
   'editor.conditions': '可用條件', 'editor.actions': '可用動作', 'editor.activeRules': '目前規則',

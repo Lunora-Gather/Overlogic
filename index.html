@@ -48,10 +48,12 @@
       <button id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
     </div>
     <div id="how-overlay" class="overlay hidden">
-      <div class="overlay-card">
-        <h2 data-i18n="how.title">How to Play</h2>
+      <div class="overlay-card how-card" role="dialog" aria-modal="true" aria-labelledby="how-title">
+        <h2 id="how-title" data-i18n="how.title">How to Play</h2>
         <div id="how-body" class="how-body"></div>
-        <button id="btn-how-close" class="btn primary" data-i18n="common.close">Close</button>
+        <div class="modal-actions">
+          <button id="btn-how-close" class="btn primary modal-confirm" data-i18n="common.close">Close</button>
+        </div>
       </div>
     </div>
   </section>
@@ -245,8 +247,8 @@
 
   <!-- ===== Settings Overlay ===== -->
   <div id="settings-overlay" class="overlay hidden">
-    <div class="overlay-card settings-card">
-      <h2 data-i18n="settings.title">System Configuration</h2>
+    <div class="overlay-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title" data-i18n="settings.title">System Configuration</h2>
       <div class="settings-list" style="display: flex; flex-direction: column; gap: 16px; margin: 20px 0; text-align: left; width: 100%; max-width: 320px;">
         <div class="settings-group" style="display: flex; flex-direction: column; gap: 8px;">
           <label data-i18n="settings.volume" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
@@ -276,7 +278,7 @@
           </select>
         </div>
       </div>
-      <div style="display: flex; gap: 12px; justify-content: center; width: 100%;">
+      <div class="modal-actions settings-actions">
         <button id="btn-settings-save" class="btn primary" data-i18n="common.apply">Apply</button>
         <button id="btn-settings-close" class="btn ghost" data-i18n="common.close">Close</button>
       </div>

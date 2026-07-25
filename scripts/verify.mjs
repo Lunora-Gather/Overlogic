@@ -211,6 +211,8 @@ function verifyUiSafetyContracts() {
   assert.equal(entity('action', 'shield', 'Shield'), '護盾');
   assert.equal(entity('action', 'basic_attack', 'Basic Attack'), '基礎攻擊');
   assert.equal(t('editor.prio'), '優先級');
+  assert.equal(t('menu.difficulty'), '難度');
+  assert.match(entity('action', 'shield', 'Shield', 'description'), /短時間/);
   setLocale('en', { notify: false });
 }
 
