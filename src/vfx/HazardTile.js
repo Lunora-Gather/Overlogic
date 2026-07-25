@@ -1,7 +1,7 @@
 // HazardTile.js — environmental pulsing plasma hazard.
 // Cycles between Warning state and Active (damaging) state.
 
-import { spawnBurst } from './ParticleSystem.js';
+import { spawnBurst } from './ParticleSystem.js?v=20260725-3';
 
 export class HazardTile {
   constructor(x, y, radius = 2.0, warnDuration = 1.5, activeDuration = 1.5) {

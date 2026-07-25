@@ -2,7 +2,7 @@
 // / PostBattleReport / Victory. Single-page screen switching.
 // Mirrors scripts/core/GameManager.gd.
 
-import { GameState } from './GameState.js';
+import { GameState } from './GameState.js?v=20260725-3';
 
 const State = {
   MainMenu: 'main', LogicEditing: 'editor', Combat: 'combat',

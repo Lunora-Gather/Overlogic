@@ -1,9 +1,9 @@
 // RewardManager.js — builds 3 reward options for the just-won battle.
 // Mirrors scripts/systems/RewardManager.gd.
 
-import { GameDatabase } from '../core/GameDatabase.js';
-import { GameState } from '../core/GameState.js';
-import { entity, t } from '../i18n/I18n.js';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { GameState } from '../core/GameState.js?v=20260725-3';
+import { entity, t } from '../i18n/I18n.js?v=20260725-3';
 
 const NON_STACKING_REWARDS = new Set([
   'pu_superconductors',

@@ -1,6 +1,6 @@
 // ShooterEnemy.js — ranged kiter. Mirrors scripts/enemies/ShooterEnemy.gd.
-import { EnemyBase } from './EnemyBase.js';
-import { Projectile } from '../vfx/Projectile.js';
+import { EnemyBase } from './EnemyBase.js?v=20260725-3';
+import { Projectile } from '../vfx/Projectile.js?v=20260725-3';
 
 export class ShooterEnemy extends EnemyBase {
   constructor() {

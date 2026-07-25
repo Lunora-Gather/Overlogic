@@ -2,13 +2,13 @@
 // Enhanced with current passives display and richer card descriptions.
 // Mirrors scripts/ui/RewardUI.gd.
 
-import { GameState } from '../core/GameState.js';
-import { GameDatabase } from '../core/GameDatabase.js';
-import { GameManager } from '../core/GameManager.js';
-import { buildRewardOptions, buildUpgradeOptions, rewardDescription, rewardDisplayName } from '../systems/RewardManager.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { escapeHtml } from './safeHtml.js';
-import { t } from '../i18n/I18n.js';
+import { GameState } from '../core/GameState.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { GameManager } from '../core/GameManager.js?v=20260725-3';
+import { buildRewardOptions, buildUpgradeOptions, rewardDescription, rewardDisplayName } from '../systems/RewardManager.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { escapeHtml } from './safeHtml.js?v=20260725-3';
+import { t } from '../i18n/I18n.js?v=20260725-3';
 
 const TYPE_ICONS = {
   passive: '⚙️',

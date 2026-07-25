@@ -1,9 +1,9 @@
 // MainMenu.js — main menu screen controller. Wires buttons, resumes audio on first click.
 
-import { GameManager } from '../core/GameManager.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { GameState } from '../core/GameState.js';
-import { getLocale, setLocale, t } from '../i18n/I18n.js';
+import { GameManager } from '../core/GameManager.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { GameState } from '../core/GameState.js?v=20260725-3';
+import { getLocale, setLocale, t } from '../i18n/I18n.js?v=20260725-3';
 
 export class MainMenu {
   constructor() {

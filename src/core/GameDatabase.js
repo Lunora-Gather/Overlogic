@@ -14,11 +14,11 @@ class GameDatabaseClass {
   async loadAll() {
     if (this._loaded) return;
     const [c, a, e, b, r] = await Promise.all([
-      fetch('data/conditions.json').then(r => r.json()),
-      fetch('data/actions.json').then(r => r.json()),
-      fetch('data/enemies.json').then(r => r.json()),
-      fetch('data/battles.json').then(r => r.json()),
-      fetch('data/rewards.json').then(r => r.json()),
+      fetch('data/conditions.json?v=20260725-3').then(r => r.json()),
+      fetch('data/actions.json?v=20260725-3').then(r => r.json()),
+      fetch('data/enemies.json?v=20260725-3').then(r => r.json()),
+      fetch('data/battles.json?v=20260725-3').then(r => r.json()),
+      fetch('data/rewards.json?v=20260725-3').then(r => r.json()),
     ]);
     for (const x of c.conditions) this.conditions.set(x.id, x);
     for (const x of a.actions) this.actions.set(x.id, x);

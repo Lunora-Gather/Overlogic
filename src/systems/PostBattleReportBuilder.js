@@ -1,6 +1,6 @@
 // PostBattleReportBuilder.js — deterministic report text from a tracker snapshot.
-import { GameDatabase } from '../core/GameDatabase.js';
-import { entity, t } from '../i18n/I18n.js';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { entity, t } from '../i18n/I18n.js?v=20260725-3';
 
 export function buildReport(report, availableActionIds, availableConditionIds = []) {
   const damageBySource = report.damage_by_source || {};

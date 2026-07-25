@@ -1,12 +1,12 @@
 // PostBattleReportUI.js — failure debug report. Mirrors scripts/ui/PostBattleReportUI.gd.
 
-import { GameState } from '../core/GameState.js';
-import { GameManager } from '../core/GameManager.js';
-import { buildReport } from '../systems/PostBattleReportBuilder.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { drawStatsChart } from './StatsChart.js';
-import { escapeHtml } from './safeHtml.js';
-import { entity, t } from '../i18n/I18n.js';
+import { GameState } from '../core/GameState.js?v=20260725-3';
+import { GameManager } from '../core/GameManager.js?v=20260725-3';
+import { buildReport } from '../systems/PostBattleReportBuilder.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { drawStatsChart } from './StatsChart.js?v=20260725-3';
+import { escapeHtml } from './safeHtml.js?v=20260725-3';
+import { entity, t } from '../i18n/I18n.js?v=20260725-3';
 
 export class PostBattleReportUI {
   constructor() {

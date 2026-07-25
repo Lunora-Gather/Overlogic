@@ -1,11 +1,11 @@
 // RobotController.js — player robot. Driven by ActionExecutor (moveIntent/doDash/fireBullet).
 // Pure logic + render hook. No DOM. Mirrors scripts/robot/RobotController.gd.
 
-import { Projectile } from '../vfx/Projectile.js';
-import { Mine } from '../vfx/Mine.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { spawnText, spawnEngineTrail, spawnReflectBeam, spawnBurst } from '../vfx/ParticleSystem.js';
-import { t } from '../i18n/I18n.js';
+import { Projectile } from '../vfx/Projectile.js?v=20260725-3';
+import { Mine } from '../vfx/Mine.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { spawnText, spawnEngineTrail, spawnReflectBeam, spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-3';
+import { t } from '../i18n/I18n.js?v=20260725-3';
 
 export class RobotController {
   constructor() {

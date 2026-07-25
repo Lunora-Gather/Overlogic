@@ -1,19 +1,19 @@
 // main.js — entry point. Loads data, wires screens, hosts CombatArena lifecycle.
 
-import { GameDatabase } from './core/GameDatabase.js';
-import { GameState } from './core/GameState.js';
-import { GameManager } from './core/GameManager.js';
-import { CombatArena } from './core/CombatArena.js';
-import { MainMenu } from './ui/MainMenu.js';
-import { LogicEditorUI } from './ui/LogicEditorUI.js';
-import { BattleHUD } from './ui/BattleHUD.js';
-import { RewardUI } from './ui/RewardUI.js';
-import { PostBattleReportUI } from './ui/PostBattleReportUI.js';
-import { VictoryUI } from './ui/VictoryUI.js';
-import { AudioManager } from './systems/AudioManager.js';
-import { BackgroundAnim } from './systems/BackgroundAnim.js';
-import { escapeHtml } from './ui/safeHtml.js';
-import { entity, setLocale, t } from './i18n/I18n.js';
+import { GameDatabase } from './core/GameDatabase.js?v=20260725-3';
+import { GameState } from './core/GameState.js?v=20260725-3';
+import { GameManager } from './core/GameManager.js?v=20260725-3';
+import { CombatArena } from './core/CombatArena.js?v=20260725-3';
+import { MainMenu } from './ui/MainMenu.js?v=20260725-3';
+import { LogicEditorUI } from './ui/LogicEditorUI.js?v=20260725-3';
+import { BattleHUD } from './ui/BattleHUD.js?v=20260725-3';
+import { RewardUI } from './ui/RewardUI.js?v=20260725-3';
+import { PostBattleReportUI } from './ui/PostBattleReportUI.js?v=20260725-3';
+import { VictoryUI } from './ui/VictoryUI.js?v=20260725-3';
+import { AudioManager } from './systems/AudioManager.js?v=20260725-3';
+import { BackgroundAnim } from './systems/BackgroundAnim.js?v=20260725-3';
+import { escapeHtml } from './ui/safeHtml.js?v=20260725-3';
+import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-3';
 
 async function main() {
   await GameDatabase.loadAll();

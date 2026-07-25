@@ -1,5 +1,5 @@
 // LogicRule.js — rule sorting helper. Pure function, mirrors scripts/logic/LogicRule.gd.
-import { entity, t } from '../i18n/I18n.js';
+import { entity, t } from '../i18n/I18n.js?v=20260725-3';
 
 // Stable sort by priority descending. JS Array.sort is stable in modern engines.
 export function sortDesc(rules) {

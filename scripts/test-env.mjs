@@ -12,7 +12,8 @@ export function installBrowserShims() {
   };
   globalThis.fetch = async (path) => ({
     async json() {
-      return JSON.parse(await fs.readFile(path, 'utf8'));
+      const filePath = String(path).split(/[?#]/, 1)[0];
+      return JSON.parse(await fs.readFile(filePath, 'utf8'));
     },
   });
   globalThis.window = globalThis.window || {};

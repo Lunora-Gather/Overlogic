@@ -2,11 +2,11 @@
 // picks highest priority, executes via ActionExecutor, emits current-logic label.
 // Mirrors scripts/logic/LogicBrain.gd.
 
-import { GameState } from '../core/GameState.js';
-import { GameDatabase } from '../core/GameDatabase.js';
-import { ConditionEvaluator } from './ConditionEvaluator.js';
-import { sortDesc, formatLabel } from './LogicRule.js';
-import { t } from '../i18n/I18n.js';
+import { GameState } from '../core/GameState.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { ConditionEvaluator } from './ConditionEvaluator.js?v=20260725-3';
+import { sortDesc, formatLabel } from './LogicRule.js?v=20260725-3';
+import { t } from '../i18n/I18n.js?v=20260725-3';
 
 const TICK_INTERVAL = 0.15;     // seconds (DESIGN.md §5.2)
 

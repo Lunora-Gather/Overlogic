@@ -1,25 +1,25 @@
 // CombatArena.js — combat driver. Spawns waves, runs tick loop, renders, judges win/loss.
 // Mirrors scripts/core/CombatArena.gd. Owns the rAF loop.
 
-import { BattleContext } from './BattleContext.js';
-import { RobotController } from '../robot/RobotController.js';
-import { RobotStats } from '../robot/RobotStats.js';
-import { LogicBrain } from '../logic/LogicBrain.js';
-import { ActionExecutor } from '../logic/ActionExecutor.js';
-import { Camera } from '../render/Camera.js';
-import { drawArena } from '../render/ArenaRenderer.js';
-import { GameDatabase } from './GameDatabase.js';
-import { GameState } from './GameState.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { CrawlerEnemy } from '../enemies/CrawlerEnemy.js';
-import { ShooterEnemy } from '../enemies/ShooterEnemy.js';
-import { ChargerEnemy } from '../enemies/ChargerEnemy.js';
-import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js';
-import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js';
-import { spawnBurst } from '../vfx/ParticleSystem.js';
-import { HazardTile } from '../vfx/HazardTile.js';
-import { difficultyModifiers } from '../systems/RunModifiers.js';
-import { entity, t } from '../i18n/I18n.js';
+import { BattleContext } from './BattleContext.js?v=20260725-3';
+import { RobotController } from '../robot/RobotController.js?v=20260725-3';
+import { RobotStats } from '../robot/RobotStats.js?v=20260725-3';
+import { LogicBrain } from '../logic/LogicBrain.js?v=20260725-3';
+import { ActionExecutor } from '../logic/ActionExecutor.js?v=20260725-3';
+import { Camera } from '../render/Camera.js?v=20260725-3';
+import { drawArena } from '../render/ArenaRenderer.js?v=20260725-3';
+import { GameDatabase } from './GameDatabase.js?v=20260725-3';
+import { GameState } from './GameState.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { CrawlerEnemy } from '../enemies/CrawlerEnemy.js?v=20260725-3';
+import { ShooterEnemy } from '../enemies/ShooterEnemy.js?v=20260725-3';
+import { ChargerEnemy } from '../enemies/ChargerEnemy.js?v=20260725-3';
+import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js?v=20260725-3';
+import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js?v=20260725-3';
+import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-3';
+import { HazardTile } from '../vfx/HazardTile.js?v=20260725-3';
+import { difficultyModifiers } from '../systems/RunModifiers.js?v=20260725-3';
+import { entity, t } from '../i18n/I18n.js?v=20260725-3';
 
 const WAVE_CLEAR_DELAY = 1.15;
 const ENEMY_CLASSES = {

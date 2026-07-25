@@ -1,10 +1,10 @@
 // BossProtocolWarden.js — 3-phase boss. Mirrors scripts/enemies/BossProtocolWarden.gd.
-import { EnemyBase } from './EnemyBase.js';
-import { Projectile } from '../vfx/Projectile.js';
-import { AudioManager } from '../systems/AudioManager.js';
-import { spawnBurst, spawnShockwave } from '../vfx/ParticleSystem.js';
-import { GameDatabase } from '../core/GameDatabase.js';
-import { CrawlerEnemy } from './CrawlerEnemy.js';
+import { EnemyBase } from './EnemyBase.js?v=20260725-3';
+import { Projectile } from '../vfx/Projectile.js?v=20260725-3';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { spawnBurst, spawnShockwave } from '../vfx/ParticleSystem.js?v=20260725-3';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-3';
+import { CrawlerEnemy } from './CrawlerEnemy.js?v=20260725-3';
 
 export class BossProtocolWarden extends EnemyBase {
   constructor() {

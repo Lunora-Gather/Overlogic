@@ -6,25 +6,25 @@ import { simulateBattle } from './simulate-balance.mjs';
 
 installBrowserShims();
 
-const { GameDatabase } = await import('../src/core/GameDatabase.js');
+const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-3');
 await GameDatabase.loadAll();
-const { GameState } = await import('../src/core/GameState.js');
-const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js');
-const { buildRewardOptions, buildUpgradeOptions, rewardDescription } = await import('../src/systems/RewardManager.js');
-const { GameManager } = await import('../src/core/GameManager.js');
-const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js');
-const { BattleContext } = await import('../src/core/BattleContext.js');
-const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js');
-const { RobotController } = await import('../src/robot/RobotController.js');
-const { RobotStats } = await import('../src/robot/RobotStats.js');
-const { ActionExecutor } = await import('../src/logic/ActionExecutor.js');
-const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js');
-const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js');
-const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js');
-const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js');
-const { escapeHtml } = await import('../src/ui/safeHtml.js');
-const { entity, setLocale, t } = await import('../src/i18n/I18n.js');
-const { difficultyModifiers } = await import('../src/systems/RunModifiers.js');
+const { GameState } = await import('../src/core/GameState.js?v=20260725-3');
+const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js?v=20260725-3');
+const { buildRewardOptions, buildUpgradeOptions, rewardDescription } = await import('../src/systems/RewardManager.js?v=20260725-3');
+const { GameManager } = await import('../src/core/GameManager.js?v=20260725-3');
+const { CombatArena, isBossEnemyId } = await import('../src/core/CombatArena.js?v=20260725-3');
+const { BattleContext } = await import('../src/core/BattleContext.js?v=20260725-3');
+const { CombatStatsTracker } = await import('../src/systems/CombatStatsTracker.js?v=20260725-3');
+const { RobotController } = await import('../src/robot/RobotController.js?v=20260725-3');
+const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-3');
+const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-3');
+const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-3');
+const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-3');
+const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-3');
+const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-3');
+const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-3');
+const { entity, setLocale, t } = await import('../src/i18n/I18n.js?v=20260725-3');
+const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-3');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {

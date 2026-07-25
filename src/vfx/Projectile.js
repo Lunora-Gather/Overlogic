@@ -1,9 +1,9 @@
 // Projectile.js — bullet. Player bullets damage enemies; enemy bullets damage robot.
 // Mirrors scripts/vfx/Projectile.gd. Pure class with tick + draw.
 
-import { AudioManager } from '../systems/AudioManager.js';
-import { spawnBurst, spawnEngineTrail, spawnText } from './ParticleSystem.js';
-import { t } from '../i18n/I18n.js';
+import { AudioManager } from '../systems/AudioManager.js?v=20260725-3';
+import { spawnBurst, spawnEngineTrail, spawnText } from './ParticleSystem.js?v=20260725-3';
+import { t } from '../i18n/I18n.js?v=20260725-3';
 
 export class Projectile {
   constructor() {
