@@ -40,6 +40,19 @@ export class LogicEditorUI {
     this.mapNodesContainer = document.getElementById('map-nodes');
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
+    this.mobileTabs = [...document.querySelectorAll('[data-editor-panel]')];
+    this.btnImportRules = document.getElementById('btn-import-rules');
+    this.btnExportRules = document.getElementById('btn-export-rules');
+    this.el.dataset.mobilePanel = 'rules';
+    this.mobileTabs.forEach(button => button.addEventListener('click', () => {
+      this.el.dataset.mobilePanel = button.dataset.editorPanel;
+      this.mobileTabs.forEach(item => {
+        const active = item === button;
+        item.classList.toggle('active', active);
+        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+      });
+    }));
+    this.mobileTabs.forEach(item => item.setAttribute('aria-pressed', item.dataset.editorPanel === 'rules' ? 'true' : 'false'));
 
     if (this.condSearch) {
       this.condSearch.addEventListener('input', () => this.renderModules());
@@ -58,10 +71,32 @@ export class LogicEditorUI {
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); });
     GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
     window.addEventListener('overlogic:localechange', () => this.renderAll());
+    this.btnExportRules?.addEventListener('click', async () => {
+      const code = GameState.exportRulesCode();
+      try {
+        await navigator.clipboard.writeText(code);
+        this._flashButton(this.btnExportRules, t('editor.copied'));
+      } catch {
+        prompt(t('editor.copyCode'), code);
+      }
+    });
+    this.btnImportRules?.addEventListener('click', () => {
+      const code = prompt(t('editor.pasteCode'));
+      if (code === null) return;
+      const ok = GameState.importRulesCode(code);
+      this._flashButton(this.btnImportRules, ok ? t('editor.imported') : t('editor.invalidCode'));
+    });
   }
 
   show() {
     this.renderAll();
+  }
+
+  _flashButton(button, label) {
+    if (!button) return;
+    const original = button.textContent;
+    button.textContent = label;
+    window.setTimeout(() => { button.textContent = original; }, 1400);
   }
 
   renderAll() {
@@ -515,7 +550,7 @@ export class LogicEditorUI {
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
     handle.innerHTML = '☰';
-    handle.title = 'Drag to reorder';
+    handle.title = t('editor.dragReorder');
     handle.addEventListener('mousedown', () => {
       row.setAttribute('draggable', 'true');
     });
@@ -535,11 +570,28 @@ export class LogicEditorUI {
     });
     row.appendChild(handle);
 
+    const reorder = document.createElement('span');
+    reorder.className = 'rule-reorder-buttons';
+    for (const [direction, label, glyph] of [[-1, t('editor.moveUp'), '↑'], [1, t('editor.moveDown'), '↓']]) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'rule-move-btn';
+      button.textContent = glyph;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+      button.addEventListener('click', () => {
+        GameState.moveRule(r.id, direction);
+        AudioManager.play('button_click');
+      });
+      reorder.appendChild(button);
+    }
+    row.appendChild(reorder);
+
     // 2. Priority input
     const prio = document.createElement('input');
     prio.type = 'number'; prio.min = 0; prio.max = 100; prio.value = r.priority;
     prio.className = 'rule-prio';
-    prio.setAttribute('aria-label', `Priority for rule ${r.id}`);
+    prio.setAttribute('aria-label', t('editor.rulePriority', { id: r.id }));
     prio.style.width = '45px';
     prio.addEventListener('change', () => {
       GameState.setRulePriority(r.id, +prio.value);
@@ -558,13 +610,23 @@ export class LogicEditorUI {
     const tog = document.createElement('input');
     tog.type = 'checkbox';
     tog.checked = r.enabled !== false;
-    tog.title = 'enable/disable';
+    tog.title = t('editor.enableRule');
+    tog.setAttribute('aria-label', t('editor.enableRule'));
     tog.addEventListener('change', () => GameState.setRuleEnabled(r.id, tog.checked));
     cond1Wrap.appendChild(tog);
 
+    const not1 = document.createElement('button');
+    not1.type = 'button';
+    not1.className = `rule-not-btn${r.negateCondition1 ? ' active' : ''}`;
+    not1.textContent = t('common.not');
+    not1.title = t('editor.negateCondition');
+    not1.setAttribute('aria-pressed', r.negateCondition1 ? 'true' : 'false');
+    not1.addEventListener('click', () => GameState.toggleRuleNegation(r.id, false));
+    cond1Wrap.appendChild(not1);
+
     const cond1Sel = this._condSelect(r.conditionId);
     cond1Sel.style.flex = '1';
-    cond1Sel.setAttribute('aria-label', `Primary condition for rule ${r.id}`);
+    cond1Sel.setAttribute('aria-label', t('editor.primaryCondition', { id: r.id }));
     cond1Sel.addEventListener('change', () => {
       GameState.setRuleCondition(r.id, cond1Sel.value);
       AudioManager.play('button_click');
@@ -580,7 +642,7 @@ export class LogicEditorUI {
     // 4. Operator Select (None / AND)
     const opSel = document.createElement('select');
     opSel.className = 'rule-op';
-    opSel.setAttribute('aria-label', `Condition operator for rule ${r.id}`);
+    opSel.setAttribute('aria-label', t('editor.conditionOperator', { id: r.id }));
     opSel.style.width = '100%';
     const optNone = document.createElement('option');
     optNone.value = ''; optNone.textContent = t('common.none');
@@ -613,9 +675,17 @@ export class LogicEditorUI {
     cond2Wrap.style.width = '100%';
 
     if (r.operator === 'and' || r.operator === 'or') {
+      const not2 = document.createElement('button');
+      not2.type = 'button';
+      not2.className = `rule-not-btn${r.negateCondition2 ? ' active' : ''}`;
+      not2.textContent = t('common.not');
+      not2.title = t('editor.negateCondition');
+      not2.setAttribute('aria-pressed', r.negateCondition2 ? 'true' : 'false');
+      not2.addEventListener('click', () => GameState.toggleRuleNegation(r.id, true));
+      cond2Wrap.appendChild(not2);
       const cond2Sel = this._condSelect(r.conditionId2 || 'hp_low');
       cond2Sel.style.flex = '1';
-      cond2Sel.setAttribute('aria-label', `Secondary condition for rule ${r.id}`);
+      cond2Sel.setAttribute('aria-label', t('editor.secondaryCondition', { id: r.id }));
       cond2Sel.addEventListener('change', () => {
         GameState.setRuleCondition2(r.id, cond2Sel.value);
         AudioManager.play('button_click');
@@ -633,7 +703,7 @@ export class LogicEditorUI {
 
     // 6. Action Select
     const actSel = this._actSelect(r.actionId);
-    actSel.setAttribute('aria-label', `Action for rule ${r.id}`);
+    actSel.setAttribute('aria-label', t('editor.ruleAction', { id: r.id }));
     const actWrap = document.createElement('span');
     actWrap.style.display = 'flex';
     actWrap.style.flexDirection = 'column';
@@ -674,7 +744,7 @@ export class LogicEditorUI {
     // 6.5 Targeting Priority Dropdown
     const tarSel = document.createElement('select');
     tarSel.className = 'rule-target-prio';
-    tarSel.setAttribute('aria-label', `Target priority for rule ${r.id}`);
+    tarSel.setAttribute('aria-label', t('editor.ruleTarget', { id: r.id }));
     tarSel.style.width = '100%';
     const targets = [
       { val: 'nearest', label: t('target.nearest') },
@@ -759,7 +829,8 @@ export class LogicEditorUI {
     clone.addEventListener('click', () => {
       GameState.addRule(
         r.conditionId, r.conditionValue, r.actionId, Math.max(0, r.priority - 1),
-        r.conditionId2, r.conditionValue2, r.operator, r.targetPriority
+        r.conditionId2, r.conditionValue2, r.operator, r.targetPriority,
+        r.negateCondition1, r.negateCondition2
       );
       AudioManager.play('rule_add');
     });

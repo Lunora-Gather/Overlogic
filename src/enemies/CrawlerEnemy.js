@@ -105,7 +105,7 @@ export class CrawlerEnemy extends EnemyBase {
     }
     
     // If leaping, draw floor shadow
-    const rPx = this.bodyRadius * scale;
+    const rPx = Math.max(this.bodyRadius * scale, 9);
     let height = 0;
     if (this.jumpState === 'leaping') {
       const t = 1 - this.jumpTimer / 0.4;

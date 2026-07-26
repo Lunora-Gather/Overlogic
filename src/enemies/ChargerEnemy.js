@@ -82,7 +82,7 @@ export class ChargerEnemy extends EnemyBase {
 
   draw(g, scale) {
     if (this.dead) { super.draw(g, scale); return; }
-    const rPx = this.bodyRadius * scale;
+    const rPx = Math.max(this.bodyRadius * scale, 10);
     
     g.save();
     g.translate(this.x * scale, this.y * scale);

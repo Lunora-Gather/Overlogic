@@ -60,7 +60,7 @@ export class ShooterEnemy extends EnemyBase {
 
   draw(g, scale) {
     if (this.dead) { super.draw(g, scale); return; }
-    const rPx = this.bodyRadius * scale;
+    const rPx = Math.max(this.bodyRadius * scale, 9);
     g.save();
     g.translate(this.x * scale, this.y * scale);
     

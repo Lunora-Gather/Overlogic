@@ -7,6 +7,7 @@ Live build: https://lunora-gather.github.io/Overlogic/
 ## What You Play
 
 - Program prioritized `IF condition THEN action` rules with optional `AND` / `OR` clauses.
+- Invert either side of a rule with `NOT`, then combine it with `AND` / `OR`.
 - Detect approaching projectiles and program evasive sidesteps instead of relying on hidden dodge AI.
 - Choose target priorities such as nearest, lowest HP, caster, or boss.
 - Watch the robot execute rules in real time, with active-rule highlighting and diagnostics.
@@ -20,6 +21,9 @@ Live build: https://lunora-gather.github.io/Overlogic/
 - Battle-specific readiness checks, persistent-HP risk warnings, and optional countermeasure rules.
 - Click or keyboard-select modules to prefill the rule builder; priority conflicts can be normalized in one action.
 - Three local loadout slots with quick save/load controls.
+- Versioned build-share codes can be copied, imported, and validated without a backend.
+- Touch-safe rule movement and mobile Rules / Conditions / Actions navigation.
+- Configurable mixed, projectile, swarm, and boss sandbox scenarios.
 - Utility-aware action scheduling prevents repairs, shields, EMP bursts, and transfers from wasting a turn when they cannot help.
 - Reward cards preview the resulting stat value, while non-stacking protocols are removed after acquisition.
 - Daily runs route gameplay-affecting randomness through the fixed daily seed.
@@ -57,13 +61,13 @@ npm run verify
 npm run balance
 ```
 
-`npm run verify` checks syntax, data contracts, save migration, reward flow, report suggestions, combat completion contracts, and a headless combat simulation.
+`npm run verify` checks syntax, data contracts, save migration, reward flow, report suggestions, combat completion contracts, shared-build round trips, run lifecycle, deployment gates, and a headless combat simulation.
 
 `npm run balance` gates the early battles and reports deterministic diagnostics for the full enemy roster. Verification also checks that an upgraded starter-kit build can finish the standard boss without depending on a specific action unlock.
 
 ## Deployment
 
-GitHub Pages serves the static project directly from the repository. The workflow in `.github/workflows/verify.yml` runs the verification gate on pushes and pull requests so gameplay-critical regressions are caught before deployment.
+GitHub Pages deploys the generated `dist/` artifact only after verification and the balance gate pass. `npm run build` injects a content release identifier into every versioned module/data URL, so browsers cannot remain on a mixed cached release.
 
 ## Project Map
 

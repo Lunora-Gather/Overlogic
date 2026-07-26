@@ -4,13 +4,16 @@
 
 export class ConditionEvaluator {
   evaluate(robot, ctx, rule) {
-    const cond1 = this.evaluateSingle(robot, ctx, rule.conditionId, rule.conditionValue);
+    const raw1 = this.evaluateSingle(robot, ctx, rule.conditionId, rule.conditionValue);
+    const cond1 = rule.negateCondition1 ? !raw1 : raw1;
     if (rule.operator === 'and' && rule.conditionId2) {
-      const cond2 = this.evaluateSingle(robot, ctx, rule.conditionId2, rule.conditionValue2);
+      const raw2 = this.evaluateSingle(robot, ctx, rule.conditionId2, rule.conditionValue2);
+      const cond2 = rule.negateCondition2 ? !raw2 : raw2;
       return cond1 && cond2;
     }
     if (rule.operator === 'or' && rule.conditionId2) {
-      const cond2 = this.evaluateSingle(robot, ctx, rule.conditionId2, rule.conditionValue2);
+      const raw2 = this.evaluateSingle(robot, ctx, rule.conditionId2, rule.conditionValue2);
+      const cond2 = rule.negateCondition2 ? !raw2 : raw2;
       return cond1 || cond2;
     }
     return cond1;
@@ -43,6 +46,14 @@ export class ConditionEvaluator {
         const p = +val;
         return robot.energy / robot.maxEnergy >= p;
       }
+      case 'energy_low': {
+        const p = +val;
+        return robot.energy / robot.maxEnergy <= p;
+      }
+      case 'battle_time_above':
+        return ctx.time >= +val;
+      case 'enemy_count_high':
+        return ctx.liveEnemies() >= (val | 0);
       case 'enemy_casting':
         return ctx.anyEnemyCasting();
       case 'surrounded': {

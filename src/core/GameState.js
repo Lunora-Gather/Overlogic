@@ -4,7 +4,7 @@
 import { GameDatabase } from './GameDatabase.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 
-const SAVE_VERSION = 4;
+const SAVE_VERSION = 5;
 const RUN_MODES = new Set(['standard', 'daily']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
@@ -130,7 +130,7 @@ class GameStateClass {
     this._emit('rules'); this._emit('stats'); this._emit('progress');
   }
 
-  _newRule(condId, condVal, actId, prio, condId2 = null, condVal2 = null, operator = null, targetPriority = 'nearest') {
+  _newRule(condId, condVal, actId, prio, condId2 = null, condVal2 = null, operator = null, targetPriority = 'nearest', negateCondition1 = false, negateCondition2 = false) {
     return {
       id: this._nextRuleId(),
       conditionId: condId,
@@ -141,6 +141,8 @@ class GameStateClass {
       actionId: actId,
       priority: prio,
       targetPriority: targetPriority,
+      negateCondition1: negateCondition1 === true,
+      negateCondition2: negateCondition2 === true,
       enabled: true,
     };
   }
@@ -334,10 +336,18 @@ class GameStateClass {
   }
 
   dailySeed(date = new Date()) {
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
     return Number(`${year}${month}${day}`);
+  }
+
+  hasRunProgress() {
+    return this.currentMapColumn > 0 || this.runStats.battlesWon > 0;
+  }
+
+  canConfigureRun() {
+    return !this.hasRunProgress() && !this.isDemoCleared();
   }
 
   configureRun(mode, difficulty) {
@@ -500,6 +510,86 @@ class GameStateClass {
       r.enabled = en;
       this.saveToStorage();
       this._emit('rules');
+    }
+  }
+
+  toggleRuleNegation(ruleId, secondary = false) {
+    const rule = this.rules.find(item => item.id === ruleId);
+    if (!rule) return false;
+    this._pushState();
+    const key = secondary ? 'negateCondition2' : 'negateCondition1';
+    rule[key] = !rule[key];
+    this.saveToStorage();
+    this._emit('rules');
+    return true;
+  }
+
+  moveRule(ruleId, direction) {
+    const ordered = [...this.rules].sort((a, b) => b.priority - a.priority);
+    const index = ordered.findIndex(rule => rule.id === ruleId);
+    const target = index + direction;
+    if (index < 0 || target < 0 || target >= ordered.length) return false;
+    this._pushState();
+    const currentPriority = ordered[index].priority;
+    ordered[index].priority = ordered[target].priority;
+    ordered[target].priority = currentPriority;
+    if (ordered[index].priority === ordered[target].priority) {
+      ordered[index].priority = Math.max(0, Math.min(100, ordered[index].priority - direction));
+    }
+    this.saveToStorage();
+    this._emit('rules');
+    return true;
+  }
+
+  exportRulesCode() {
+    const json = JSON.stringify({ version: 1, rules: this.rules });
+    const bytes = new TextEncoder().encode(json);
+    let binary = '';
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return `OL1-${btoa(binary)}`;
+  }
+
+  importRulesCode(code) {
+    try {
+      const raw = String(code || '').trim();
+      if (!raw.startsWith('OL1-')) return false;
+      const binary = atob(raw.slice(4));
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      const data = JSON.parse(new TextDecoder().decode(bytes));
+      if (!Array.isArray(data.rules)) return false;
+      const validConditions = new Set(this.availableConditionIds());
+      const validActions = new Set(this.availableActionIds());
+      const imported = data.rules.filter(rule => {
+        const operator = rule.operator === 'and' || rule.operator === 'or' ? rule.operator : null;
+        return validConditions.has(rule.conditionId) &&
+          validActions.has(rule.actionId) &&
+          (!operator || validConditions.has(rule.conditionId2));
+      }).slice(0, 40).map(rule => {
+        const operator = rule.operator === 'and' || rule.operator === 'or' ? rule.operator : null;
+        const target = ['nearest', 'lowest_hp', 'caster', 'boss'].includes(rule.targetPriority)
+          ? rule.targetPriority
+          : 'nearest';
+        return this._newRule(
+          rule.conditionId,
+          rule.conditionValue,
+          rule.actionId,
+          Math.max(0, Math.min(100, rule.priority | 0)),
+          operator ? rule.conditionId2 : null,
+          operator ? rule.conditionValue2 : null,
+          operator,
+          target,
+          rule.negateCondition1,
+          rule.negateCondition2,
+        );
+      });
+      if (imported.length === 0) return false;
+      this._pushState();
+      this.rules = imported;
+      this.saveToStorage();
+      this._emit('rules');
+      return true;
+    } catch {
+      return false;
     }
   }
 
@@ -835,6 +925,8 @@ class GameStateClass {
         actionId: rule.actionId,
         priority: Math.max(0, Math.min(100, rule.priority | 0)),
         targetPriority: rule.targetPriority || 'nearest',
+        negateCondition1: rule.negateCondition1 === true,
+        negateCondition2: rule.negateCondition2 === true,
         enabled: rule.enabled !== false,
       };
     });

@@ -242,7 +242,7 @@ export function drawArena(g, canvas, ctx, camera) {
 
 function drawRobot(g, robot, scale, _now) {
   if (!robot) return;
-  const rPx = robot.bodyRadius * scale;
+  const rPx = Math.max(robot.bodyRadius * scale, 11);
   
   // 1. Draw base body (rotated to movement direction)
   g.save();

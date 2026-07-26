@@ -85,6 +85,13 @@ function verifyGameplayContracts() {
   assert(GameState.availableConditionIds().includes('projectile_nearby'));
   assert(GameState.availableActionIds().includes('sidestep'));
   assert(GameState.rules.some(rule => rule.conditionId === 'projectile_nearby' && rule.actionId === 'sidestep'));
+  assert.equal(GameState.hasRunProgress(), false);
+  assert.equal(GameState.canConfigureRun(), true);
+  GameState.advanceTeachNode();
+  assert(GameState.availableConditionIds().includes('battle_time_above'));
+  assert(GameState.availableConditionIds().includes('enemy_count_high'));
+  GameState.advanceTeachNode();
+  assert(GameState.availableConditionIds().includes('energy_low'));
 
   const tacticalCtx = new BattleContext();
   const tacticalStats = new RobotStats();
@@ -107,6 +114,16 @@ function verifyGameplayContracts() {
     x: 1, y: 0, dir: { x: -1, y: 0 }, fromPlayer: false, dead: false,
   });
   const evaluator = new ConditionEvaluator();
+  tacticalRobot.energy = 20;
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'energy_low', 0.25), true);
+  tacticalCtx.time = 12;
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'battle_time_above', 10), true);
+  tacticalCtx.enemies = [{ dead: false }, { dead: false }, { dead: false }, { dead: false }];
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'enemy_count_high', 4), true);
+  assert.equal(evaluator.evaluate(tacticalRobot, tacticalCtx, {
+    conditionId: 'energy_low', conditionValue: 0.25, negateCondition1: true,
+  }), false, 'rule-level NOT must invert the primary condition');
+  tacticalCtx.enemies = [];
   assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'projectile_nearby', 2.4), true);
   tacticalCtx.projectiles[0].dir = { x: 1, y: 0 };
   assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'projectile_nearby', 2.4), false);
@@ -114,6 +131,12 @@ function verifyGameplayContracts() {
   tacticalRobot.energy = 100;
   assert.equal(tacticalExecutor.execute('sidestep'), true);
   assert(tacticalRobot.dashTimer > 0, 'sidestep should create a real evasive dash');
+
+  const exportedRules = GameState.exportRulesCode();
+  assert(exportedRules.startsWith('OL1-'), 'shared builds should have a recognizable version prefix');
+  GameState.rules = [];
+  assert.equal(GameState.importRulesCode(exportedRules), true, 'shared builds should round-trip');
+  assert(GameState.rules.length >= 3, 'shared builds should preserve the active rule stack');
 
   const charger = new ChargerEnemy();
   charger.init(GameDatabase.getEnemy('charger'), tacticalCtx);
@@ -294,6 +317,12 @@ function verifyUiSafetyContracts() {
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
+  assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
+  assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
+  assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
+  const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
+  assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
+  assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
   assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));

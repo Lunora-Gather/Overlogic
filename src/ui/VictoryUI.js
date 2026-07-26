@@ -14,12 +14,18 @@ export class VictoryUI {
     this.el = document.getElementById('screen-victory');
     this.canvas = document.getElementById('chart-victory');
     this.btn = document.getElementById('btn-victory-menu');
+    this.replayBtn = document.getElementById('btn-victory-replay');
     this.statsEl = document.getElementById('victory-run-stats');
     this.rulesEl = document.getElementById('victory-rules-summary');
 
     this.btn.addEventListener('click', () => {
       AudioManager.play('button_click');
       GameManager.goMainMenu();
+    });
+    this.replayBtn?.addEventListener('click', () => {
+      AudioManager.play('button_click');
+      GameState.resetRun();
+      GameManager.goLogicEdit();
     });
 
     // Redraw on resize

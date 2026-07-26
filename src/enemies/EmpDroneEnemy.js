@@ -80,7 +80,7 @@ export class EmpDroneEnemy extends EnemyBase {
   draw(g, scale) {
     if (this.dead) { super.draw(g, scale); return; }
 
-    const rPx = this.bodyRadius * scale;
+    const rPx = Math.max(this.bodyRadius * scale, 9);
     const pulse = 0.5 + 0.5 * Math.sin(this.pulseAngle);
 
     g.save();

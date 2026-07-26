@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <title>Overlogic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Program a robot's combat logic, simulate the battle, inspect the result, and refine its brain.">
+<meta name="theme-color" content="#07111f">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307111f'/%3E%3Cpath d='M13 17h15v8H21v14h7v8H13zm38 0H36v8h7v14h-7v8h15z' fill='%234be1ff'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%233eff9d'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -19,7 +23,7 @@
       <h1 class="logo">OVERLOGIC</h1>
       <p class="subtitle" data-i18n="menu.subtitle">// design the brain, not the hands</p>
     </div>
-    <div class="locale-switcher" id="locale-switcher" aria-label="Language">
+    <div class="locale-switcher" id="locale-switcher" aria-label="Language" data-i18n-aria-label="menu.language">
       <button type="button" data-locale="en">EN</button>
       <button type="button" data-locale="zh-CN">简中</button>
       <button type="button" data-locale="zh-TW">繁中</button>
@@ -43,6 +47,7 @@
     </div>
     <div class="menu-buttons">
       <button id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
+      <button id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
       <button id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
       <button id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
       <button id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
@@ -80,6 +85,12 @@
     </header>
 
     <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
+
+    <nav class="editor-mobile-tabs" aria-label="Editor panels" data-i18n-aria-label="editor.panelNavigation">
+      <button type="button" data-editor-panel="rules" class="active" data-i18n="editor.tabRules">Rules</button>
+      <button type="button" data-editor-panel="conditions" data-i18n="editor.tabConditions">Conditions</button>
+      <button type="button" data-editor-panel="actions" data-i18n="editor.tabActions">Actions</button>
+    </nav>
 
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions">
@@ -154,7 +165,15 @@
     <footer class="editor-footer">
       <div id="unit-stats" class="unit-stats"></div>
       <div style="display: flex; gap: 12px; align-items: center;">
-        <button id="btn-editor-settings" class="btn ghost" style="padding: 14px 18px; display: flex; align-items: center; justify-content: center; min-height: 48px;" title="Settings" data-i18n-title="common.settings" aria-label="Settings">⚙️</button>
+        <button id="btn-editor-settings" class="btn ghost" style="padding: 14px 18px; display: flex; align-items: center; justify-content: center; min-height: 48px;" title="Settings" data-i18n-title="common.settings" aria-label="Settings" data-i18n-aria-label="common.settings">⚙️</button>
+        <button id="btn-import-rules" class="btn ghost" data-i18n="editor.importRules">Import</button>
+        <button id="btn-export-rules" class="btn ghost" data-i18n="editor.exportRules">Share</button>
+        <select id="sandbox-preset" class="sandbox-preset" aria-label="Sandbox scenario" data-i18n-aria-label="editor.sandboxScenario">
+          <option value="mixed" data-i18n="sandbox.mixed">Mixed Test</option>
+          <option value="projectiles" data-i18n="sandbox.projectiles">Projectile Grid</option>
+          <option value="swarm" data-i18n="sandbox.swarm">Swarm Stress</option>
+          <option value="boss" data-i18n="sandbox.boss">Boss Lab</option>
+        </select>
         <button id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox" style="border-color: #ffb938; color: #ffb938; text-shadow: 0 0 8px rgba(255, 185, 56, 0.45);">Sandbox Test ⚙️</button>
         <button id="btn-run" class="btn primary big" data-i18n="editor.run">Run Simulation ▶</button>
       </div>
@@ -175,7 +194,7 @@
         <div id="combat-timer" class="muted">0.0s</div>
       </div>
       <div class="hud-right">
-        <button id="btn-combat-settings" class="btn small" title="Settings" data-i18n-title="common.settings" aria-label="Combat settings">⚙️</button>
+        <button id="btn-combat-settings" class="btn small" title="Settings" data-i18n-title="common.settings" aria-label="Combat settings" data-i18n-aria-label="common.settings">⚙️</button>
         <button id="btn-pause" class="btn small" data-i18n="combat.pause">Pause</button>
         <button id="btn-step" class="btn small hidden" data-i18n="combat.step">Step</button>
         <button id="btn-speed" class="btn small">Speed x1</button>
@@ -243,7 +262,10 @@
       <h3 data-i18n="victory.rules">Your Final Logic (Rule Replay)</h3>
       <div id="victory-rules-summary"></div>
     </div>
-    <button id="btn-victory-menu" class="btn primary big" data-i18n="victory.menu" style="margin-top: 24px;">Return to Menu</button>
+    <div class="victory-actions">
+      <button id="btn-victory-replay" class="btn primary big" data-i18n="victory.replay">Run Again</button>
+      <button id="btn-victory-menu" class="btn ghost big" data-i18n="victory.menu">Return to Menu</button>
+    </div>
   </section>
 
   <!-- ===== Settings Overlay ===== -->

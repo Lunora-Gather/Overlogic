@@ -186,7 +186,7 @@ export class EnemyBase {
       return;
     }
     // Fallback: smooth circle outline with glowing core
-    const rPx = this.bodyRadius * scale;
+    const rPx = Math.max(this.bodyRadius * scale, 9);
     const [cr, cg, cb] = this.color;
     g.save();
     g.fillStyle = `rgba(${cr*255|0},${cg*255|0},${cb*255|0},0.2)`;

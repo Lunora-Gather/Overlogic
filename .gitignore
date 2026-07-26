@@ -3,6 +3,7 @@
 *.tmp
 android/
 builds/
+dist/
 
 # Temp scripts used during development
 _*.bat

@@ -9,6 +9,7 @@ export class MainMenu {
   constructor() {
     this.el = document.getElementById('screen-main');
     this.btnStart = document.getElementById('btn-start');
+    this.btnNewRun = document.getElementById('btn-new-run');
     this.btnHow = document.getElementById('btn-how');
     this.btnReset = document.getElementById('btn-reset');
     this.btnExit = document.getElementById('btn-exit');
@@ -28,7 +29,17 @@ export class MainMenu {
     this.btnStart.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
+      if (GameState.isDemoCleared()) GameState.resetRun();
       GameState.configureRun(this.runMode.value, this.runDifficulty.value);
+      GameManager.goLogicEdit();
+    });
+    this.btnNewRun?.addEventListener('click', () => {
+      AudioManager.resume();
+      AudioManager.play('button_click');
+      if (!confirm(t('menu.newRunConfirm'))) return;
+      GameState.resetRun();
+      GameState.configureRun(this.runMode.value, this.runDifficulty.value);
+      this.render();
       GameManager.goLogicEdit();
     });
     this.btnHow.addEventListener('click', () => {
@@ -78,12 +89,19 @@ export class MainMenu {
   }
 
   render() {
-    if (this.runMode) this.runMode.value = GameState.settings.runMode;
-    if (this.runDifficulty) this.runDifficulty.value = GameState.settings.difficulty;
+    const activeRun = GameState.hasRunProgress() && !GameState.isDemoCleared();
+    if (this.runMode) this.runMode.value = activeRun ? GameState.runConfig.mode : GameState.settings.runMode;
+    if (this.runDifficulty) this.runDifficulty.value = activeRun ? GameState.runConfig.difficulty : GameState.settings.difficulty;
     for (const button of document.querySelectorAll('#locale-switcher [data-locale]')) {
       button.classList.toggle('active', button.dataset.locale === getLocale());
       button.setAttribute('aria-pressed', button.dataset.locale === getLocale() ? 'true' : 'false');
     }
+    const complete = GameState.isDemoCleared();
+    const active = activeRun;
+    this.btnStart.textContent = complete ? t('menu.replay') : (active ? t('menu.continue') : t('menu.start'));
+    this.btnNewRun?.classList.toggle('hidden', !active);
+    if (this.runMode) this.runMode.disabled = active;
+    if (this.runDifficulty) this.runDifficulty.disabled = active;
     if (this.howBody) {
       this.howBody.replaceChildren(...t('how.body').split('|').map(line => {
         const paragraph = document.createElement('p');
@@ -110,6 +128,15 @@ export class MainMenu {
       ? t('menu.dailySeed', { seed: GameState.dailySeed() })
       : '';
     if (this.runConfigHint && this.runDifficulty) {
+      if (GameState.hasRunProgress() && !GameState.isDemoCleared()) {
+        this.runConfigHint.textContent = t('menu.activeRun', {
+          mode: t(`mode.${GameState.runConfig.mode}`),
+          difficulty: t(`difficulty.${GameState.runConfig.difficulty}`),
+          progress: Math.min(GameState.currentMapColumn + 1, GameState.mapNodes.length),
+          total: GameState.mapNodes.length,
+        });
+        return;
+      }
       const difficulty = this.runDifficulty.value;
       this.runConfigHint.textContent = [
         t(`menu.config.${difficulty}`),

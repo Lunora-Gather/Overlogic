@@ -36,11 +36,6 @@ async function main() {
   const reportUI = new PostBattleReportUI();
   const victoryUI = new VictoryUI();
 
-  // Bulletproof viewport scroll locks to prevent browser auto-scroll / bouncing behaviors
-  window.addEventListener('scroll', () => {
-    window.scrollTo(0, 0);
-  }, { passive: true });
-
   const canvas = document.getElementById('arena');
   let arena = null;
 
@@ -59,6 +54,7 @@ async function main() {
   const origGoSandbox = GameManager.goSandbox.bind(GameManager);
 
   GameManager.goCombat = () => {
+    bgAnim?.stop();
     origGoCombat();
     const battle = GameState.getActiveBattle();
     if (!battle) { console.error('No active battle found'); return; }
@@ -69,15 +65,30 @@ async function main() {
     arena.start(battle);
   };
   GameManager.goSandbox = () => {
+    bgAnim?.stop();
     origGoSandbox();
-    const sandboxBattle = {
-      id: 'sandbox',
-      displayName: 'Sandbox Test Simulation',
-      enemySpawns: [
+    const preset = document.getElementById('sandbox-preset')?.value || 'mixed';
+    const scenarios = {
+      mixed: [
         { enemyId: 'crawler', count: 2, wave: 1 },
         { enemyId: 'shooter', count: 1, wave: 1 },
-        { enemyId: 'charger', count: 1, wave: 2 }
+        { enemyId: 'charger', count: 1, wave: 2 },
       ],
+      projectiles: [
+        { enemyId: 'shooter', count: 4, wave: 1 },
+        { enemyId: 'emp_drone', count: 2, wave: 2 },
+      ],
+      swarm: [
+        { enemyId: 'crawler', count: 8, wave: 1 },
+        { enemyId: 'charger', count: 2, wave: 2 },
+      ],
+      boss: [{ enemyId: 'boss_warden', count: 1, wave: 1 }],
+    };
+    const sandboxBattle = {
+      id: `sandbox_${preset}`,
+      displayName: 'Sandbox Test Simulation',
+      enemySpawns: scenarios[preset] || scenarios.mixed,
+      hazardPattern: preset === 'swarm' || preset === 'boss' ? 'cross' : null,
       arenaType: 'standard_20x20',
       rewardPool: []
     };
@@ -90,18 +101,37 @@ async function main() {
     };
     arena.start(sandboxBattle);
   };
-  GameManager.goRewardSelection = () => { origGoReward(); rewardUI.show(); };
-  GameManager.goPostBattleReport = () => { origGoReport(); reportUI.show(); };
-  GameManager.goLogicEdit = () => { origGoLogic(); logicEditor.show(); };
+  GameManager.goRewardSelection = () => { bgAnim?.start(); origGoReward(); rewardUI.show(); };
+  GameManager.goPostBattleReport = () => { bgAnim?.start(); origGoReport(); reportUI.show(); };
+  GameManager.goLogicEdit = () => { bgAnim?.start(); origGoLogic(); logicEditor.show(); };
   GameManager.goMainMenu = () => {
+    bgAnim?.start();
     origGoMain();
     if (arena) { arena.stop(); arena = null; }
   };
   GameManager.goVictory = () => {
+    bgAnim?.start();
     origGoVict();
     if (arena) { arena.stop(); arena = null; }
     victoryUI.show();
   };
+
+  let visibilityPausedCombat = false;
+  document.addEventListener('visibilitychange', () => {
+    if (!arena || GameManager.state !== 'combat') return;
+    if (document.hidden && !arena.paused) {
+      visibilityPausedCombat = true;
+      arena.setPaused(true);
+      battleHUD.btnPause.textContent = t('combat.resume');
+      battleHUD.btnStep.classList.remove('hidden');
+    } else if (!document.hidden && visibilityPausedCombat) {
+      visibilityPausedCombat = false;
+      bgAnim?.stop();
+      arena.setPaused(false);
+      battleHUD.btnPause.textContent = t('combat.pause');
+      battleHUD.btnStep.classList.add('hidden');
+    }
+  });
 
   // Settings Overlay Wiring
   const settingsOverlay = document.getElementById('settings-overlay');

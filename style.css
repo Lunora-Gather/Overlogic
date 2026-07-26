@@ -679,6 +679,161 @@ input[type="range"] {
   }
 }
 
+/* v1.1 editor navigation and touch-safe rule controls */
+.editor-mobile-tabs {
+  display: none;
+}
+
+.rule-reorder-buttons {
+  display: none;
+}
+
+.rule-move-btn,
+.rule-not-btn {
+  min-width: 30px;
+  min-height: 30px;
+  border: 1px solid rgba(75, 225, 255, 0.24);
+  border-radius: 7px;
+  color: var(--muted);
+  background: rgba(4, 12, 25, 0.72);
+  font: 700 11px/1 var(--font-ui);
+  cursor: pointer;
+}
+
+.rule-not-btn.active {
+  color: #07111a;
+  border-color: var(--accent2);
+  background: var(--accent2);
+  box-shadow: 0 0 14px rgba(62, 255, 157, 0.25);
+}
+
+.victory-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 24px;
+  flex-wrap: wrap;
+}
+
+.sandbox-preset {
+  min-height: 48px;
+  padding: 0 34px 0 12px;
+  border: 1px solid rgba(255, 185, 56, 0.34);
+  border-radius: 9px;
+  color: #ffd27b;
+  background: rgba(17, 16, 24, 0.9);
+  font: 700 12px/1 var(--font-ui);
+}
+
+.locale-switcher button {
+  min-width: 44px;
+  min-height: 38px;
+}
+
+.run-config-panel select:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
+@media (max-width: 760px) {
+  .editor-mobile-tabs {
+    position: sticky;
+    top: 0;
+    z-index: 18;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+    padding: 8px 12px;
+    background: rgba(4, 9, 19, 0.96);
+    border-block: 1px solid var(--line);
+    backdrop-filter: blur(16px);
+  }
+
+  .editor-mobile-tabs button {
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--muted);
+    background: rgba(12, 21, 40, 0.8);
+    font: 700 13px/1 var(--font-ui);
+  }
+
+  .editor-mobile-tabs button.active {
+    color: var(--txt);
+    border-color: var(--accent);
+    background: rgba(0, 210, 255, 0.13);
+    box-shadow: inset 0 -2px var(--accent);
+  }
+
+  #screen-editor[data-mobile-panel="rules"] #panel-conditions,
+  #screen-editor[data-mobile-panel="rules"] #panel-actions,
+  #screen-editor[data-mobile-panel="conditions"] #panel-rules,
+  #screen-editor[data-mobile-panel="conditions"] #panel-actions,
+  #screen-editor[data-mobile-panel="actions"] #panel-rules,
+  #screen-editor[data-mobile-panel="actions"] #panel-conditions {
+    display: none;
+  }
+
+  #screen-editor .editor-grid {
+    display: block;
+    padding: 10px 12px 140px;
+  }
+
+  #screen-editor .editor-grid > .panel {
+    width: 100%;
+    min-height: 52vh;
+  }
+
+  .drag-handle {
+    display: none;
+  }
+
+  .rule-reorder-buttons {
+    display: flex;
+    gap: 6px;
+  }
+
+  .rule-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .rule-row > * {
+    grid-column: 1 / -1 !important;
+    grid-row: auto !important;
+    width: 100% !important;
+  }
+
+  .rule-reorder-buttons,
+  .rule-row > .rule-prio {
+    width: auto !important;
+  }
+
+  .rule-row .cond-wrap,
+  .rule-row .cond2-wrap {
+    flex-wrap: wrap;
+  }
+
+  .rule-row select,
+  .rule-row input:not([type="checkbox"]) {
+    min-height: 42px;
+    font-size: 14px;
+  }
+
+  .editor-footer > div:last-child {
+    width: 100%;
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .editor-footer .btn {
+    min-height: 44px;
+    padding-inline: 10px !important;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .wave-info.incoming {
     animation: none;
@@ -3154,12 +3309,12 @@ select:focus-visible,
 
 .reward-grid {
   gap: 16px;
-  max-width: 860px;
+  max-width: 980px;
 }
 
 .reward-card {
-  width: 260px;
-  min-height: 196px;
+  width: 300px;
+  min-height: 216px;
   padding: 22px;
   border-color: var(--border-soft);
   border-radius: 14px;
@@ -3328,6 +3483,42 @@ select:focus-visible,
   }
 
   .reward-card {
+    width: min(100%, 340px);
     min-height: 190px;
+  }
+}
+
+/* Keep mobile editor overrides last so legacy breakpoint rules cannot supersede them. */
+@media (max-width: 760px) {
+  #screen-editor .editor-mobile-tabs { display: grid; }
+  #screen-editor[data-mobile-panel="rules"] #panel-conditions,
+  #screen-editor[data-mobile-panel="rules"] #panel-actions,
+  #screen-editor[data-mobile-panel="conditions"] #panel-rules,
+  #screen-editor[data-mobile-panel="conditions"] #panel-actions,
+  #screen-editor[data-mobile-panel="actions"] #panel-rules,
+  #screen-editor[data-mobile-panel="actions"] #panel-conditions { display: none !important; }
+  #screen-editor .editor-grid { display: block !important; grid-template-columns: none !important; }
+  #screen-editor .rule-row { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; }
+  #screen-editor .rule-row > * { grid-column: 1 / -1 !important; grid-row: auto !important; }
+  #screen-editor .drag-handle { display: none !important; }
+  #screen-editor .rule-reorder-buttons { display: flex !important; width: auto !important; }
+  #screen-editor .editor-footer > div:last-child {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+  #screen-editor #btn-editor-settings,
+  #screen-editor #btn-import-rules,
+  #screen-editor #btn-export-rules {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+  #screen-editor .sandbox-preset,
+  #screen-editor #btn-sandbox,
+  #screen-editor #btn-run {
+    grid-column: 1 / -1 !important;
+    width: 100% !important;
+    writing-mode: horizontal-tb !important;
+    white-space: normal !important;
   }
 }

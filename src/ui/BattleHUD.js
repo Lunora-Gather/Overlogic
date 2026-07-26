@@ -285,7 +285,7 @@ export class BattleHUD {
     });
     this.waveInfo.classList.add('incoming');
   }
-  setTimer(t) { this.timerEl.textContent = `${t.toFixed(1)}s`; }
+  setTimer(t) { this.timerEl.textContent = `${Math.max(0, t).toFixed(1)}s`; }
 
   showBossBar(name) { this.bossName.textContent = name; this.bossWrap.classList.remove('hidden'); }
   hideBossBar() { this.bossWrap.classList.add('hidden'); }

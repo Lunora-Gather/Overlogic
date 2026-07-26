@@ -92,7 +92,13 @@ export class CombatArena {
 
     // Spawn environmental hazards depending on battle
     this.ctx.hazards = [];
-    if (battle.id === 'battle_4' || battle.id === 'battle_6') {
+    if (battle.hazardPattern === 'cross') {
+      this.ctx.hazards.push(new HazardTile(-5, -5, 2.2));
+      this.ctx.hazards.push(new HazardTile(5, 5, 2.2));
+      this.ctx.hazards.push(new HazardTile(-5, 5, 2.2));
+      this.ctx.hazards.push(new HazardTile(5, -5, 2.2));
+      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
+    } else if (battle.id === 'battle_4' || battle.id === 'battle_6') {
       // Swarm / Iron Tide — plasma hazards
       this.ctx.hazards.push(new HazardTile(-4, -4, 2.0));
       this.ctx.hazards.push(new HazardTile(4, 4, 2.0));
