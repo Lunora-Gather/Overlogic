@@ -8,6 +8,7 @@ import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
+import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor() {
@@ -40,6 +41,7 @@ export class LogicEditorUI {
     this.mapNodesContainer = document.getElementById('map-nodes');
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
+    this.synergyList = document.getElementById('synergy-list');
     this.mobileTabs = [...document.querySelectorAll('[data-editor-panel]')];
     this.btnImportRules = document.getElementById('btn-import-rules');
     this.btnExportRules = document.getElementById('btn-export-rules');
@@ -68,7 +70,7 @@ export class LogicEditorUI {
     this._bind();
     // re-render when state changes
     GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); });
-    GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); });
+    GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); this.renderSynergies(); });
     GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
     window.addEventListener('overlogic:localechange', () => this.renderAll());
     this.btnExportRules?.addEventListener('click', async () => {
@@ -105,6 +107,7 @@ export class LogicEditorUI {
     this.renderModules();
     this.renderRules();
     this.renderStats();
+    this.renderSynergies();
     this.updateLoadoutStatus();
   }
 
@@ -1012,6 +1015,31 @@ export class LogicEditorUI {
       `<span class="stat">DashCD<b>${s.dash_cd.toFixed(1)}s</b>${diff('dash_cd', d => d.toFixed(1) + 's', true)}</span>` +
       `<span class="stat">ShieldCD<b>${s.shield_cd}s</b>${diff('shield_cd', d => d.toFixed(1) + 's', true)}</span>` +
       `<span class="stat">AP<b>${s.armor_piercing}</b>${diff('armor_piercing', d => d)}</span>`;
+  }
+
+  renderSynergies() {
+    if (!this.synergyList) return;
+    this.synergyList.replaceChildren();
+    const states = synergyState(GameState);
+    const ordered = [...states].sort((a, b) => Number(b.active) - Number(a.active) || b.progress - a.progress);
+    for (const synergy of ordered) {
+      const card = document.createElement('article');
+      card.className = `synergy-chip${synergy.active ? ' active' : ''}`;
+      const marker = document.createElement('span');
+      marker.className = 'synergy-marker';
+      marker.textContent = synergy.active ? '◆' : `${synergy.progress}/${synergy.requires.length}`;
+      const copy = document.createElement('span');
+      copy.className = 'synergy-copy';
+      const name = document.createElement('strong');
+      name.textContent = t(`synergy.${synergy.id}.name`);
+      const description = document.createElement('small');
+      description.textContent = synergy.active
+        ? t(`synergy.${synergy.id}.active`)
+        : t(`synergy.${synergy.id}.locked`);
+      copy.append(name, description);
+      card.append(marker, copy);
+      this.synergyList.appendChild(card);
+    }
   }
 
   _bind() {

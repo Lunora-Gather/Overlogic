@@ -14,6 +14,7 @@ export class PostBattleReportUI {
     this.repDamage = document.getElementById('rep-damage');
     this.repLogic  = document.getElementById('rep-logic');
     this.repSuggest = document.getElementById('rep-suggest');
+    this.repTimeline = document.getElementById('rep-timeline');
     this.canvas = document.getElementById('chart-report');
     this.btnRetry  = document.getElementById('btn-retry');
     this.btnEdit   = document.getElementById('btn-edit');
@@ -74,6 +75,8 @@ export class PostBattleReportUI {
       logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">${escapeHtml(t('report.neverTriggered', { actions: unusedActions.map(a => entity('action', a, a)).join(', ') }))}</li>`;
     }
     this.repLogic.innerHTML = logicHtml;
+
+    this._renderTimeline(report.timeline || []);
     
     // Clear and build suggestions with interactive Auto-Add buttons
     this.repSuggest.innerHTML = '';
@@ -118,5 +121,44 @@ export class PostBattleReportUI {
     
     // Draw performance charts
     drawStatsChart(this.canvas, report);
+  }
+
+  _renderTimeline(events) {
+    if (!this.repTimeline) return;
+    this.repTimeline.replaceChildren();
+    const important = events
+      .filter((event) => event.kind !== 'damage' || event.value >= 4)
+      .slice(-16);
+    if (important.length === 0) {
+      const empty = document.createElement('li');
+      empty.textContent = t('report.timelineEmpty');
+      this.repTimeline.appendChild(empty);
+      return;
+    }
+    for (const event of important) {
+      const item = document.createElement('li');
+      item.dataset.kind = event.kind;
+      const time = document.createElement('time');
+      time.textContent = `${Number(event.time || 0).toFixed(1)}s`;
+      const text = document.createElement('span');
+      if (event.kind === 'action') {
+        text.textContent = t('report.timelineAction', {
+          name: entity('action', event.actionId, event.actionId),
+        });
+      } else if (event.kind === 'damage') {
+        text.textContent = t('report.timelineDamage', {
+          value: Math.round(event.value || 0),
+          source: entity('enemy', event.source, event.source),
+        });
+      } else if (event.kind === 'interrupt') {
+        text.textContent = t('report.timelineInterrupt');
+      } else if (event.kind === 'recall') {
+        text.textContent = t('report.timelineRecall');
+      } else {
+        text.textContent = t('report.timelineWave', { wave: event.wave, total: event.total });
+      }
+      item.append(time, text);
+      this.repTimeline.appendChild(item);
+    }
   }
 }

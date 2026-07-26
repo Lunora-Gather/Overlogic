@@ -25,6 +25,7 @@ const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
+const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -320,6 +321,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
+  assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
+  assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
@@ -346,11 +349,39 @@ function verifyRuleTelemetryContracts() {
   tracker.recordDiagnostics({ r1: 'condition_false', r2: 'disabled' });
   tracker.recordDiagnostics({ r1: 'energy' });
   tracker.recordAction('basic_attack', 'r1');
+  tracker.tick(1);
+  tracker.recordDamageTaken(6, 'crawler');
+  tracker.recordWave(2, 3);
   const report = tracker.toReport();
   assert.deepEqual(report.active_rule_ids, ['r1']);
   assert.equal(report.rule_usage.r1, 1);
   assert.equal(report.rule_diagnostics.r1.condition_false, 1);
   assert.equal(report.rule_diagnostics.r1.energy, 1);
+  assert.equal(report.timeline.some(event => event.kind === 'action'), true);
+  assert.equal(report.timeline.some(event => event.kind === 'damage'), true);
+  assert.equal(report.timeline.some(event => event.kind === 'wave'), true);
+}
+
+function verifySynergyContracts() {
+  const build = {
+    stats: {
+      reflective_plating: 0.5,
+      shield_dur: 3,
+      heavy_impact: 1,
+      emergency_recall: 1,
+      nanite_repair: 2.5,
+      superconductors: 1,
+      thermal_recycle: 1,
+    },
+    unlockedActionIds: ['dash_through'],
+  };
+  assert.deepEqual(
+    [...activeSynergyIds(build)].sort(),
+    ['bastion_loop', 'kinetic_breach', 'phoenix_mesh', 'thermal_grid'],
+  );
+  const incomplete = synergyState({ stats: { reflective_plating: 0.5 }, unlockedActionIds: [] });
+  assert.equal(incomplete.find(item => item.id === 'bastion_loop').progress, 1);
+  assert.equal(incomplete.find(item => item.id === 'bastion_loop').active, false);
 }
 
 function verifySimulation() {
@@ -388,6 +419,7 @@ verifyReportContracts();
 verifySaveMigration();
 verifyUiSafetyContracts();
 verifyRuleTelemetryContracts();
+verifySynergyContracts();
 verifySimulation();
 
 console.log('VERIFY_OK');

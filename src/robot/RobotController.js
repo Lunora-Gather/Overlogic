@@ -124,7 +124,8 @@ export class RobotController {
     }
 
     // Nanite Repair passive regeneration in combat
-    const naniteRegen = this.stats.stat('nanite_repair', 0);
+    let naniteRegen = this.stats.stat('nanite_repair', 0);
+    if (this.hp / this.maxHp <= 0.35 && this.stats.hasSynergy('phoenix_mesh')) naniteRegen *= 2;
     const inCombat = this.ctx && this.ctx.liveEnemies() > 0;
     if (naniteRegen > 0 && this.hp < this.maxHp && !this.dead && inCombat) {
       this.hp = Math.min(this.maxHp, this.hp + naniteRegen * dt);
@@ -240,7 +241,8 @@ export class RobotController {
     let actual = amount;
     if (this.shieldTimer > 0) {
       actual = amount * (1 - this.shieldReduce);
-      const reflectFraction = this.stats.stat('reflective_plating', 0);
+      const reflectFraction = this.stats.stat('reflective_plating', 0)
+        + (this.stats.hasSynergy('bastion_loop') ? 0.25 : 0);
       if (reflectFraction > 0 && actual > 0) {
         const reflected = amount * reflectFraction;
         const enemy = this.ctx.nearestEnemyTo({ x: this.x, y: this.y });
@@ -264,7 +266,8 @@ export class RobotController {
     if (this.hp <= 0 && !this.dead) {
       if (this.stats.stat('emergency_recall', 0) > 0 && !this.recallTriggered) {
         this.recallTriggered = true;
-        this.hp = 30;
+        this.hp = this.stats.hasSynergy('phoenix_mesh') ? 45 : 30;
+        this.ctx?.tracker?.recordRecall();
         this.invulnTimer = 1.5;
         // Dash away from current movement
         const dx = this.moveIntent.x || -1;

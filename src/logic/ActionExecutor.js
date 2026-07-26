@@ -86,6 +86,9 @@ export class ActionExecutor {
     if (this.ctx && this.ctx.overlogic && this.ctx.overlogic.active && this.stats.stat('thermal_recycle', 0) > 0) {
       this.ctx.overlogic.value = Math.max(0, this.ctx.overlogic.value - 10);
       this.ctx.overlogic._checkState();
+      if (this.stats.hasSynergy('thermal_grid')) {
+        this.robot.energy = Math.min(this.robot.maxEnergy, this.robot.energy + 4);
+      }
       if (this.ctx.hud) {
         this.ctx.hud.logConsole(t('log.thermalRecycle'), 'success');
       }
@@ -333,6 +336,7 @@ export class ActionExecutor {
     const a = GameDatabase.getAction('dash_through');
     const ev = a.effectValue;
     const dashDist = ev.dashDist || 4.0;
+    const kineticBreach = this.stats.hasSynergy('kinetic_breach');
     if (len > this.stats.actionRange('dash_through')) {
       this.robot.moveIntent = {
         x: dirX * this.robot.moveSpeed,
@@ -350,7 +354,8 @@ export class ActionExecutor {
       if (proj >= 0 && proj <= dashDist) {
         const perpDist = Math.abs(ex * dirY - ey * dirX);
         if (perpDist <= enemy.bodyRadius + 0.5) {
-          enemy.takeDamage(ev.dmg || 14, 'dash_through');
+          enemy.takeDamage((ev.dmg || 14) * (kineticBreach ? 1.5 : 1), 'dash_through');
+          if (kineticBreach) enemy.stunTimer = Math.max(enemy.stunTimer || 0, 0.5);
         }
       }
     }

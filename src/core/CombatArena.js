@@ -261,6 +261,7 @@ export class CombatArena {
     this._waveClearTimer = 0;
     this._spawnWave(next.spawns);
     this.currentWave += 1;
+    this.ctx.tracker.recordWave(this.currentWave, this.totalWaves);
     this.hud.setWave(this.currentWave, this.totalWaves);
     this.hud.logConsole(t('log.wave', { current: this.currentWave, total: this.totalWaves }), 'info');
   }

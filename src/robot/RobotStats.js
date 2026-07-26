@@ -3,15 +3,19 @@
 // Mirrors scripts/robot/RobotStats.gd.
 
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
+import { activeSynergyIds } from '../systems/ProtocolSynergies.js?v=20260725-4';
 
 export class RobotStats {
-  constructor() { this.base = {}; }
+  constructor() { this.base = {}; this.unlockedActionIds = []; this.synergyIds = new Set(); }
   loadFromGameState() {
     this.base = { ...GameState.stats };
+    this.unlockedActionIds = [...GameState.unlockedActionIds];
+    this.synergyIds = activeSynergyIds({ stats: this.base, unlockedActionIds: this.unlockedActionIds });
     // Track persistent HP for carry-over
     this.startingHp = GameState.persistentHp; // null means full HP
   }
   stat(key, def = 0) { return this.base[key] !== undefined ? this.base[key] : def; }
+  hasSynergy(id) { return this.synergyIds.has(id); }
 
   // Per-action effective cooldown (after passives + overdrive + overlogic).
   actionCooldown(actionId, robotRef) {

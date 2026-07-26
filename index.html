@@ -85,6 +85,13 @@
     </header>
 
     <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
+    <section id="synergy-panel" class="synergy-panel" aria-labelledby="synergy-title">
+      <div class="synergy-heading">
+        <span id="synergy-title" data-i18n="synergy.title">Protocol Synergies</span>
+        <small data-i18n="synergy.hint">Combine upgrades to unlock build-defining effects.</small>
+      </div>
+      <div id="synergy-list" class="synergy-list"></div>
+    </section>
 
     <nav class="editor-mobile-tabs" aria-label="Editor panels" data-i18n-aria-label="editor.panelNavigation">
       <button type="button" data-editor-panel="rules" class="active" data-i18n="editor.tabRules">Rules</button>
@@ -236,6 +243,10 @@
       <div class="report-card"><h3 data-i18n="report.damage">Damage Report</h3><ul id="rep-damage"></ul></div>
       <div class="report-card"><h3 data-i18n="report.logic">Logic Report</h3><ul id="rep-logic"></ul></div>
       <div class="report-card"><h3 data-i18n="report.suggest">Suggested Fix</h3><ul id="rep-suggest"></ul></div>
+      <div class="report-card report-timeline-card">
+        <h3 data-i18n="report.timeline">Critical Timeline</h3>
+        <ol id="rep-timeline" class="report-timeline"></ol>
+      </div>
       <div class="report-card" style="grid-column: span 3; display: flex; flex-direction: column; align-items: center;">
         <h3 data-i18n="report.performance">Performance Analysis</h3>
         <canvas id="chart-report" width="680" height="200" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>

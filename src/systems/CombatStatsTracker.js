@@ -21,10 +21,21 @@ export class CombatStatsTracker {
     this.deathEnergy = 0;
     this.deathNearbyEnemyCount = 0;
     this.lowHpKills = 0;
+    this.timeline = [];
+    this._lastDamageEventAt = -Infinity;
   }
 
   recordDamageTaken(amount, source) {
     this.damageBySource.set(source, (this.damageBySource.get(source) || 0) + amount);
+    // Coalesce rapid damage ticks so the report remains readable.
+    const latest = this.timeline[this.timeline.length - 1];
+    if (latest?.kind === 'damage' && latest.source === source && this.battleTime - this._lastDamageEventAt < 0.65) {
+      latest.value += amount;
+      latest.time = this.battleTime;
+    } else {
+      this._pushTimeline({ kind: 'damage', source, value: amount });
+    }
+    this._lastDamageEventAt = this.battleTime;
   }
   recordDamageDealt(amount, kind) {
     this.totalDamageDealt += amount;
@@ -37,6 +48,7 @@ export class CombatStatsTracker {
     this.actionUsage.set(actionId, (this.actionUsage.get(actionId) || 0) + 1);
     this.actionLastUsedTime.set(actionId, this.battleTime);
     if (ruleId) this.ruleUsage.set(ruleId, (this.ruleUsage.get(ruleId) || 0) + 1);
+    this._pushTimeline({ kind: 'action', actionId, ruleId });
   }
   recordDiagnostics(diagnostics) {
     if (!diagnostics) return;
@@ -47,11 +59,21 @@ export class CombatStatsTracker {
     }
   }
   recordEnergyOverflow(dt) { this.energyOverflowTime += dt; }
-  recordInterruptSuccess() { this.interruptSuccesses += 1; this.castingEventsInterrupted += 1; }
+  recordInterruptSuccess() {
+    this.interruptSuccesses += 1;
+    this.castingEventsInterrupted += 1;
+    this._pushTimeline({ kind: 'interrupt' });
+  }
   recordCastingSeen() { this.castingEventsSeen += 1; }
   recordShieldActivated(hpPct) { this.shieldActivatedAtHp = hpPct; }   // latest activation wins
   recordLowHpKill() { this.lowHpKills += 1; }
   recordEnemyDeath(enemyId) { /* hook for future use; matches Godot base no-op */ }
+  recordWave(wave, total) { this._pushTimeline({ kind: 'wave', wave, total }); }
+  recordRecall() { this._pushTimeline({ kind: 'recall' }); }
+  _pushTimeline(event) {
+    this.timeline.push({ time: this.battleTime, ...event });
+    if (this.timeline.length > 40) this.timeline.shift();
+  }
   tick(dt) { this.battleTime += dt; }
   snapshotDeath(hp, energy, nearby) {
     this.deathHp = hp; this.deathEnergy = energy; this.deathNearbyEnemyCount = nearby;
@@ -76,6 +98,7 @@ export class CombatStatsTracker {
       death_energy: this.deathEnergy,
       death_nearby_enemy_count: this.deathNearbyEnemyCount,
       low_hp_kills: this.lowHpKills,
+      timeline: this.timeline,
     };
   }
 }

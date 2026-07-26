@@ -30,6 +30,8 @@ Live build: https://lunora-gather.github.io/Overlogic/
 - Persistent settings for volume, mute, camera shake, and reduced motion.
 - Tooltips for modules and map nodes.
 - Post-battle charts, action frequency, damage breakdowns, and contextual rule suggestions.
+- Critical-event timelines reconstruct the actions, damage spikes, interrupts, recalls, and waves that led to a defeat.
+- Four build-defining protocol synergies turn specific upgrade combinations into new combat mechanics.
 - Victory rewards now include the just-finished combat's HP, clear time, damage, and action count.
 - Run-wide victory statistics persist across saves and distinguish combat wins from route events.
 - Save migration and bad-save recovery for older or corrupted local storage data.
@@ -75,6 +77,7 @@ GitHub Pages deploys the generated `dist/` artifact only after verification and 
 - `data/`: editable gameplay content for actions, conditions, enemies, battles, and rewards.
 - `src/core/`: state, map progress, battle lifecycle, and persistence.
 - `src/logic/`: condition evaluation, rule formatting, action execution, and rule selection.
+- `src/systems/ProtocolSynergies.js`: the single source of truth for build-combination requirements shared by UI and combat.
 - `src/ui/`: editor, HUD, rewards, reports, victory screen, charts, and HTML escaping helpers.
 - `scripts/`: CI-safe verification and deterministic balance simulation.
 
