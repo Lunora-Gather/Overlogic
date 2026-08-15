@@ -9,6 +9,7 @@ import { recentBattles, historySummary } from '../systems/RunHistory.js?v=202607
 import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfileProgression.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
+import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -102,6 +103,7 @@ export class MainMenu {
       this._requestConfirm('reset.confirm').then((confirmed) => {
         if (!confirmed) return;
         GameState.clearStorage();
+        this.render();
         this.btnReset.textContent = t('reset.done');
         setTimeout(() => { this.btnReset.textContent = t('menu.reset'); }, 1500);
       });
@@ -182,13 +184,18 @@ export class MainMenu {
     const profile = profileSnapshot();
     const rank = profileRank(profile.xp);
     const unlocked = ACHIEVEMENTS.filter((achievement) => profile.achievements[achievement.id]).length;
+    const records = runRecords();
     const progress = Math.max(0, Math.min(100, Math.round((rank.current / rank.required) * 100)));
+    const bestRun = records.bestTime === null
+      ? t('menu.profileNoBestRun')
+      : t('menu.profileBestRun', { time: `${records.bestTime.toFixed(1)}s` });
     this.runProfile.innerHTML = `
       <div class="profile-heading"><span>${t('menu.profileTitle')}</span><span>${t('menu.profileRank', { level: rank.level })}</span></div>
       <div class="profile-progress" aria-label="${t('menu.profileXp', { current: rank.current, required: rank.required })}">
         <span style="width:${progress}%"></span>
       </div>
-      <div class="profile-meta"><span>${t('menu.profileBattles', { count: profile.totalBattles })}</span><span>${t('menu.profileWins', { count: profile.wins })}</span><span>${t('menu.profileAchievements', { unlocked, total: ACHIEVEMENTS.length })}</span></div>`;
+      <div class="profile-meta"><span>${t('menu.profileBattles', { count: profile.totalBattles })}</span><span>${t('menu.profileWins', { count: profile.wins })}</span><span>${t('menu.profileAchievements', { unlocked, total: ACHIEVEMENTS.length })}</span></div>
+      <div class="profile-records"><span>${t('menu.profileClears', { count: records.completions })}</span><span>${bestRun}</span></div>`;
   }
 
   renderHistory() {

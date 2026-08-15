@@ -38,6 +38,7 @@ class GameManagerClass {
       if (isLast) {
         const endHp = GameState.lastReport._endHp || null;
         GameState.onBattleWon('', endHp);
+        GameState.recordRunCompletion();
         this.goVictory();
       } else {
         this.goRewardSelection();
@@ -56,7 +57,10 @@ class GameManagerClass {
     } else {
       GameState.onBattleWon(rewardId, endHp);
     }
-    if (GameState.isDemoCleared()) this.goVictory();
+    if (GameState.isDemoCleared()) {
+      GameState.recordRunCompletion();
+      this.goVictory();
+    }
     else this.goLogicEdit();
   }
 

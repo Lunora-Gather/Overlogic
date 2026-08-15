@@ -29,6 +29,7 @@ const { activeSynergyIds, synergyState } = await import('../src/systems/Protocol
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
+const { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -486,6 +487,7 @@ function verifyUiSafetyContracts() {
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
+  const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
@@ -493,6 +495,7 @@ function verifyUiSafetyContracts() {
   assert(historyUi.includes("import { escapeHtml } from './safeHtml.js") && historyUi.includes('escapeHtml(battle)'), 'history cards must escape imported identifiers');
   assert(arenaUi.includes('if (!report._sandbox)') && arenaUi.includes('recordBattle(GameState.lastReport)'), 'sandbox runs must not enter progression history');
   assert(arenaUi.includes("overlogic:challenge-complete"), 'completed daily objectives must provide player feedback');
+  assert(gameManager.includes('GameState.recordRunCompletion()'), 'completed campaigns must enter the run archive');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
   setLocale('zh-CN', { notify: false });
@@ -572,6 +575,7 @@ function verifyRunHistoryContracts() {
   clearHistory();
   resetProfile();
   clearChallenges();
+  clearRunArchive();
   localStorage.setItem('overlogic_run_history', JSON.stringify([{ battleId: '<script>', difficulty: 'admin', won: 'yes', battleTime: 'NaN' }]));
   const sanitized = recentBattles(1)[0];
   assert.equal(sanitized.battleId, 'unknown');
@@ -617,6 +621,36 @@ function verifyRunHistoryContracts() {
   clearChallenges();
   assert.equal(GameState.importSaveData(challengeBackup), true, 'full backups must include daily challenge state');
   assert.equal(challengeSnapshot().objectives.daily_boss.completed, true);
+  clearRunArchive();
+  const firstRun = recordCompletedRun({
+    id: 'run_test_first', completedAt: '2026-08-10T12:00:00Z', mode: 'standard', difficulty: 'standard',
+    seed: 101, battlesWon: 7, totalDamageDealt: 2400, totalBattleTime: 140.5, finalHp: 22, rulesCount: 8, upgrades: 6,
+  });
+  assert.equal(firstRun.isNew, true);
+  assert.equal(runRecords().completions, 1);
+  assert.equal(runRecords().bestTime, 140.5);
+  assert.equal(recordCompletedRun({ id: 'run_test_first', totalBattleTime: 1 }).isNew, false, 'run ids must prevent duplicate completion records');
+  recordCompletedRun({
+    id: 'run_test_fast', completedAt: '2026-08-11T12:00:00Z', mode: 'daily', difficulty: 'veteran',
+    seed: 102, battlesWon: 7, totalDamageDealt: 2600, totalBattleTime: 119.25, finalHp: 31, rulesCount: 9, upgrades: 6,
+  });
+  assert.deepEqual({ completions: runRecords().completions, daily: runRecords().dailyCompletions, veteran: runRecords().veteranCompletions },
+    { completions: 2, daily: 1, veteran: 1 });
+  assert.equal(runRecords().bestRun.id, 'run_test_fast');
+  GameState.currentMapColumn = GameState.mapNodes.length;
+  GameState.runConfig = { mode: 'standard', difficulty: 'casual', seed: 103 };
+  GameState.runStats = {
+    runId: 'run_integration', completionRecorded: false, battlesWon: 7,
+    totalDamageDealt: 2200, totalBattleTime: 130, rewardsChosen: ['pu_max_hp'],
+  };
+  GameState.lastReport = { _endHp: 44 };
+  assert.equal(GameState.recordRunCompletion()?.persisted, true, 'cleared campaigns should archive through GameState');
+  assert.equal(GameState.runStats.completionRecorded, true);
+  assert.equal(GameState.recordRunCompletion(), null, 'a completed run must only settle once');
+  const archiveBackup = GameState.exportSaveData();
+  clearRunArchive();
+  assert.equal(GameState.importSaveData(archiveBackup), true, 'full backups must include completed run records');
+  assert.equal(runArchiveSnapshot().entries.length, 3);
   recordBattle({
     _battleId: 'battle_4', _runSeed: 20260816, _runMode: 'daily', _difficulty: 'veteran',
     _won: true, battle_time: 12.34, _endHp: 77, total_damage_dealt: 248,
@@ -646,9 +680,33 @@ function verifyRunHistoryContracts() {
   assert.equal(GameState.importSaveData(fullExport), true, 'full backups must include local history and profile');
   assert.equal(recentBattles().length, 2);
   assert.equal(profileSnapshot().wins, 1);
-  clearHistory();
-  resetProfile();
-  clearChallenges();
+  GameState.settings.language = 'en';
+  GameState.saveSettings();
+  localStorage.setItem('overlogic_loadout_slot_2', JSON.stringify([{ baseline: true }]));
+  const baselinePrimary = localStorage.getItem('overlogic_run_save');
+  const baselineBackup = localStorage.getItem('overlogic_run_save_backup');
+  const transactionalPayload = JSON.parse(GameState.exportSaveData());
+  transactionalPayload.settings.language = 'zh-TW';
+  transactionalPayload.run.currentBattleIndex = 2;
+  transactionalPayload.loadouts[2] = [];
+  const transactionalSetItem = localStorage.setItem;
+  localStorage.setItem = function setItemWithArchiveFailure(key, value) {
+    if (key === 'overlogic_run_archive') throw new Error('archive quota');
+    return transactionalSetItem.call(localStorage, key, value);
+  };
+  assert.equal(GameState.importSaveData(JSON.stringify(transactionalPayload)), false, 'partial imports must roll back atomically');
+  localStorage.setItem = transactionalSetItem;
+  assert.equal(GameState.settings.language, 'en', 'failed imports must restore settings');
+  assert.equal(localStorage.getItem('overlogic_loadout_slot_2'), JSON.stringify([{ baseline: true }]), 'failed imports must restore loadouts');
+  assert.equal(localStorage.getItem('overlogic_run_save'), baselinePrimary, 'failed imports must restore the prior run');
+  assert.equal(localStorage.getItem('overlogic_run_save_backup'), baselineBackup, 'failed imports must restore the prior recovery point');
+  localStorage.setItem('overlogic_loadout_slot_1', JSON.stringify(GameState.rules));
+  GameState.clearStorage();
+  assert.equal(recentBattles().length, 0, 'reset progress should clear battle history');
+  assert.equal(profileSnapshot().totalBattles, 0, 'reset progress should clear profile progression');
+  assert.equal(runArchiveSnapshot().entries.length, 0, 'reset progress should clear completed run records');
+  assert.equal(localStorage.getItem('overlogic_loadout_slot_1'), null, 'reset progress should clear saved loadouts');
+  assert.equal(challengeSnapshot().streak, 0, 'reset progress should clear daily progression');
 }
 
 function verifySimulation() {

@@ -764,7 +764,7 @@ Your Logic Survived
 | `OverlogicSystem` | Overlogic 值计算与效果 |
 | `GameDatabase` | 加载并校验 `data/*.json`，向运行时提供统一内容契约 |
 | `ProtocolSynergies` / `RunModifiers` | 协同协议与难度/路线修正 |
-| `RunHistory` / `ProfileProgression` / `LiveChallenges` | 本地战斗记录、等级、成就、每日目标与可迁移的运营数据骨架；默认不向外发送遥测 |
+| `RunHistory` / `RunArchive` / `ProfileProgression` / `LiveChallenges` | 本地战斗记录、完整通关档案、个人最佳、等级、成就、每日目标与可迁移的运营数据骨架；默认不向外发送遥测 |
 
 ### 18.2 主状态机
 
@@ -791,7 +791,7 @@ Overlogic/
     enemies/                  # EnemyBase、普通敌人、BossProtocolWarden
     render/                   # ArenaRenderer、Camera
     vfx/                      # Projectile、Mine、HazardTile、ParticleSystem
-    systems/                  # 奖励、协同协议、统计、报告、音频、运行记录、档案与每日目标
+    systems/                  # 奖励、协同协议、统计、报告、音频、战斗/通关记录、档案与每日目标
     ui/                       # 主菜单、编辑器、HUD、奖励、报告与胜利界面
     i18n/                     # 简体中文、繁體中文、English 文案
   scripts/                    # serve、build、verify、balance
@@ -950,3 +950,12 @@ Overlogic/
 - 连续完成天数只在当天三项目标全部完成时结算；漏掉任意完整自然日后，下一次完成会从 1 天重新开始，并仅保留最近 30 个完成日期。
 - 若浏览器存储失败，目标完成状态不会发放 XP；这样刷新后不会出现重复领取，设置页仍可导出支援诊断包。
 - 当前实现只在本地保存，不上传行为数据；未来接入账号、赛季或排行榜时，必须在明确同意后再发送最小化的归一化记录。
+
+## 29. 通关档案与事务化存档
+
+`src/systems/RunArchive.js` 保存最近 40 次完整通关，字段限制为运行 ID、完成时间、模式、难度、种子、胜场、总伤害、总战斗时间、最终生命、规则数与升级数。运行 ID 在新开流程时生成，同一流程无论胜利界面重复显示、跨标签同步或异常重试，都只能结算一次。
+
+- 主菜单展示完整通关次数和个人最佳；胜利页展示当前累计通关与最佳时间。
+- 完整备份包含通关档案。导入任一步骤失败时，主存档、设置、配置栏、战斗历史、档案、每日目标与通关记录必须整体回滚。
+- “重置进度”必须同时清除运行、配置栏、战斗历史、档案、每日目标与通关记录，但保留语言、音量和无障碍设置。
+- 通关档案不包含规则内容、自由文本或设备标识；未来上传排行榜必须继续采用明确同意和最小数据原则。

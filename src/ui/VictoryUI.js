@@ -8,6 +8,7 @@ import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { drawStatsChart } from './StatsChart.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
+import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 
 export class VictoryUI {
   constructor() {
@@ -55,6 +56,7 @@ export class VictoryUI {
     const battlesWon = runStats.battlesWon ?? 0;
     const totalTime = runStats.totalBattleTime ?? 0;
     const upgrades = Array.isArray(runStats.rewardsChosen) ? runStats.rewardsChosen.length : 0;
+    const records = runRecords();
 
     this.statsEl.innerHTML = `
       <div class="victory-stat"><span class="stat-label">${t('victory.battles')}</span><span class="stat-value">${battlesWon}</span></div>
@@ -63,6 +65,8 @@ export class VictoryUI {
       <div class="victory-stat"><span class="stat-label">${t('victory.time')}</span><span class="stat-value">${totalTime.toFixed(1)}s</span></div>
       <div class="victory-stat"><span class="stat-label">${t('victory.activeRules')}</span><span class="stat-value">${ruleCount}</span></div>
       <div class="victory-stat"><span class="stat-label">${t('victory.upgrades')}</span><span class="stat-value">${upgrades}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.clears')}</span><span class="stat-value">${records.completions}</span></div>
+      <div class="victory-stat"><span class="stat-label">${t('victory.personalBest')}</span><span class="stat-value">${records.bestTime === null ? '—' : `${records.bestTime.toFixed(1)}s`}</span></div>
     `;
   }
 

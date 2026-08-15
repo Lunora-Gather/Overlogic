@@ -676,6 +676,19 @@ input:focus-visible {
   font-size: 9px;
 }
 
+.profile-records {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 7px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(181, 92, 255, 0.14);
+  color: #cdb6ee;
+  font-size: 9px;
+  letter-spacing: 0.04em;
+}
+
 .run-seed-row {
   grid-column: 1 / -1;
   display: flex;

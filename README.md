@@ -39,6 +39,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子与多种难度。
 - **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP 并累积连续完成天数；进度可随完整备份迁移。
+- **可验证的个人纪录**：每次完整通关只结算一次，保存模式、难度、种子、总时间、伤害、规则数与个人最佳，为未来排行榜提供规范数据。
 - **随时验证逻辑**：混合、弹幕、虫群和 Boss 四种沙盒场景，不消耗正式流程进度。
 - **跨设备体验**：支持桌面与移动布局、触控排序、键盘操作、减少动态效果及镜头震动设置。
 - **三语界面**：完整支持简体中文、繁体中文和英文。
@@ -67,7 +68,7 @@ Program the brain. Observe the battle. Debug the logic.
 
 规则配置保存在浏览器本地，也可以生成版本化分享代码进行导入和导出。
 
-每局都会生成可复现的运行种子。主菜单支持输入数字种子或 `OLR1-STANDARD-VETERAN-…` 挑战码；战斗结束后，最近战斗、操作员等级、XP 与成就进度会保存在本地。设置中的存档工具可以导出包含规则、设置、配置栏、战斗记录和操作员档案的完整 JSON 备份。
+每局都会生成可复现的运行种子。主菜单支持输入数字种子或 `OLR1-STANDARD-VETERAN-…` 挑战码；战斗结束后，最近战斗、完整通关纪录、个人最佳、操作员等级、XP 与成就进度会保存在本地。设置中的存档工具可以导出包含规则、设置、配置栏、战斗记录、通关档案和操作员档案的完整 JSON 备份；导入过程按事务回滚，不会留下半套数据。
 
 ---
 
@@ -81,6 +82,7 @@ Program the brain. Observe the battle. Debug the logic.
 - 即時顯示規則執行、冷卻、能量與條件診斷。
 - 透過傷害報告、關鍵時間軸和規則建議理解失敗原因。
 - 分支路線、每日種子、多種難度、沙盒測試與機制型協定協同。
+- 保存每日目標連續天數、完整通關紀錄與個人最佳，並可隨完整備份遷移。
 - 完整支援繁體中文、簡體中文、英文及行動裝置版面。
 
 **[▶ 開始線上模擬](https://lunora-gather.github.io/Overlogic/)**
@@ -108,6 +110,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.
 - Reproduce a run with a numeric seed or an `OLR1-…` challenge code, then review recent battle history and operator progression locally.
 - Complete three deterministic daily objectives for bonus XP and build a completion streak; sandbox runs never advance formal progression.
+- Keep a deduplicated local archive of completed campaigns and personal-best times, ready for a future opt-in leaderboard.
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
@@ -148,7 +151,7 @@ Overlogic/
 │  ├─ logic/             # 条件评估、规则选择与动作执行
 │  ├─ robot/             # 机器人属性与战斗行为
 │  ├─ enemies/           # 敌人与 Boss 行为
-│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标与运行记录
+│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标、通关纪录与运行记录
 │  ├─ ui/                # 编辑器、HUD、奖励、报告与胜利界面
 │  ├─ render/            # 竞技场与镜头渲染
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
@@ -182,7 +185,7 @@ Overlogic/
 
 当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、操作员档案、成就基础、每日目标、完整存档备份、每日种子、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

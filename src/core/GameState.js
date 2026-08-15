@@ -3,9 +3,10 @@
 
 import { GameDatabase } from './GameDatabase.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
-import { allBattles, replaceHistory } from '../systems/RunHistory.js?v=20260725-4';
-import { profileSnapshot, replaceProfile } from '../systems/ProfileProgression.js?v=20260725-4';
-import { challengeSnapshot, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
+import { allBattles, clearHistory, replaceHistory } from '../systems/RunHistory.js?v=20260725-4';
+import { profileSnapshot, replaceProfile, resetProfile } from '../systems/ProfileProgression.js?v=20260725-4';
+import { challengeSnapshot, clearChallenges, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
+import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -52,6 +53,21 @@ function baseStats() {
   };
 }
 
+function createRunId() {
+  return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function defaultRunStats() {
+  return {
+    runId: createRunId(),
+    completionRecorded: false,
+    battlesWon: 0,
+    totalDamageDealt: 0,
+    totalBattleTime: 0,
+    rewardsChosen: [],
+  };
+}
+
 class GameStateClass {
   constructor() {
     this.currentBattleIndex = 0;
@@ -68,7 +84,7 @@ class GameStateClass {
     this._undoStack = [];
     this._redoStack = [];
     this.lastReport = {};
-    this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
+    this.runStats = defaultRunStats();
     this.runConfig = { mode: 'standard', difficulty: 'standard', seed: createRunSeed() };
     this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._ruleCounter = 0;
@@ -153,7 +169,7 @@ class GameStateClass {
     this.unlockedConditionIds = [];
     this.unlockedActionIds = [];
     this.lastReport = {};
-    this.runStats = { battlesWon: 0, totalDamageDealt: 0, totalBattleTime: 0, rewardsChosen: [] };
+    this.runStats = defaultRunStats();
     this.runConfig = {
       mode: RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard',
       difficulty: DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard',
@@ -269,6 +285,27 @@ class GameStateClass {
 
     this.saveToStorage();
     this._emit('progress');
+  }
+
+  recordRunCompletion() {
+    if (!this.isDemoCleared() || this.runStats?.completionRecorded === true) return null;
+    const result = recordCompletedRun({
+      id: this.runStats.runId,
+      mode: this.runConfig?.mode,
+      difficulty: this.runConfig?.difficulty,
+      seed: this.runConfig?.seed,
+      battlesWon: this.runStats.battlesWon,
+      totalDamageDealt: this.runStats.totalDamageDealt,
+      totalBattleTime: this.runStats.totalBattleTime,
+      finalHp: Number(this.lastReport?._endHp) || 0,
+      rulesCount: this.rules.length,
+      upgrades: Array.isArray(this.runStats.rewardsChosen) ? this.runStats.rewardsChosen.length : 0,
+    });
+    if (result.persisted) {
+      this.runStats.completionRecorded = true;
+      this.saveToStorage();
+    }
+    return result;
   }
 
   // Called when an upgrade node reward is chosen.
@@ -838,12 +875,7 @@ class GameStateClass {
       this.unlockedActionIds = data.unlockedActionIds ?? [];
       this.rules = data.rules ?? [];
       this.lastReport = data.lastReport && typeof data.lastReport === 'object' ? data.lastReport : {};
-      this.runStats = data.runStats ?? {
-        battlesWon: 0,
-        totalDamageDealt: 0,
-        totalBattleTime: 0,
-        rewardsChosen: [],
-      };
+      this.runStats = data.runStats ?? defaultRunStats();
       this.runConfig = data.runConfig ?? {
         mode: this.settings.runMode,
         difficulty: this.settings.difficulty,
@@ -870,7 +902,12 @@ class GameStateClass {
       localStorage.removeItem(RUN_SAVE_KEY);
       localStorage.removeItem(RUN_BACKUP_KEY);
       localStorage.removeItem(RUN_TEMP_KEY);
+      for (let slot = 1; slot <= 3; slot += 1) localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
     } catch (e) {}
+    clearHistory();
+    resetProfile();
+    clearChallenges();
+    clearRunArchive();
     this.resetRun();
   }
 
@@ -913,6 +950,7 @@ class GameStateClass {
       battleHistory: allBattles(),
       profile: profileSnapshot(),
       challenges: challengeSnapshot(),
+      runArchive: runArchiveSnapshot(),
     }, null, 2);
   }
 
@@ -941,15 +979,20 @@ class GameStateClass {
       battleHistory: allBattles().slice(0, 12),
       profile: profileSnapshot(),
       challenges: challengeSnapshot(),
+      runArchive: runArchiveSnapshot(),
     }, null, 2);
   }
 
   importSaveData(raw) {
     if (typeof raw !== 'string' || raw.length === 0 || raw.length > 1_000_000) return false;
-    let previousPrimary = null;
+    let previousPrimary;
+    let previousBackup;
+    let previousSettings;
+    const previousLoadouts = {};
     let previousHistory = null;
     let previousProfile = null;
     let previousChallenges = null;
+    let previousRunArchive = null;
     try {
       const payload = JSON.parse(raw);
       if (payload?.product !== 'overlogic' || payload?.exportVersion !== 1) return false;
@@ -961,10 +1004,19 @@ class GameStateClass {
         (!payload.profile || typeof payload.profile !== 'object' || Array.isArray(payload.profile))) return false;
       if (payload.challenges !== undefined &&
         (!payload.challenges || typeof payload.challenges !== 'object' || Array.isArray(payload.challenges))) return false;
+      if (payload.runArchive !== undefined &&
+        (!payload.runArchive || typeof payload.runArchive !== 'object' || Array.isArray(payload.runArchive) ||
+          !Array.isArray(payload.runArchive.entries) || payload.runArchive.entries.length > 40)) return false;
       previousPrimary = localStorage.getItem(RUN_SAVE_KEY);
+      previousBackup = localStorage.getItem(RUN_BACKUP_KEY);
+      previousSettings = localStorage.getItem('overlogic_settings');
+      for (let slot = 1; slot <= 3; slot += 1) {
+        previousLoadouts[slot] = localStorage.getItem(`overlogic_loadout_slot_${slot}`);
+      }
       previousHistory = allBattles();
       previousProfile = profileSnapshot();
       previousChallenges = challengeSnapshot();
+      previousRunArchive = runArchiveSnapshot();
       if (previousPrimary && parseRunSave(previousPrimary)) {
         localStorage.setItem(RUN_BACKUP_KEY, previousPrimary);
       }
@@ -977,23 +1029,59 @@ class GameStateClass {
         const rules = payload.loadouts?.[slot];
         if (Array.isArray(rules) && rules.length <= MAX_RULES) {
           localStorage.setItem(`overlogic_loadout_slot_${slot}`, JSON.stringify(rules));
+        } else if (payload.loadouts !== undefined) {
+          localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
         }
       }
-      if (payload.battleHistory !== undefined) replaceHistory(payload.battleHistory);
-      if (payload.profile !== undefined) replaceProfile(payload.profile);
-      if (payload.challenges !== undefined) replaceChallenges(payload.challenges);
+      if (payload.battleHistory !== undefined && !replaceHistory(payload.battleHistory)) throw new Error('History import failed');
+      if (payload.profile !== undefined && !replaceProfile(payload.profile)) throw new Error('Profile import failed');
+      if (payload.challenges !== undefined && !replaceChallenges(payload.challenges)) throw new Error('Challenge import failed');
+      if (payload.runArchive !== undefined && !replaceRunArchive(payload.runArchive)) throw new Error('Run archive import failed');
       if (!this.loadFromStorage()) throw new Error('Imported save could not be loaded');
       this.normalizeAfterDatabaseLoad();
       this.saveToStorage();
       this._emit('rules'); this._emit('stats'); this._emit('progress');
       return true;
     } catch (error) {
-      if (previousPrimary) {
-        try { localStorage.setItem(RUN_SAVE_KEY, previousPrimary); } catch {}
+      if (previousPrimary !== undefined) {
+        try {
+          if (previousPrimary === null) localStorage.removeItem(RUN_SAVE_KEY);
+          else localStorage.setItem(RUN_SAVE_KEY, previousPrimary);
+        } catch {}
+      }
+      if (previousBackup !== undefined) {
+        try {
+          if (previousBackup === null) localStorage.removeItem(RUN_BACKUP_KEY);
+          else localStorage.setItem(RUN_BACKUP_KEY, previousBackup);
+        } catch {}
+      }
+      if (previousSettings !== undefined) {
+        try {
+          if (previousSettings === null) localStorage.removeItem('overlogic_settings');
+          else localStorage.setItem('overlogic_settings', previousSettings);
+          this.loadSettings();
+        } catch {}
+      }
+      for (let slot = 1; slot <= 3; slot += 1) {
+        if (!(slot in previousLoadouts)) continue;
+        try {
+          const previous = previousLoadouts[slot];
+          if (previous === null) localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
+          else localStorage.setItem(`overlogic_loadout_slot_${slot}`, previous);
+        } catch {}
       }
       if (previousHistory) replaceHistory(previousHistory);
       if (previousProfile) replaceProfile(previousProfile);
       if (previousChallenges) replaceChallenges(previousChallenges);
+      if (previousRunArchive) replaceRunArchive(previousRunArchive);
+      try {
+        if (typeof previousPrimary === 'string') {
+          this.loadFromStorage();
+          this.normalizeAfterDatabaseLoad();
+        } else if (previousPrimary === null) {
+          this.resetRun();
+        }
+      } catch {}
       this._setStorageStatus({ lastError: String(error?.message || error) });
       return false;
     }
@@ -1145,6 +1233,10 @@ class GameStateClass {
       changed = true;
     }
     const normalizedRunStats = {
+      runId: /^run_[A-Za-z0-9_]{6,80}$/.test(String(this.runStats?.runId || ''))
+        ? String(this.runStats.runId)
+        : createRunId(),
+      completionRecorded: this.runStats?.completionRecorded === true,
       battlesWon: Math.max(0, Number(this.runStats?.battlesWon) || 0),
       totalDamageDealt: Math.max(0, Number(this.runStats?.totalDamageDealt) || 0),
       totalBattleTime: Math.max(0, Number(this.runStats?.totalBattleTime) || 0),
