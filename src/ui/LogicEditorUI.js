@@ -490,7 +490,10 @@ export class LogicEditorUI {
   }
 
   renderRules() {
-    this.ruleList.innerHTML = '';
+    const focusState = this._captureRuleFocus();
+    const scrollContainer = this.ruleList.closest('.panel-rules');
+    const scrollTop = scrollContainer?.scrollTop ?? 0;
+    this.ruleList.replaceChildren();
     if (this.btnAddRule) {
       const atLimit = GameState.rules.length >= 40;
       this.btnAddRule.disabled = atLimit;
@@ -552,6 +555,37 @@ export class LogicEditorUI {
       this.ruleList.appendChild(row);
     }
     this._setupDragAndDrop();
+    this._restoreRuleFocus(focusState, scrollContainer, scrollTop);
+  }
+
+  _captureRuleFocus() {
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !this.ruleList.contains(active)) return null;
+    const row = active.closest('.rule-row');
+    if (!row?.dataset.id || !active.dataset.focusField) return null;
+    return {
+      ruleId: row.dataset.id,
+      field: active.dataset.focusField,
+      selectionStart: typeof active.selectionStart === 'number' ? active.selectionStart : null,
+      selectionEnd: typeof active.selectionEnd === 'number' ? active.selectionEnd : null,
+    };
+  }
+
+  _restoreRuleFocus(state, scrollContainer, scrollTop) {
+    if (scrollContainer) scrollContainer.scrollTop = scrollTop;
+    if (!state) return;
+    const row = [...this.ruleList.querySelectorAll('.rule-row')]
+      .find((candidate) => candidate.dataset.id === state.ruleId);
+    const target = row
+      ? [...row.querySelectorAll('[data-focus-field]')]
+          .find((element) => element.dataset.focusField === state.field)
+      : null;
+    if (!(target instanceof HTMLElement)) return;
+    target.focus({ preventScroll: true });
+    if (state.selectionStart !== null && typeof target.setSelectionRange === 'function') {
+      try { target.setSelectionRange(state.selectionStart, state.selectionEnd); } catch {}
+    }
+    if (scrollContainer) scrollContainer.scrollTop = scrollTop;
   }
 
   _buildRow(r) {
@@ -590,6 +624,7 @@ export class LogicEditorUI {
       button.type = 'button';
       button.className = 'rule-move-btn';
       button.textContent = glyph;
+      button.dataset.focusField = direction < 0 ? 'move-up' : 'move-down';
       button.title = label;
       button.setAttribute('aria-label', label);
       button.addEventListener('click', () => {
@@ -604,6 +639,7 @@ export class LogicEditorUI {
     const prio = document.createElement('input');
     prio.type = 'number'; prio.min = 0; prio.max = 100; prio.value = r.priority;
     prio.className = 'rule-prio';
+    prio.dataset.focusField = 'priority';
     prio.setAttribute('aria-label', t('editor.rulePriority', { id: r.id }));
     prio.style.width = '45px';
     prio.addEventListener('change', () => {
@@ -622,6 +658,7 @@ export class LogicEditorUI {
 
     const tog = document.createElement('input');
     tog.type = 'checkbox';
+    tog.dataset.focusField = 'enabled';
     tog.checked = r.enabled !== false;
     tog.title = t('editor.enableRule');
     tog.setAttribute('aria-label', t('editor.enableRule'));
@@ -630,6 +667,7 @@ export class LogicEditorUI {
 
     const not1 = document.createElement('button');
     not1.type = 'button';
+    not1.dataset.focusField = 'negate-primary';
     not1.className = `rule-not-btn${r.negateCondition1 ? ' active' : ''}`;
     not1.textContent = t('common.not');
     not1.title = t('editor.negateCondition');
@@ -638,6 +676,7 @@ export class LogicEditorUI {
     cond1Wrap.appendChild(not1);
 
     const cond1Sel = this._condSelect(r.conditionId);
+    cond1Sel.dataset.focusField = 'condition-primary';
     cond1Sel.style.flex = '1';
     cond1Sel.setAttribute('aria-label', t('editor.primaryCondition', { id: r.id }));
     cond1Sel.addEventListener('change', () => {
@@ -654,6 +693,7 @@ export class LogicEditorUI {
 
     // 4. Operator Select (None / AND)
     const opSel = document.createElement('select');
+    opSel.dataset.focusField = 'operator';
     opSel.className = 'rule-op';
     opSel.setAttribute('aria-label', t('editor.conditionOperator', { id: r.id }));
     opSel.style.width = '100%';
@@ -675,7 +715,6 @@ export class LogicEditorUI {
     opSel.addEventListener('change', () => {
       GameState.setRuleOperator(r.id, opSel.value);
       AudioManager.play('button_click');
-      this.renderRules(); // refresh list to show/hide condition 2 fields
     });
     row.appendChild(opSel);
 
@@ -690,6 +729,7 @@ export class LogicEditorUI {
     if (r.operator === 'and' || r.operator === 'or') {
       const not2 = document.createElement('button');
       not2.type = 'button';
+      not2.dataset.focusField = 'negate-secondary';
       not2.className = `rule-not-btn${r.negateCondition2 ? ' active' : ''}`;
       not2.textContent = t('common.not');
       not2.title = t('editor.negateCondition');
@@ -697,6 +737,7 @@ export class LogicEditorUI {
       not2.addEventListener('click', () => GameState.toggleRuleNegation(r.id, true));
       cond2Wrap.appendChild(not2);
       const cond2Sel = this._condSelect(r.conditionId2 || 'hp_low');
+      cond2Sel.dataset.focusField = 'condition-secondary';
       cond2Sel.style.flex = '1';
       cond2Sel.setAttribute('aria-label', t('editor.secondaryCondition', { id: r.id }));
       cond2Sel.addEventListener('change', () => {
@@ -716,6 +757,7 @@ export class LogicEditorUI {
 
     // 6. Action Select
     const actSel = this._actSelect(r.actionId);
+    actSel.dataset.focusField = 'action';
     actSel.setAttribute('aria-label', t('editor.ruleAction', { id: r.id }));
     const actWrap = document.createElement('span');
     actWrap.style.display = 'flex';
@@ -756,6 +798,7 @@ export class LogicEditorUI {
 
     // 6.5 Targeting Priority Dropdown
     const tarSel = document.createElement('select');
+    tarSel.dataset.focusField = 'target';
     tarSel.className = 'rule-target-prio';
     tarSel.setAttribute('aria-label', t('editor.ruleTarget', { id: r.id }));
     tarSel.style.width = '100%';
@@ -829,6 +872,7 @@ export class LogicEditorUI {
     // 7.1 Clone Button
     const clone = document.createElement('button');
     clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = t('editor.duplicate');
+    clone.dataset.focusField = 'duplicate';
     clone.setAttribute('aria-label', t('editor.duplicate'));
     clone.style.background = 'none';
     clone.style.border = 'none';
@@ -852,6 +896,7 @@ export class LogicEditorUI {
     // 7.2 Delete Button
     const del = document.createElement('button');
     del.className = 'del'; del.textContent = '✕'; del.title = t('editor.delete');
+    del.dataset.focusField = 'delete';
     del.setAttribute('aria-label', t('editor.delete'));
     del.addEventListener('click', () => {
       GameState.removeRule(r.id);
@@ -892,6 +937,7 @@ export class LogicEditorUI {
     cell.innerHTML = '';
     const c = GameDatabase.getCondition(condId);
     if (!c || c.parameterType === 'none') { cell.textContent = ''; return; }
+    const focusField = isSecondary ? 'parameter-secondary' : 'parameter-primary';
 
     const setter = (val) => {
       if (isSecondary) {
@@ -905,6 +951,8 @@ export class LogicEditorUI {
       const v = Array.isArray(condVal) ? condVal : c.defaultValue;
       const inpR = document.createElement('input'); inpR.type = 'number'; inpR.value = v[0]; inpR.step = 0.5; inpR.style.width = '45px';
       const inpC = document.createElement('input'); inpC.type = 'number'; inpC.value = v[1]; inpC.step = 1;   inpC.style.width = '35px';
+      inpR.dataset.focusField = `${focusField}-radius`;
+      inpC.dataset.focusField = `${focusField}-count`;
       if (Number.isFinite(c.minValue?.[0])) inpR.min = c.minValue[0];
       if (Number.isFinite(c.maxValue?.[0])) inpR.max = c.maxValue[0];
       if (Number.isFinite(c.minValue?.[1])) inpC.min = c.minValue[1];
@@ -917,6 +965,7 @@ export class LogicEditorUI {
       cell.appendChild(inpR); cell.appendChild(document.createTextNode('/')); cell.appendChild(inpC);
     } else if (c.parameterType === 'percent') {
       const inp = document.createElement('input'); inp.type = 'number';
+      inp.dataset.focusField = focusField;
       if (Number.isFinite(c.minValue)) inp.min = c.minValue * 100;
       if (Number.isFinite(c.maxValue)) inp.max = c.maxValue * 100;
       inp.value = Math.round(condVal * 100); inp.style.width = '45px';
@@ -926,6 +975,7 @@ export class LogicEditorUI {
       cell.appendChild(inp); cell.appendChild(suffix);
     } else if (c.parameterType === 'int') {
       const inp = document.createElement('input'); inp.type = 'number';
+      inp.dataset.focusField = focusField;
       if (Number.isFinite(c.minValue)) inp.min = c.minValue;
       if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
       inp.value = condVal|0; inp.style.width = '45px';
@@ -934,6 +984,7 @@ export class LogicEditorUI {
       cell.appendChild(inp);
     } else { // float
       const inp = document.createElement('input'); inp.type = 'number'; inp.step = 0.5;
+      inp.dataset.focusField = focusField;
       if (Number.isFinite(c.minValue)) inp.min = c.minValue;
       if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
       inp.value = condVal; inp.style.width = '50px';
@@ -945,6 +996,8 @@ export class LogicEditorUI {
 
   _setupDragAndDrop() {
     const container = this.ruleList;
+    if (container.dataset.dragBound === 'true') return;
+    container.dataset.dragBound = 'true';
     container.addEventListener('dragover', (e) => {
       e.preventDefault();
       const dragging = container.querySelector('.rule-row.dragging');

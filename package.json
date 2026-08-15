@@ -7,6 +7,7 @@
     "serve": "node scripts/serve.mjs",
     "build": "node scripts/build.mjs",
     "verify": "node scripts/verify.mjs",
-    "balance": "node scripts/simulate-balance.mjs"
+    "balance": "node scripts/simulate-balance.mjs",
+    "release-audit": "node scripts/audit-release.mjs"
   }
 }

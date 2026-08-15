@@ -22,7 +22,9 @@ async function rewrite(dir) {
     }
     if (!/\.(?:html|js)$/.test(item.name)) continue;
     const source = await fs.readFile(target, 'utf8');
-    const updated = source.replace(/\?v=[A-Za-z0-9._-]+/g, `?v=${release}`);
+    const updated = source
+      .replace(/\?v=[A-Za-z0-9._-]+/g, `?v=${release}`)
+      .replaceAll('__RELEASE__', release);
     await fs.writeFile(target, updated);
   }
 }

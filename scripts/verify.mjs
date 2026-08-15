@@ -23,9 +23,11 @@ const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
-const { entity, setLocale, t } = await import('../src/i18n/I18n.js?v=20260725-4');
+const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
+const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
+const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -53,6 +55,7 @@ async function verifyImportGraph() {
 }
 
 function verifyDataContracts() {
+  assert.deepEqual(GameDatabase.validateContracts(), [], 'content tables must satisfy the runtime data contract');
   const errors = [];
   for (let i = 0; i < GameDatabase.getBattleCount(); i += 1) {
     const battle = GameDatabase.getBattle(i);
@@ -92,6 +95,17 @@ async function verifyGameplayContracts() {
   assert.equal(difficultyModifiers('casual').enemyHp < 1, true);
   assert.equal(difficultyModifiers('veteran').enemyDamage > 1, true);
   GameState.configureRun('standard', 'standard');
+  assert.equal(Number.isSafeInteger(GameState.runConfig.seed), true, 'standard runs must receive a shareable seed');
+  GameState.configureRun('standard', 'veteran', 20260816);
+  const runCode = GameState.exportRunCode();
+  assert.match(runCode, /^OLR1-STANDARD-VETERAN-/);
+  assert.deepEqual(GameState.parseRunCode(runCode), { mode: 'standard', difficulty: 'veteran', seed: 20260816 });
+  assert.equal(GameState.parseRunCode('OLR1-STANDARD-VETERAN-NOT_A_SEED'), null);
+  GameState.configureRun('standard', 'standard', 20260816);
+  const standardA = GameState.randomFor('standard-contract');
+  const standardSeq = [standardA(), standardA(), standardA()];
+  const standardB = GameState.randomFor('standard-contract');
+  assert.deepEqual(standardSeq, [standardB(), standardB(), standardB()], 'standard runs must be reproducible from their seed');
 
   localStorage.setItem('overlogic_settings', JSON.stringify({
     volume: 99, mute: 'false', screenShake: 0, reduceMotion: false,
@@ -385,6 +399,33 @@ function verifySaveMigration() {
   const undoDepthBeforeMissingDelete = GameState._undoStack.length;
   assert.equal(GameState.removeRule('missing-rule'), false, 'deleting a missing rule must be a no-op');
   assert.equal(GameState._undoStack.length, undoDepthBeforeMissingDelete);
+
+  GameState.resetRun();
+  GameState.rules[0].priority = 91;
+  assert.equal(GameState.saveToStorage(), true);
+  GameState.rules[0].priority = 73;
+  assert.equal(GameState.saveToStorage(), true);
+  const verifiedPrimary = JSON.parse(localStorage.getItem('overlogic_run_save'));
+  assert.equal(typeof verifiedPrimary._integrity, 'string', 'new saves must carry an integrity checksum');
+  localStorage.setItem('overlogic_run_save', JSON.stringify({ rules: [], _integrity: 'tampered' }));
+  assert.equal(GameState.loadFromStorage(), true, 'a corrupt primary save must fall back to the last verified backup');
+  assert.equal(GameState.rules[0].priority, 91, 'backup restore must recover the previous complete state');
+  assert.equal(GameState.storageStatus.restoredFromBackup, true);
+  const portableSave = GameState.exportSaveData();
+  GameState.resetRun();
+  assert.equal(GameState.rules[0].priority, 100);
+  assert.equal(GameState.importSaveData(portableSave), true, 'portable saves must round-trip through validation');
+  assert.equal(GameState.rules[0].priority, 91);
+  assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
+}
+
+function verifyTranslationContracts() {
+  const diagnostics = translationDiagnostics();
+  for (const [locale, result] of Object.entries(diagnostics)) {
+    assert.deepEqual(result.missing, [], `${locale} must translate every canonical key`);
+    assert.deepEqual(result.extra, [], `${locale} must not accumulate orphaned translation keys`);
+    assert.deepEqual(result.placeholderMismatch, [], `${locale} placeholders must match English`);
+  }
 }
 
 function verifyUiSafetyContracts() {
@@ -441,10 +482,13 @@ function verifyUiSafetyContracts() {
   const devServer = fs.readFileSync('scripts/serve.mjs', 'utf8');
   const serviceWorker = fs.readFileSync('sw.js', 'utf8');
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
+  const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
   assert(reportUi.includes("import { GameDatabase } from '../core/GameDatabase.js") && reportUi.includes('GameDatabase.getEnemy'), 'failure report must resolve enemy telemetry through the database');
+  assert(historyUi.includes("import { escapeHtml } from './safeHtml.js") && historyUi.includes('escapeHtml(battle)'), 'history cards must escape imported identifiers');
+  assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
   assert.equal(t('combat.temperature'), '核心温度');
@@ -518,9 +562,53 @@ function verifySynergyContracts() {
   assert.equal(incomplete.find(item => item.id === 'bastion_loop').active, false);
 }
 
+function verifyRunHistoryContracts() {
+  clearHistory();
+  resetProfile();
+  localStorage.setItem('overlogic_run_history', JSON.stringify([{ battleId: '<script>', difficulty: 'admin', won: 'yes', battleTime: 'NaN' }]));
+  const sanitized = recentBattles(1)[0];
+  assert.equal(sanitized.battleId, 'unknown');
+  assert.equal(sanitized.difficulty, 'standard');
+  assert.equal(sanitized.won, false);
+  assert.equal(sanitized.battleTime, 0);
+  clearHistory();
+  recordBattle({
+    _battleId: 'battle_4', _runSeed: 20260816, _runMode: 'daily', _difficulty: 'veteran',
+    _won: true, battle_time: 12.34, _endHp: 77, total_damage_dealt: 248,
+    damage_by_source: { crawler: 10, shooter: 4 },
+  });
+  recordBattle({
+    _battleId: 'battle_4', _runSeed: 20260816, _runMode: 'daily', _difficulty: 'veteran',
+    _won: false, battle_time: 9.1, death_hp: 0, total_damage_dealt: 30,
+    damage_by_source: { crawler: 22 },
+  });
+  const recent = recentBattles(4);
+  assert.equal(recent.length, 2);
+  assert.equal(recent[0].won, false, 'history should put the newest battle first');
+  assert.equal(recent[1].seed, 20260816);
+  assert.deepEqual(historySummary(), { battles: 2, wins: 1, losses: 1, damageDealt: 278 });
+  const profile = profileSnapshot();
+  assert.equal(profile.totalBattles, 2);
+  assert.equal(profile.wins, 1);
+  assert.equal(profile.losses, 1);
+  assert.equal(profile.achievements.first_battle !== undefined, true);
+  assert.equal(profile.achievements.debugger !== undefined, true);
+  assert.equal(profileRank(profile.xp).level >= 1, true);
+  const fullExport = GameState.exportSaveData();
+  clearHistory();
+  resetProfile();
+  assert.equal(recentBattles().length, 0);
+  assert.equal(GameState.importSaveData(fullExport), true, 'full backups must include local history and profile');
+  assert.equal(recentBattles().length, 2);
+  assert.equal(profileSnapshot().wins, 1);
+  clearHistory();
+  resetProfile();
+}
+
 function verifySimulation() {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
+  GameState.runConfig = { mode: 'standard', difficulty: 'standard', seed: 20260725 };
   for (let index = 0; index < 3; index += 1) {
     const result = simulateBattle(GameDatabase.getBattle(index), { maxTime: 60 });
     assert.equal(result.won, true, `default rules should clear ${result.battleName}`);
@@ -555,9 +643,11 @@ verifyDataContracts();
 await verifyGameplayContracts();
 verifyReportContracts();
 verifySaveMigration();
+verifyTranslationContracts();
 verifyUiSafetyContracts();
 verifyRuleTelemetryContracts();
 verifySynergyContracts();
+verifyRunHistoryContracts();
 verifySimulation();
 
 console.log('VERIFY_OK');

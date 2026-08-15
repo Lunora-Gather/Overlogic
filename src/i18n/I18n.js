@@ -15,11 +15,39 @@ const EN = {
   'menu.exit': 'Exit',
   'menu.closeTab': 'Close tab manually',
   'menu.dailySeed': 'TODAY · SEED {seed}',
+  'menu.runSeed': 'RUN · SEED {seed}',
+  'menu.seed': 'Challenge Seed', 'menu.seedPlaceholder': 'Seed or OLR1 challenge code',
+  'menu.copySeed': 'Copy code', 'menu.copiedSeed': 'Copied', 'menu.copySeedManual': 'Select to copy',
+  'menu.historyTitle': 'Recent Battle Log',
+  'menu.historyEmpty': 'Your recent battles will appear here after the first simulation.',
+  'menu.historySummary': '{wins} wins · {losses} losses',
+  'menu.historyWin': 'WIN', 'menu.historyLoss': 'LOSS', 'menu.historySeed': 'seed {seed}',
+  'menu.profileTitle': 'Operator Profile', 'menu.profileRank': 'RANK {level}',
+  'menu.profileXp': '{current} / {required} XP', 'menu.profileBattles': '{count} battles',
+  'menu.profileWins': '{count} wins', 'menu.profileAchievements': '{unlocked}/{total} badges',
+  'achievement.firstBattle': 'First Contact', 'achievement.firstWin': 'Logic Online',
+  'achievement.debugger': 'Debug Cycle', 'achievement.dailyProtocol': 'Daily Protocol',
+  'achievement.bossBreaker': 'Boss Breaker', 'achievement.speedrun': 'Cold Start',
   'menu.language': 'Language',
   'boot.loading': 'INITIALIZING LOGIC CORE…',
   'boot.offlineTitle': 'LOGIC CORE OFFLINE',
   'boot.offlineDetail': 'Unable to load the simulation data. Check your connection and try again.',
   'boot.retry': 'Retry',
+  'notice.updateReady': 'A verified new version is ready.',
+  'notice.updateNow': 'Reload now',
+  'notice.offline': 'You are offline. Cached gameplay remains available.',
+  'notice.online': 'Connection restored.',
+  'notice.storageUnavailable': 'Progress cannot be saved on this device. Export or keep this tab open.',
+  'notice.saveRestored': 'The latest save was damaged. A verified backup was restored.',
+  'notice.runtimeError': 'A runtime error was contained. Your last verified save is still available.',
+  'notice.externalSave': 'This run changed in another tab. Reload before continuing to prevent a conflict.',
+  'notice.reloadSave': 'Reload save',
+  'notice.saveExported': 'Portable save backup exported.',
+  'notice.exportFailed': 'The save backup could not be exported.',
+  'notice.saveImported': 'Save imported and verified. Reload to apply every screen.',
+  'notice.importFailed': 'This file is not a valid Overlogic save backup.',
+  'notice.restoreFailed': 'No verified backup could be restored.',
+  'notice.dismiss': 'Dismiss',
   'menu.mode': 'Run Mode',
   'menu.difficulty': 'Difficulty',
   'menu.config.casual': 'Enemy hull −16% · damage −18%',
@@ -234,7 +262,7 @@ const EN = {
   'report.suggestInterrupt': 'Add IF Enemy Casting THEN Interrupt Shot', 'report.suggestSurrounded': 'Add IF Surrounded THEN Dash Away',
   'report.suggestNearby': 'Add IF Enemy Nearby THEN Dash Away', 'report.suggestDefense': 'Raise the priority of defensive rules',
   'report.suggestEnergy': 'Add IF Energy High THEN Overdrive', 'report.suggestDash': 'Increase dash priority to keep distance',
-  'report.timeline': 'Critical Timeline', 'report.timelineEmpty': 'No critical events recorded.',
+  'report.timeline': 'Critical Timeline', 'report.timelineExpand': 'Show all', 'report.timelineCollapse': 'Show recent', 'report.timelineEmpty': 'No critical events recorded.',
   'report.timelineAction': 'Executed {name}', 'report.timelineDamage': 'Took {value} damage from {source}',
   'report.timelineInterrupt': 'Enemy protocol interrupted', 'report.timelineRecall': 'Emergency Recall activated',
   'report.timelineWave': 'Wave {wave}/{total} deployed',
@@ -268,6 +296,11 @@ const EN = {
   'settings.shake': 'Enable Camera Shake',
   'settings.motion': 'Reduce Motion',
   'settings.language': 'Interface Language',
+  'settings.data': 'Save Data', 'settings.version': 'Build version',
+  'settings.dataHelp': 'Export a portable backup before changing devices or clearing browser data.',
+  'settings.export': 'Export',
+  'settings.import': 'Import',
+  'settings.restore': 'Restore backup',
   'tooltip.conditionCode': 'Condition Code', 'tooltip.actionCode': 'Action Code', 'tooltip.valueType': 'Requires value type',
   'tooltip.cooldown': 'Cooldown', 'tooltip.cost': 'Cost', 'tooltip.range': 'Range',
   'map.combat': '⚔️ Combat Simulation', 'map.repair': '🔧 Nano-Repair Node', 'map.upgrade': '💎 Upgrade Vault',
@@ -297,6 +330,21 @@ const ZH_CN = {
   'boot.offlineTitle': '逻辑核心离线',
   'boot.offlineDetail': '模拟数据加载失败，请检查网络连接后重试。',
   'boot.retry': '重试',
+  'notice.updateReady': '已准备好经过验证的新版本。',
+  'notice.updateNow': '立即刷新',
+  'notice.offline': '当前处于离线状态，仍可使用已缓存的游戏内容。',
+  'notice.online': '网络连接已恢复。',
+  'notice.storageUnavailable': '此设备暂时无法保存进度，请导出备份或保持当前页面开启。',
+  'notice.saveRestored': '最近的存档已损坏，系统已恢复经过校验的备份。',
+  'notice.runtimeError': '运行异常已被隔离，最近一次经过校验的存档仍然安全。',
+  'notice.externalSave': '另一个标签页修改了本局进度，请先刷新以避免存档冲突。',
+  'notice.reloadSave': '刷新存档',
+  'notice.saveExported': '便携存档备份已导出。',
+  'notice.exportFailed': '无法导出存档备份。',
+  'notice.saveImported': '存档已导入并通过校验，请刷新以应用到全部界面。',
+  'notice.importFailed': '此文件不是有效的 Overlogic 存档备份。',
+  'notice.restoreFailed': '没有可恢复的有效备份。',
+  'notice.dismiss': '关闭提示',
   'menu.mode': '运行模式',
   'menu.difficulty': '难度',
   'menu.config.casual': '敌方生命 −16% · 伤害 −18%',
@@ -433,7 +481,7 @@ const ZH_CN = {
   'report.suggestInterrupt': '添加「敌人蓄力 → 打断射击」', 'report.suggestSurrounded': '添加「被包围 → 后撤冲刺」',
   'report.suggestNearby': '添加「敌人在附近 → 后撤冲刺」', 'report.suggestDefense': '提高护盾或修复等防御规则的优先级',
   'report.suggestEnergy': '添加「能量充足 → 超频」', 'report.suggestDash': '提高冲刺优先级以保持距离',
-  'report.timeline': '关键时间轴', 'report.timelineEmpty': '没有记录到关键事件。',
+  'report.timeline': '关键时间轴', 'report.timelineExpand': '显示全部', 'report.timelineCollapse': '显示最近', 'report.timelineEmpty': '没有记录到关键事件。',
   'report.timelineAction': '执行了「{name}」', 'report.timelineDamage': '受到 {source} 的 {value} 点伤害',
   'report.timelineInterrupt': '成功打断敌方协议', 'report.timelineRecall': '紧急召回已启动',
   'report.timelineWave': '第 {wave}/{total} 波已部署',
@@ -454,8 +502,18 @@ const ZH_CN = {
   'victory.time': '战斗时间', 'victory.activeRules': '有效规则', 'victory.upgrades': '获得升级',
   'settings.title': '系统设置', 'settings.volume': '主音量', 'settings.mute': '静音', 'settings.shake': '启用镜头震动',
   'settings.motion': '减少动态效果', 'settings.language': '界面语言',
+  'settings.data': '存档数据', 'settings.version': '构建版本', 'settings.dataHelp': '更换设备或清理浏览器数据前，请先导出便携备份。',
+  'settings.export': '导出', 'settings.import': '导入', 'settings.restore': '恢复备份',
   'reset.confirm': '确定重置全部进度、规则和升级吗？', 'reset.done': '重置成功',
-  'menu.closeTab': '请手动关闭标签页', 'menu.dailySeed': '今日 · 种子 {seed}',
+  'menu.closeTab': '请手动关闭标签页', 'menu.dailySeed': '今日 · 种子 {seed}', 'menu.runSeed': '本局 · 种子 {seed}',
+  'menu.historyTitle': '最近战斗记录', 'menu.historyEmpty': '完成第一场模拟后，最近战斗会显示在这里。',
+  'menu.historySummary': '{wins} 胜 · {losses} 负', 'menu.historyWin': '胜利', 'menu.historyLoss': '失败', 'menu.historySeed': '种子 {seed}',
+  'menu.profileTitle': '操作员档案', 'menu.profileRank': '等级 {level}', 'menu.profileXp': '{current} / {required} XP',
+  'menu.profileBattles': '{count} 场战斗', 'menu.profileWins': '{count} 胜利', 'menu.profileAchievements': '{unlocked}/{total} 徽章',
+  'achievement.firstBattle': '首次接触', 'achievement.firstWin': '逻辑上线', 'achievement.debugger': '调试循环',
+  'achievement.dailyProtocol': '每日协议', 'achievement.bossBreaker': 'Boss 破译者', 'achievement.speedrun': '冷启动',
+  'menu.seed': '挑战种子', 'menu.seedPlaceholder': '输入种子或 OLR1 挑战码',
+  'menu.copySeed': '复制代码', 'menu.copiedSeed': '已复制', 'menu.copySeedManual': '请手动复制',
   'tooltip.conditionCode': '条件代码', 'tooltip.actionCode': '动作代码', 'tooltip.valueType': '参数类型',
   'tooltip.cooldown': '冷却', 'tooltip.cost': '消耗', 'tooltip.range': '范围',
   'map.combat': '⚔️ 战斗模拟', 'map.repair': '🔧 纳米修复节点', 'map.upgrade': '💎 升级仓库',
@@ -519,6 +577,16 @@ const ZH_TW = {
   'menu.settings': '系統設定 ⚙️', 'menu.install': '安裝應用程式', 'menu.reset': '重設進度', 'menu.language': '語言',
   'boot.loading': '正在初始化邏輯核心…', 'boot.offlineTitle': '邏輯核心離線',
   'boot.offlineDetail': '模擬資料載入失敗，請檢查網路連線後重試。', 'boot.retry': '重試', 'menu.mode': '運行模式',
+  'notice.updateReady': '已準備好經過驗證的新版本。', 'notice.updateNow': '立即重新載入',
+  'notice.offline': '目前處於離線狀態，仍可使用已快取的遊戲內容。', 'notice.online': '網路連線已恢復。',
+  'notice.storageUnavailable': '此裝置暫時無法儲存進度，請匯出備份或保持目前頁面開啟。',
+  'notice.saveRestored': '最近的存檔已損壞，系統已還原經過驗證的備份。',
+  'notice.runtimeError': '執行異常已被隔離，最近一次經過驗證的存檔仍然安全。',
+  'notice.externalSave': '另一個分頁修改了本局進度，請先重新載入以避免存檔衝突。', 'notice.reloadSave': '重新載入存檔',
+  'notice.saveExported': '可攜式存檔備份已匯出。', 'notice.exportFailed': '無法匯出存檔備份。',
+  'notice.saveImported': '存檔已匯入並通過驗證，請重新載入以套用至所有畫面。',
+  'notice.importFailed': '此檔案不是有效的 Overlogic 存檔備份。', 'notice.restoreFailed': '沒有可還原的有效備份。',
+  'notice.dismiss': '關閉提示',
   'difficulty.casual': '休閒', 'difficulty.standard': '標準', 'difficulty.veteran': '專家',
   'mode.standard': '標準模式', 'mode.daily': '每日種子',
   'how.title': '玩法說明',
@@ -606,7 +674,7 @@ const ZH_TW = {
   'report.suggestInterrupt': '新增「敵人蓄力 → 打斷射擊」', 'report.suggestSurrounded': '新增「被包圍 → 後撤衝刺」',
   'report.suggestNearby': '新增「敵人在附近 → 後撤衝刺」', 'report.suggestDefense': '提高護盾或修復等防禦規則的優先級',
   'report.suggestEnergy': '新增「能量充足 → 超頻」', 'report.suggestDash': '提高衝刺優先級以保持距離',
-  'report.timeline': '關鍵時間軸', 'report.timelineEmpty': '沒有記錄到關鍵事件。',
+  'report.timeline': '關鍵時間軸', 'report.timelineExpand': '顯示全部', 'report.timelineCollapse': '顯示最近', 'report.timelineEmpty': '沒有記錄到關鍵事件。',
   'report.timelineAction': '執行了「{name}」', 'report.timelineDamage': '受到 {source} 的 {value} 點傷害',
   'report.timelineInterrupt': '成功打斷敵方協定', 'report.timelineRecall': '緊急召回已啟動',
   'report.timelineWave': '第 {wave}/{total} 波已部署',
@@ -627,8 +695,18 @@ const ZH_TW = {
   'victory.time': '戰鬥時間', 'victory.activeRules': '有效規則', 'victory.upgrades': '獲得升級',
   'settings.title': '系統設定', 'settings.volume': '主音量', 'settings.mute': '靜音', 'settings.shake': '啟用鏡頭震動',
   'settings.motion': '減少動態效果', 'settings.language': '介面語言',
+  'settings.data': '存檔資料', 'settings.version': '建置版本', 'settings.dataHelp': '更換裝置或清除瀏覽器資料前，請先匯出可攜式備份。',
+  'settings.export': '匯出', 'settings.import': '匯入', 'settings.restore': '還原備份',
   'reset.confirm': '確定重設全部進度、規則和升級嗎？', 'reset.done': '重設成功',
-  'menu.closeTab': '請手動關閉分頁', 'menu.dailySeed': '今日 · 種子 {seed}',
+  'menu.closeTab': '請手動關閉分頁', 'menu.dailySeed': '今日 · 種子 {seed}', 'menu.runSeed': '本局 · 種子 {seed}',
+  'menu.historyTitle': '最近戰鬥紀錄', 'menu.historyEmpty': '完成第一場模擬後，最近戰鬥會顯示在這裡。',
+  'menu.historySummary': '{wins} 勝 · {losses} 敗', 'menu.historyWin': '勝利', 'menu.historyLoss': '失敗', 'menu.historySeed': '種子 {seed}',
+  'menu.profileTitle': '操作員檔案', 'menu.profileRank': '等級 {level}', 'menu.profileXp': '{current} / {required} XP',
+  'menu.profileBattles': '{count} 場戰鬥', 'menu.profileWins': '{count} 勝利', 'menu.profileAchievements': '{unlocked}/{total} 徽章',
+  'achievement.firstBattle': '首次接觸', 'achievement.firstWin': '邏輯上線', 'achievement.debugger': '偵錯循環',
+  'achievement.dailyProtocol': '每日協議', 'achievement.bossBreaker': '首領破解者', 'achievement.speedrun': '冷啟動',
+  'menu.seed': '挑戰種子', 'menu.seedPlaceholder': '輸入種子或 OLR1 挑戰碼',
+  'menu.copySeed': '複製代碼', 'menu.copiedSeed': '已複製', 'menu.copySeedManual': '請手動複製',
   'tooltip.conditionCode': '條件代碼', 'tooltip.actionCode': '動作代碼', 'tooltip.valueType': '參數類型',
   'tooltip.cooldown': '冷卻', 'tooltip.cost': '消耗', 'tooltip.range': '範圍',
   'map.combat': '⚔️ 戰鬥模擬', 'map.repair': '🔧 奈米修復節點', 'map.upgrade': '💎 升級倉庫',
@@ -718,6 +796,32 @@ export function entity(kind, id, fallback = '', field = 'name') {
 
 export function localizedSearchText(kind, id, fallbackName, fallbackDescription) {
   return `${entity(kind, id, fallbackName)} ${entity(kind, id, fallbackDescription, 'description')} ${fallbackName} ${fallbackDescription}`.toLowerCase();
+}
+
+export function translationDiagnostics() {
+  const referenceKeys = Object.keys(EN).sort();
+  const referenceSet = new Set(referenceKeys);
+  const diagnostics = {};
+  for (const [language, dictionary] of Object.entries(DICTS)) {
+    const keys = Object.keys(dictionary).sort();
+    const keySet = new Set(keys);
+    const missing = referenceKeys.filter((key) => !keySet.has(key));
+    const extra = keys.filter((key) => !referenceSet.has(key));
+    const placeholderMismatch = referenceKeys.filter((key) => {
+      if (!keySet.has(key)) return false;
+      const expected = placeholdersIn(EN[key]);
+      const actual = placeholdersIn(dictionary[key]);
+      return expected.join('|') !== actual.join('|');
+    });
+    diagnostics[language] = { missing, extra, placeholderMismatch };
+  }
+  return diagnostics;
+}
+
+function placeholdersIn(value) {
+  return [...String(value).matchAll(/\{(\w+)\}/g)]
+    .map((match) => match[1])
+    .sort();
 }
 
 export const locales = [

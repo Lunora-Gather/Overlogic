@@ -5,6 +5,6 @@
     { "id": "charger", "displayName": "Charger", "maxHp": 35, "moveSpeed": 1.8, "damage": 18, "attackRange": 5.0, "attackCooldown": 2.5, "behaviorType": "charge_caster", "bodyRadius": 0.4, "color": [1.0, 0.2, 0.2], "chargeSpeed": 7.0, "chargeTelegraph": 1.2, "chargeDistance": 6.0, "armor": 3 },
     { "id": "emp_drone", "displayName": "EMP Drone", "maxHp": 12, "moveSpeed": 3.5, "damage": 0, "attackRange": 2.0, "attackCooldown": 4.0, "behaviorType": "emp_drone", "bodyRadius": 0.28, "color": [1.0, 0.85, 0.1], "empRadius": 2.2, "empEnergyDrain": 40, "retreatDistance": 4.0 },
     { "id": "boss_warden", "displayName": "Protocol Warden", "maxHp": 250, "moveSpeed": 1.5, "damage": 10, "attackRange": 12.0, "attackCooldown": 1.8, "behaviorType": "boss_warden", "bodyRadius": 0.8, "color": [0.9, 0.1, 0.4], "phase2HpPct": 0.65, "phase3HpPct": 0.30, "armor": 6 },
-    { "id": "apex_warden", "displayName": "Apex Protocol Warden", "maxHp": 380, "moveSpeed": 1.8, "damage": 14, "attackRange": 14.0, "attackCooldown": 1.5, "behaviorType": "boss_warden", "bodyRadius": 0.9, "color": [0.7, 0.0, 1.0], "phase2HpPct": 0.60, "phase3HpPct": 0.25, "armor": 8 }
+    { "id": "apex_warden", "displayName": "Apex Protocol Warden", "maxHp": 340, "moveSpeed": 1.8, "damage": 12, "attackRange": 14.0, "attackCooldown": 1.5, "behaviorType": "boss_warden", "bodyRadius": 0.9, "color": [0.7, 0.0, 1.0], "phase2HpPct": 0.60, "phase3HpPct": 0.25, "armor": 6 }
   ]
 }

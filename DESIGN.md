@@ -764,6 +764,7 @@ Your Logic Survived
 | `OverlogicSystem` | Overlogic 值计算与效果 |
 | `GameDatabase` | 加载并校验 `data/*.json`，向运行时提供统一内容契约 |
 | `ProtocolSynergies` / `RunModifiers` | 协同协议与难度/路线修正 |
+| `RunHistory` / `ProfileProgression` | 本地战斗记录、等级、成就与可迁移的运营数据骨架；默认不向外发送遥测 |
 
 ### 18.2 主状态机
 
@@ -790,14 +791,14 @@ Overlogic/
     enemies/                  # EnemyBase、普通敌人、BossProtocolWarden
     render/                   # ArenaRenderer、Camera
     vfx/                      # Projectile、Mine、HazardTile、ParticleSystem
-    systems/                  # 奖励、协同协议、统计、报告、音频与运行修正
+    systems/                  # 奖励、协同协议、统计、报告、音频、运行记录与档案
     ui/                       # 主菜单、编辑器、HUD、奖励、报告与胜利界面
     i18n/                     # 简体中文、繁體中文、English 文案
   scripts/                    # serve、build、verify、balance
   DESIGN.md / README.md       # 设计约束、架构说明与发布指引
 ```
 
-发布层约束：`scripts/build.mjs` 只将上述运行时文件复制到 `dist/`，并为模块、数据和 Service Worker 注入提交版本。Service Worker 只处理同源 GET 请求，导航使用 network-first，静态资源使用 stale-while-revalidate；任何离线能力都不能阻塞首屏启动。
+发布层约束：`scripts/build.mjs` 只将上述运行时文件复制到 `dist/`，并为模块、数据、HTML 与 Service Worker 注入提交版本。Service Worker 只处理同源 GET 请求，导航使用 network-first，静态资源使用 stale-while-revalidate；任何离线能力都不能阻塞首屏启动。`GameDatabase` 的数据契约校验与 `scripts/release-audit.mjs` 必须在发布前通过。
 
 ---
 

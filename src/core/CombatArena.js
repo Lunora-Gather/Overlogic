@@ -18,6 +18,7 @@ import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js?v=20260725-
 import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js?v=20260725-4';
 import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
 import { HazardTile } from '../vfx/HazardTile.js?v=20260725-4';
+import { recordBattle } from '../systems/RunHistory.js?v=20260725-4';
 import { difficultyModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 
@@ -314,21 +315,31 @@ export class CombatArena {
     this._finished = true;
     cancelAnimationFrame(this._rafId);
     const endHp = this.robot.hp; // capture HP for persistence
+    const report = this.ctx.tracker.toReport();
+    report._runSeed = GameState.runConfig?.seed ?? null;
+    report._runMode = GameState.runConfig?.mode || 'standard';
+    report._difficulty = GameState.runConfig?.difficulty || 'standard';
+    report._battleId = this.battle?.id || null;
+    report._won = won === true;
     if (!won) {
       this.ctx.tracker.snapshotDeath(
         this.robot.hp, this.robot.energy,
         this.ctx.countEnemiesWithin({ x: this.robot.x, y: this.robot.y }, 4)
       );
       AudioManager.play('defeat');
-      GameState.lastReport = this.ctx.tracker.toReport();
+      // snapshotDeath mutates the tracker, so rebuild after the final event.
+      Object.assign(report, this.ctx.tracker.toReport());
+      GameState.lastReport = report;
       this.hud.logConsole(t('log.failed'), 'danger');
     } else {
       AudioManager.play('victory');
-      GameState.lastReport = this.ctx.tracker.toReport();
+      GameState.lastReport = report;
       // Pass endHp so the next battle starts with this HP
       GameState.lastReport._endHp = endHp;
       this.hud.logConsole(t('log.success'), 'success');
     }
+    GameState.saveToStorage();
+    recordBattle(GameState.lastReport);
     this.hud.hideBossBar();
     if (this.onFinished) this.onFinished(won);
   }

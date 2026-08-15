@@ -6,6 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Program a robot's combat logic, simulate the battle, inspect the result, and refine its brain.">
 <meta name="application-name" content="Overlogic">
+<meta name="overlogic-release" content="__RELEASE__">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Overlogic">
@@ -28,6 +29,13 @@
 <canvas id="bg-canvas"></canvas>
 <div id="app">
   <div id="boot-status" class="boot-status" role="status" aria-live="polite" data-i18n="boot.loading">INITIALIZING LOGIC CORE…</div>
+  <div id="app-notice" class="app-notice hidden" role="status" aria-live="polite">
+    <span id="app-notice-message"></span>
+    <div class="app-notice-actions">
+      <button id="btn-app-notice-action" type="button" class="btn primary small hidden"></button>
+      <button id="btn-app-notice-close" type="button" class="btn ghost small" data-i18n="notice.dismiss">Dismiss</button>
+    </div>
+  </div>
 
   <!-- ===== Main Menu ===== -->
   <section id="screen-main" class="screen">
@@ -55,8 +63,17 @@
         </select>
       </label>
       <span id="daily-seed-label" class="daily-seed-label hidden"></span>
+      <div class="run-seed-row">
+        <label for="run-seed-input" class="run-seed-field">
+          <span data-i18n="menu.seed">Challenge Seed</span>
+          <input id="run-seed-input" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.seedPlaceholder" data-i18n-aria-label="menu.seed" placeholder="Seed or OLR1 challenge code">
+        </label>
+        <button id="btn-copy-run-seed" type="button" class="btn ghost small" data-i18n="menu.copySeed">Copy</button>
+      </div>
       <p id="run-config-hint" class="run-config-hint"></p>
     </div>
+    <section id="run-profile" class="run-profile" aria-live="polite"></section>
+    <section id="run-history" class="run-history" aria-live="polite"></section>
     <div class="menu-buttons">
       <button id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
       <button id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
@@ -281,7 +298,7 @@
       <div class="report-card"><h3 data-i18n="report.logic">Logic Report</h3><ul id="rep-logic"></ul></div>
       <div class="report-card"><h3 data-i18n="report.suggest">Suggested Fix</h3><ul id="rep-suggest"></ul></div>
       <div class="report-card report-timeline-card">
-        <h3 data-i18n="report.timeline">Critical Timeline</h3>
+        <h3 class="report-section-heading"><span data-i18n="report.timeline">Critical Timeline</span><button id="btn-report-timeline-toggle" type="button" class="btn ghost small hidden" data-i18n="report.timelineExpand">Show all</button></h3>
         <ol id="rep-timeline" class="report-timeline"></ol>
       </div>
       <div class="report-card" style="grid-column: span 3; display: flex; flex-direction: column; align-items: center;">
@@ -347,6 +364,20 @@
             <option value="zh-CN">简体中文</option>
             <option value="zh-TW">繁體中文</option>
           </select>
+        </div>
+        <div class="settings-group data-tools">
+          <span class="settings-section-label" data-i18n="settings.data">Save Data</span>
+          <p class="settings-help" data-i18n="settings.dataHelp">Export a portable backup before changing devices or clearing browser data.</p>
+          <div class="settings-data-actions">
+            <button id="btn-data-export" type="button" class="btn secondary small" data-i18n="settings.export">Export</button>
+            <button id="btn-data-import" type="button" class="btn ghost small" data-i18n="settings.import">Import</button>
+            <button id="btn-data-restore" type="button" class="btn ghost small" data-i18n="settings.restore">Restore backup</button>
+          </div>
+          <input id="data-import-file" class="hidden" type="file" accept="application/json,.json">
+        </div>
+        <div class="settings-version" aria-label="Build version" data-i18n-aria-label="settings.version">
+          <span data-i18n="settings.version">Build version</span>
+          <code id="app-version">DEV</code>
         </div>
       </div>
       <div class="modal-actions settings-actions">

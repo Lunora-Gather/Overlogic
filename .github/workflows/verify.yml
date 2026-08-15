@@ -28,6 +28,10 @@ jobs:
         run: npm run verify
       - name: Run balance gate
         run: npm run balance
+      - name: Build release candidate
+        run: npm run build
+      - name: Audit release artifact
+        run: npm run release-audit
 
   deploy:
     if: github.event_name == 'push'
@@ -45,6 +49,8 @@ jobs:
           node-version: 24
       - name: Build versioned release
         run: npm run build
+      - name: Audit deployed artifact
+        run: npm run release-audit
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact

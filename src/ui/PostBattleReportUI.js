@@ -16,10 +16,13 @@ export class PostBattleReportUI {
     this.repLogic  = document.getElementById('rep-logic');
     this.repSuggest = document.getElementById('rep-suggest');
     this.repTimeline = document.getElementById('rep-timeline');
+    this.btnTimelineToggle = document.getElementById('btn-report-timeline-toggle');
     this.canvas = document.getElementById('chart-report');
     this.btnRetry  = document.getElementById('btn-retry');
     this.btnEdit   = document.getElementById('btn-edit');
     this.btnRestart = document.getElementById('btn-restart');
+    this._timelineEvents = [];
+    this._showAllTimeline = false;
     this._bind();
 
     // Redraw charts on window resize to ensure high-DPI canvas looks sharp
@@ -44,9 +47,14 @@ export class PostBattleReportUI {
       AudioManager.play('button_click');
       GameManager.onReportRestartRun();
     });
+    this.btnTimelineToggle?.addEventListener('click', () => {
+      this._showAllTimeline = !this._showAllTimeline;
+      this._renderTimeline(this._timelineEvents);
+    });
   }
 
   show() {
+    this._showAllTimeline = false;
     const report = GameState.lastReport || {};
     const availableActions = GameState.availableActionIds();
     const availableConditions = GameState.availableConditionIds();
@@ -139,10 +147,18 @@ export class PostBattleReportUI {
 
   _renderTimeline(events) {
     if (!this.repTimeline) return;
+    this._timelineEvents = Array.isArray(events) ? events : [];
+    if (this.btnTimelineToggle) {
+      const canExpand = this._timelineEvents.filter((event) => event.kind !== 'damage' || event.value >= 4).length > 16;
+      this.btnTimelineToggle.classList.toggle('hidden', !canExpand);
+      this.btnTimelineToggle.textContent = this._showAllTimeline
+        ? t('report.timelineCollapse') : t('report.timelineExpand');
+      this.btnTimelineToggle.setAttribute('aria-expanded', this._showAllTimeline ? 'true' : 'false');
+    }
     this.repTimeline.replaceChildren();
-    const important = events
-      .filter((event) => event.kind !== 'damage' || event.value >= 4)
-      .slice(-16);
+    const allImportant = this._timelineEvents
+      .filter((event) => event.kind !== 'damage' || event.value >= 4);
+    const important = this._showAllTimeline ? allImportant : allImportant.slice(-16);
     if (important.length === 0) {
       const empty = document.createElement('li');
       empty.textContent = t('report.timelineEmpty');

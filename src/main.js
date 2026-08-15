@@ -18,6 +18,16 @@ import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
 
 const bootStatus = document.getElementById('boot-status');
+const appNotice = document.getElementById('app-notice');
+const appNoticeMessage = document.getElementById('app-notice-message');
+const appNoticeAction = document.getElementById('btn-app-notice-action');
+const appNoticeClose = document.getElementById('btn-app-notice-close');
+const appVersion = document.getElementById('app-version');
+const releaseMeta = document.querySelector('meta[name="overlogic-release"]');
+if (appVersion) appVersion.textContent = releaseMeta?.content && releaseMeta.content !== '__RELEASE__'
+  ? releaseMeta.content : 'DEV';
+let noticeTimer = null;
+let noticeActionHandler = null;
 
 // Apply the saved locale before the first network request so a slow/failed
 // boot never flashes the wrong language or falls back to English-only copy.
@@ -47,9 +57,76 @@ function showBootFailure(error) {
   console.error('Overlogic boot failed:', error);
 }
 
+function showAppNotice(messageKey, { actionKey = null, onAction = null, autoHide = 0 } = {}) {
+  if (!appNotice || !appNoticeMessage || !appNoticeAction) return;
+  if (noticeTimer) clearTimeout(noticeTimer);
+  if (noticeActionHandler) appNoticeAction.removeEventListener('click', noticeActionHandler);
+  noticeActionHandler = null;
+  appNoticeMessage.textContent = t(messageKey);
+  appNotice.classList.remove('hidden');
+  if (actionKey && onAction) {
+    appNoticeAction.textContent = t(actionKey);
+    appNoticeAction.classList.remove('hidden');
+    noticeActionHandler = () => onAction();
+    appNoticeAction.addEventListener('click', noticeActionHandler);
+  } else {
+    appNoticeAction.classList.add('hidden');
+  }
+  if (autoHide > 0) {
+    noticeTimer = setTimeout(() => appNotice.classList.add('hidden'), autoHide);
+  }
+}
+
+function setupRuntimeSafety() {
+  appNoticeClose?.addEventListener('click', () => appNotice?.classList.add('hidden'));
+  window.addEventListener('online', () => showAppNotice('notice.online', { autoHide: 3000 }));
+  window.addEventListener('offline', () => showAppNotice('notice.offline'));
+  if (navigator.onLine === false) showAppNotice('notice.offline');
+
+  let runtimeNoticeShown = false;
+  const reportContainedError = () => {
+    if (runtimeNoticeShown) return;
+    runtimeNoticeShown = true;
+    showAppNotice('notice.runtimeError');
+  };
+  window.addEventListener('error', reportContainedError);
+  window.addEventListener('unhandledrejection', reportContainedError);
+  window.addEventListener('overlogic:update-ready', () => {
+    showAppNotice('notice.updateReady', {
+      actionKey: 'notice.updateNow',
+      onAction: () => window.location.reload(),
+    });
+  });
+  window.addEventListener('storage', (event) => {
+    if (event.key !== 'overlogic_run_save' || !event.newValue) return;
+    showAppNotice('notice.externalSave', {
+      actionKey: 'notice.reloadSave',
+      onAction: () => window.location.reload(),
+    });
+  });
+  GameState.on('storage', () => {
+    if (!GameState.storageStatus.available) showAppNotice('notice.storageUnavailable');
+  });
+  if (GameState.storageStatus.restoredFromBackup) showAppNotice('notice.saveRestored');
+  if (!GameState.storageStatus.available) showAppNotice('notice.storageUnavailable');
+}
+
 function registerServiceWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
-  navigator.serviceWorker.register('./sw.js').catch(() => {
+  const hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.register('./sw.js').then((registration) => {
+    if (registration.waiting && hadController) {
+      window.dispatchEvent(new CustomEvent('overlogic:update-ready'));
+    }
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      worker?.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && hadController) {
+          window.dispatchEvent(new CustomEvent('overlogic:update-ready'));
+        }
+      });
+    });
+  }).catch(() => {
     // Offline support is progressive enhancement; a blocked registration
     // must never prevent the game from loading.
   });
@@ -219,6 +296,10 @@ async function main() {
   const settingShake = document.getElementById('setting-shake');
   const settingReduceMotion = document.getElementById('setting-reduce-motion');
   const settingLanguage = document.getElementById('setting-language');
+  const btnDataExport = document.getElementById('btn-data-export');
+  const btnDataImport = document.getElementById('btn-data-import');
+  const btnDataRestore = document.getElementById('btn-data-restore');
+  const dataImportFile = document.getElementById('data-import-file');
   let settingsReturnFocus = null;
   let resumeCombatAfterSettings = false;
   let settingsOriginalVolume = null;
@@ -233,6 +314,7 @@ async function main() {
     settingShake.checked = GameState.settings.screenShake;
     settingReduceMotion.checked = GameState.settings.reduceMotion;
     settingLanguage.value = GameState.settings.language;
+    if (btnDataRestore) btnDataRestore.disabled = !GameState.hasBackup();
 
     settingsReturnFocus = document.activeElement;
     resumeCombatAfterSettings = GameManager.state === 'combat' && arena && !arena.paused;
@@ -306,6 +388,52 @@ async function main() {
       AudioManager.play('rule_add'); // Success arpeggio
     });
   }
+
+  btnDataExport?.addEventListener('click', () => {
+    try {
+      const blob = new Blob([GameState.exportSaveData()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `overlogic-save-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      showAppNotice('notice.saveExported', { autoHide: 3500 });
+    } catch {
+      showAppNotice('notice.exportFailed');
+    }
+  });
+
+  btnDataImport?.addEventListener('click', () => dataImportFile?.click());
+  dataImportFile?.addEventListener('change', async () => {
+    const file = dataImportFile.files?.[0];
+    dataImportFile.value = '';
+    if (!file || file.size > 1_000_000) {
+      showAppNotice('notice.importFailed');
+      return;
+    }
+    const imported = GameState.importSaveData(await file.text());
+    if (!imported) {
+      showAppNotice('notice.importFailed');
+      return;
+    }
+    showAppNotice('notice.saveImported', {
+      actionKey: 'notice.reloadSave',
+      onAction: () => window.location.reload(),
+    });
+  });
+
+  btnDataRestore?.addEventListener('click', () => {
+    if (!GameState.restoreBackup()) {
+      showAppNotice('notice.restoreFailed');
+      return;
+    }
+    showAppNotice('notice.saveRestored', {
+      actionKey: 'notice.reloadSave',
+      onAction: () => window.location.reload(),
+    });
+    btnDataRestore.disabled = !GameState.hasBackup();
+  });
 
   // Global Tooltip Delegator
   const tooltip = document.getElementById('custom-tooltip');
@@ -424,6 +552,7 @@ async function main() {
   hideBootStatus();
 }
 
+setupRuntimeSafety();
 registerServiceWorker();
 setupInstallPrompt();
 main().catch(err => {

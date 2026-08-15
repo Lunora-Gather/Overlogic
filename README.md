@@ -66,6 +66,8 @@ Program the brain. Observe the battle. Debug the logic.
 
 规则配置保存在浏览器本地，也可以生成版本化分享代码进行导入和导出。
 
+每局都会生成可复现的运行种子。主菜单支持输入数字种子或 `OLR1-STANDARD-VETERAN-…` 挑战码；战斗结束后，最近战斗、操作员等级、XP 与成就进度会保存在本地。设置中的存档工具可以导出包含规则、设置、配置栏、战斗记录和操作员档案的完整 JSON 备份。
+
 ---
 
 ## 繁體中文
@@ -103,6 +105,8 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Explore branching routes, persistent hull damage, hazards, daily seeds, multiple difficulties, and two boss paths.
 - Test logic safely in mixed, projectile, swarm, and boss sandbox scenarios.
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.
+- Reproduce a run with a numeric seed or an `OLR1-…` challenge code, then review recent battle history and operator progression locally.
+- Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
 
@@ -128,6 +132,7 @@ npm run serve
 | `npm run verify` | 检查语法、数据契约、存档迁移、玩法流程、UI安全与无头战斗 |
 | `npm run balance` | 运行确定性战斗和平衡门禁 |
 | `npm run build` | 生成带版本化资源地址的 `dist/` 发布目录 |
+| `npm run release-audit` | 检查发布目录、版本占位符、资源完整性与数据 JSON |
 
 也可以使用任何支持 ES Modules 与 JSON MIME 类型的静态服务器运行源码。
 
@@ -141,7 +146,7 @@ Overlogic/
 │  ├─ logic/             # 条件评估、规则选择与动作执行
 │  ├─ robot/             # 机器人属性与战斗行为
 │  ├─ enemies/           # 敌人与 Boss 行为
-│  ├─ systems/           # 音频、统计、奖励、协同协议与运行修正
+│  ├─ systems/           # 音频、统计、奖励、协同协议、档案与运行记录
 │  ├─ ui/                # 编辑器、HUD、奖励、报告与胜利界面
 │  ├─ render/            # 竞技场与镜头渲染
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
@@ -164,16 +169,18 @@ Overlogic/
 1. JavaScript 语法与数据契约检查。
 2. 存档、奖励、规则分享、战斗流程及本地化验证。
 3. 确定性平衡模拟。
-4. 版本化构建。
-5. GitHub Pages 部署。
+4. 运行时内容契约校验（跨表 ID、参数边界、奖励引用与可加载形状）。
+5. 版本化构建。
+6. 发布产物审计（版本占位符、必需文件、JSON 数据与根目录清洁度）。
+7. GitHub Pages 部署。
 
 部署只上传生成的 `dist/` 内容；构建脚本会为模块与数据地址注入提交版本，并给 Service Worker 写入发布缓存版本，避免浏览器混用不同版本的缓存资源。首次成功加载后，浏览器可安装 Overlogic；弱网或短暂断网时会优先恢复最近一次可用的应用壳层。
 
 ## 开发状态 / Project status
 
-当前状态：**可完整游玩的 Web Demo，持续开发中。**
+当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、每日种子、沙盒测试与三语界面。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、操作员档案、成就基础、完整存档备份、每日种子、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

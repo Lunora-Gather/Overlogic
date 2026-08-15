@@ -1,4 +1,4 @@
-import { installBrowserShims, withSeededRandom } from './test-env.mjs';
+import { installBrowserShims } from './test-env.mjs';
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
@@ -161,30 +161,70 @@ export function simulateBattle(battle, options = {}) {
 }
 
 function runSuite() {
-  GameState.clearStorage();
-  GameState.normalizeAfterDatabaseLoad();
+  prepareRun({ seed: 20260701 });
   const earlyBattles = [0, 1, 2].map((index) => GameDatabase.getBattle(index));
-  const earlyGate = withSeededRandom(20260701, () =>
-    earlyBattles.map((battle) => simulateBattle(battle))
+  const earlyGate = earlyBattles.map((battle) => simulateBattle(battle));
+
+  prepareRun({ seed: 20260725, fullRules: true });
+  const rosterDiagnostics = Array.from({ length: GameDatabase.getBattleCount() }, (_, index) =>
+    simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
+  );
+  const midGameGate = rosterDiagnostics.slice(3, 8);
+
+  prepareRun({ seed: 20260726, fullRules: true, lateGameBuild: true });
+  const bossGate = [8, 9].map((index) =>
+    simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
   );
 
+  const difficultyGate = ['casual', 'standard', 'veteran'].map((difficulty) => {
+    prepareRun({ seed: 20260727, difficulty, fullRules: true, lateGameBuild: true });
+    return { difficulty, ...simulateBattle(GameDatabase.getBattle(7), { maxTime: 120 }) };
+  });
+
+  return { earlyGate, midGameGate, bossGate, difficultyGate, rosterDiagnostics };
+}
+
+function prepareRun({ seed, difficulty = 'standard', fullRules = false, lateGameBuild = false }) {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
-  GameState._advanceTeachRulesTo(4);
-  const rosterDiagnostics = withSeededRandom(20260725, () =>
-    Array.from({ length: GameDatabase.getBattleCount() }, (_, index) =>
-      simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
-    )
-  );
-  return { earlyGate, rosterDiagnostics };
+  GameState.runConfig = { mode: 'standard', difficulty, seed };
+  if (fullRules) GameState._advanceTeachRulesTo(4);
+  if (lateGameBuild) {
+    // Six legal campaign selections: damage ×3, armor penetration ×2 and
+    // Emergency Recall. This is a demanding but reachable Apex route build,
+    // not a synthetic max-stat robot.
+    Object.assign(GameState.stats, {
+      basic_dmg: 15.625,
+      armor_piercing: 6,
+      emergency_recall: 1,
+    });
+    GameState.runStats.rewardsChosen = [
+      'pu_basic_dmg', 'pu_armor_piercing', 'pu_armor_piercing',
+      'pu_basic_dmg', 'pu_emergency_recall', 'pu_basic_dmg',
+    ];
+  }
+}
+
+function gateFailures(results) {
+  const checks = [
+    ...results.earlyGate.map((result) => ({ gate: 'early', maxTime: 60, result })),
+    ...results.midGameGate.map((result) => ({ gate: 'mid', maxTime: 90, result })),
+    ...results.bossGate.map((result) => ({ gate: 'boss', maxTime: 60, result })),
+    ...results.difficultyGate.map((result) => ({ gate: `difficulty:${result.difficulty}`, maxTime: 90, result })),
+  ];
+  return checks.filter(({ result, maxTime }) => (
+    !result.won || result.time > maxTime || result.hp <= 0 ||
+    !Number.isFinite(result.damageDealt) || result.damageDealt <= 0
+  ));
 }
 
 if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
   const results = runSuite();
-  const failed = results.earlyGate.filter((result) => !result.won);
+  const failed = gateFailures(results);
   if (failed.length > 0) {
     console.error(JSON.stringify(results, null, 2));
-    throw new Error('Baseline simulation failed: early battles should be winnable with default rules.');
+    console.error('Failed balance gates:', JSON.stringify(failed, null, 2));
+    throw new Error('Balance simulation failed: a required campaign, boss, or difficulty gate is no longer viable.');
   }
   console.log(JSON.stringify(results, null, 2));
 }
