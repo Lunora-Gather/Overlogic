@@ -44,11 +44,29 @@ function utcDate(date = new Date()) {
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
 }
 
-function emptyState(date = utcDate()) {
+function previousUtcDate(date) {
+  const [year, month, day] = String(date).split('-').map(Number);
+  return utcDate(new Date(Date.UTC(year, month - 1, day - 1)));
+}
+
+function carryProgression(raw) {
+  const streak = Number(raw?.streak);
+  const completedDays = Array.isArray(raw?.completedDays)
+    ? [...new Set(raw.completedDays.filter((value) => /^\d{4}-\d{2}-\d{2}$/.test(String(value))).map(String))].slice(-30)
+    : [];
+  return {
+    streak: Number.isFinite(streak) ? Math.max(0, Math.min(9999, Math.floor(streak))) : 0,
+    lastCompletedDate: /^\d{4}-\d{2}-\d{2}$/.test(String(raw?.lastCompletedDate || '')) ? String(raw.lastCompletedDate) : null,
+    completedDays,
+  };
+}
+
+function emptyState(date = utcDate(), progression = {}) {
   const definitions = definitionsForDate(date);
   return {
     version: CHALLENGE_VERSION,
     date,
+    ...carryProgression(progression),
     objectives: Object.fromEntries(definitions.map((definition) => [definition.id, {
       progress: 0,
       completed: false,
@@ -60,7 +78,8 @@ function emptyState(date = utcDate()) {
 function normalizeState(raw, date = utcDate()) {
   const definitions = definitionsForDate(date);
   const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : null;
-  const base = source?.date === date ? source : emptyState(date);
+  const progression = carryProgression(source);
+  const base = source?.date === date ? source : emptyState(date, progression);
   const objectives = {};
   for (const definition of definitions) {
     const item = base.objectives?.[definition.id];
@@ -71,7 +90,7 @@ function normalizeState(raw, date = utcDate()) {
       completedAt: typeof item?.completedAt === 'string' ? item.completedAt.slice(0, 40) : null,
     };
   }
-  return { version: CHALLENGE_VERSION, date, objectives };
+  return { version: CHALLENGE_VERSION, date, ...carryProgression(base), objectives };
 }
 
 function readState(date = utcDate()) {
@@ -103,6 +122,9 @@ export function challengeSnapshot(date = new Date()) {
   return {
     version: state.version,
     date: state.date,
+    streak: state.streak,
+    lastCompletedDate: state.lastCompletedDate,
+    completedDays: [...state.completedDays],
     objectives: Object.fromEntries(definitions.map((definition) => [definition.id, {
       ...state.objectives[definition.id],
       target: definition.target,
@@ -118,10 +140,11 @@ export function replaceChallenges(raw) {
 }
 
 export function recordChallengeBattle(entry = {}, date = new Date()) {
-  if (entry._sandbox === true) return { ...challengeSnapshot(date), unlocked: [], bonusXp: 0 };
+  if (entry._sandbox === true) return { ...challengeSnapshot(date), unlocked: [], bonusXp: 0, persisted: true };
   const dateKey = utcDate(date);
   const definitions = definitionsForDate(dateKey);
   const state = readState(dateKey);
+  const wasComplete = definitions.every((definition) => state.objectives[definition.id]?.completed === true);
   const unlocked = [];
   const increment = {
     daily_wins: entry.won === true ? 1 : 0,
@@ -138,11 +161,19 @@ export function recordChallengeBattle(entry = {}, date = new Date()) {
       unlocked.push(definition.id);
     }
   }
-  writeState(state);
+  const isComplete = definitions.every((definition) => state.objectives[definition.id]?.completed === true);
+  if (!wasComplete && isComplete && state.lastCompletedDate !== dateKey) {
+    state.streak = state.lastCompletedDate === previousUtcDate(dateKey) ? state.streak + 1 : 1;
+    state.lastCompletedDate = dateKey;
+    state.completedDays = [...new Set([...state.completedDays, dateKey])].slice(-30);
+  }
+  const persisted = writeState(state);
+  const awarded = persisted ? unlocked : [];
   return {
     ...challengeSnapshot(date),
-    unlocked,
-    bonusXp: unlocked.reduce((sum, id) => sum + (definitions.find((definition) => definition.id === id)?.xp || 0), 0),
+    unlocked: awarded,
+    bonusXp: awarded.reduce((sum, id) => sum + (definitions.find((definition) => definition.id === id)?.xp || 0), 0),
+    persisted,
   };
 }
 

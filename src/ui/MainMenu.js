@@ -237,8 +237,9 @@ export class MainMenu {
         <div class="challenge-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${challenge.target}" aria-valuenow="${progress}" aria-label="${escapeHtml(t(challenge.titleKey))}"><span style="width:${percent}%"></span></div>
       </li>`;
     }).join('');
+    const challengeMeta = `${t('menu.challengeDate', { date: snapshot.date })} · ${t('menu.challengeStreak', { count: snapshot.streak || 0 })}`;
     this.runChallenges.innerHTML = `
-      <div class="challenge-heading"><span>${escapeHtml(t('menu.challengesTitle'))}</span><span>${escapeHtml(t('menu.challengeDate', { date: snapshot.date }))}</span></div>
+      <div class="challenge-heading"><span>${escapeHtml(t('menu.challengesTitle'))}</span><span>${escapeHtml(challengeMeta)}</span></div>
       <ul class="challenge-list">${items}</ul>`;
     this._scheduleChallengeRefresh();
   }

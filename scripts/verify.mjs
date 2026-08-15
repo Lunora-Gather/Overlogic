@@ -597,6 +597,24 @@ function verifyRunHistoryContracts() {
   assert.equal(challengeComplete.objectives.daily_boss.completed, true);
   const challengeBackup = GameState.exportSaveData();
   clearChallenges();
+  const dayOne = new Date('2026-08-10T12:00:00Z');
+  const dayTwo = new Date('2026-08-11T12:00:00Z');
+  const dayFour = new Date('2026-08-13T12:00:00Z');
+  for (let index = 0; index < 8; index += 1) recordChallengeBattle({ won: true, damageDealt: 5000, battleId: 'battle_9' }, dayOne);
+  assert.equal(challengeSnapshot(dayOne).streak, 1, 'first completed challenge day should start a streak');
+  for (let index = 0; index < 8; index += 1) recordChallengeBattle({ won: true, damageDealt: 5000, battleId: 'battle_9' }, dayTwo);
+  assert.equal(challengeSnapshot(dayTwo).streak, 2, 'consecutive completed days should extend a streak');
+  for (let index = 0; index < 8; index += 1) recordChallengeBattle({ won: true, damageDealt: 5000, battleId: 'battle_9' }, dayFour);
+  assert.equal(challengeSnapshot(dayFour).streak, 1, 'missing a day should reset a streak');
+  assert(challengeSnapshot(dayFour).completedDays.includes('2026-08-10'), 'challenge history should retain completed days');
+  clearChallenges();
+  const originalSetItem = localStorage.setItem;
+  localStorage.setItem = () => { throw new Error('quota'); };
+  const failedPersistence = recordChallengeBattle({ won: true, damageDealt: 5000, battleId: 'battle_9' });
+  localStorage.setItem = originalSetItem;
+  assert.equal(failedPersistence.persisted, false, 'storage failures must be observable');
+  assert.equal(failedPersistence.bonusXp, 0, 'storage failures must not award daily XP');
+  clearChallenges();
   assert.equal(GameState.importSaveData(challengeBackup), true, 'full backups must include daily challenge state');
   assert.equal(challengeSnapshot().objectives.daily_boss.completed, true);
   recordBattle({
