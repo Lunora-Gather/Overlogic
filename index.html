@@ -191,9 +191,9 @@
   <section id="screen-combat" class="screen hidden">
     <div class="combat-top">
       <div class="hud-left">
-        <div class="bar"><span>HP</span><div class="bar-track"><div id="hp-fill" class="bar-fill hp"></div><span id="hp-text" class="bar-text"></span></div></div>
-        <div class="bar"><span>EN</span><div class="bar-track"><div id="en-fill" class="bar-fill en"></div><span id="en-text" class="bar-text"></span></div></div>
-        <div class="bar"><span>TEMP</span><div class="bar-track"><div id="ol-fill" class="bar-fill ol"></div><span id="ol-text" class="bar-text"></span></div></div>
+        <div class="bar"><span>HP</span><div class="bar-track" role="progressbar" aria-label="Hit points" data-i18n-aria-label="combat.hitPoints" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="hp-fill" class="bar-fill hp"></div><span id="hp-text" class="bar-text"></span></div></div>
+        <div class="bar"><span>EN</span><div class="bar-track" role="progressbar" aria-label="Energy" data-i18n-aria-label="combat.energyBar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="en-fill" class="bar-fill en"></div><span id="en-text" class="bar-text"></span></div></div>
+        <div class="bar"><span>TEMP</span><div class="bar-track" role="progressbar" aria-label="Core temperature" data-i18n-aria-label="combat.temperature" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="ol-fill" class="bar-fill ol"></div><span id="ol-text" class="bar-text"></span></div></div>
       </div>
       <div class="hud-center">
         <div id="current-logic" class="current-logic" aria-live="polite">Current Logic: —</div>
@@ -202,15 +202,15 @@
       </div>
       <div class="hud-right">
         <button id="btn-combat-settings" class="btn small" title="Settings" data-i18n-title="common.settings" aria-label="Combat settings" data-i18n-aria-label="common.settings">⚙️</button>
-        <button id="btn-pause" class="btn small" data-i18n="combat.pause">Pause</button>
-        <button id="btn-step" class="btn small hidden" data-i18n="combat.step">Step</button>
-        <button id="btn-speed" class="btn small">Speed x1</button>
+        <button id="btn-pause" class="btn small" data-i18n="combat.pause" aria-pressed="false">Pause</button>
+        <button id="btn-step" class="btn small hidden" data-i18n="combat.step" aria-keyshortcuts=".">Step</button>
+        <button id="btn-speed" class="btn small" aria-keyshortcuts="S">Speed x1</button>
         <button id="btn-quit" class="btn small ghost" data-i18n="combat.quit">Quit</button>
       </div>
     </div>
     <div id="boss-bar-wrap" class="boss-bar hidden">
       <span id="boss-name">Protocol Warden</span>
-      <div class="bar-track boss"><div id="boss-fill" class="bar-fill boss"></div></div>
+      <div class="bar-track boss" role="progressbar" aria-label="Boss health" data-i18n-aria-label="combat.bossHealth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="boss-fill" class="bar-fill boss"></div></div>
     </div>
     <div class="combat-main-layout">
       <canvas id="arena" width="720" height="720"></canvas>

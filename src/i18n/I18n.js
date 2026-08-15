@@ -131,6 +131,7 @@ const EN = {
   'diagnostic.reason.already_active': 'Already active', 'diagnostic.reason.not_needed': 'Not needed',
   'diagnostic.reason.capacity': 'Capacity reached', 'diagnostic.reason.no_target': 'No target',
   'diagnostic.reason.requires_shield': 'Requires shield', 'diagnostic.reason.unknown': 'Blocked',
+  'combat.hitPoints': 'Hit points', 'combat.energyBar': 'Energy', 'combat.temperature': 'Core temperature', 'combat.bossHealth': 'Boss health',
   'combat.current': 'Current Logic: {label}',
   'combat.wave': 'Wave {current}/{total}',
   'combat.pause': 'Pause',
@@ -207,6 +208,7 @@ const EN = {
   'report.neverTriggered': '⚠ Never triggered: {actions}',
   'report.autoAdd': '+ Auto-Add',
   'report.added': 'Added ✔',
+  'report.unavailable': 'Unavailable',
   'report.tookDamage': '- Took {value} damage from {source}', 'report.noDamage': '- No damage taken',
   'report.plasmaHazard': 'plasma hazard',
   'report.mostUsed': '- Most used action: {name} (×{count})', 'report.neverUsed': '- Never used: {names}',
@@ -341,6 +343,7 @@ const ZH_CN = {
   'diagnostic.reason.already_active': '已启用', 'diagnostic.reason.not_needed': '无需使用',
   'diagnostic.reason.capacity': '已达容量', 'diagnostic.reason.no_target': '没有目标',
   'diagnostic.reason.requires_shield': '需要护盾', 'diagnostic.reason.unknown': '已阻止',
+  'combat.hitPoints': '生命值', 'combat.energyBar': '能量', 'combat.temperature': '核心温度', 'combat.bossHealth': '首领生命',
   'combat.current': '当前逻辑：{label}', 'combat.wave': '波次 {current}/{total}', 'combat.pause': '暂停', 'combat.resume': '继续',
   'combat.step': '单步', 'combat.speed': '速度 x{speed}', 'combat.quit': '退出战斗',
   'combat.directives': '当前指令', 'combat.console': '控制台日志', 'combat.active': '执行中', 'combat.lowEnergy': '能量不足',
@@ -388,7 +391,7 @@ const ZH_CN = {
   'report.failed': '模拟失败', 'report.subtitle': '逻辑执行失败，请调试后重试。', 'report.damage': '伤害报告',
   'report.logic': '逻辑报告', 'report.suggest': '建议修复', 'report.performance': '表现分析',
   'report.retry': '重试战斗', 'report.edit': '编辑逻辑', 'report.restart': '重新开始',
-  'report.frequency': '动作频率', 'report.neverTriggered': '⚠ 从未触发：{actions}', 'report.autoAdd': '+ 自动添加', 'report.added': '已添加 ✔',
+  'report.frequency': '动作频率', 'report.neverTriggered': '⚠ 从未触发：{actions}', 'report.autoAdd': '+ 自动添加', 'report.added': '已添加 ✔', 'report.unavailable': '当前不可用',
   'report.tookDamage': '- 受到 {source} 的 {value} 点伤害', 'report.noDamage': '- 未受到伤害',
   'report.plasmaHazard': '等离子危险区',
   'report.mostUsed': '- 最常使用：{name}（×{count}）', 'report.neverUsed': '- 从未使用：{names}',
@@ -435,6 +438,15 @@ function toTraditional(value) {
     ['搜索', '搜尋'], ['默认', '預設'], ['程序', '程式'], ['纳米', '奈米'],
     ['激光', '雷射'], ['米/秒', '公尺/秒'], ['概率', '機率'], ['翻倍', '加倍'],
     ['标签页', '分頁'], ['加载', '載入'],
+    // Keep the Traditional Chinese locale visually consistent for terms that
+    // are common in battle names, diagnostics, and rule descriptions.
+    ['系统', '系統'], ['校准', '校準'], ['距离', '距離'], ['测试', '測試'],
+    ['钢铁', '鋼鐵'], ['巅峰', '巔峰'], ['协议', '協議'], ['战斗', '戰鬥'],
+    ['路径', '路徑'], ['打断', '打斷'], ['复制', '複製'], ['虫群', '蟲群'],
+    ['敌方', '敵方'], ['飞行', '飛行'], ['敌人', '敵人'], ['修复', '修復'],
+    ['竞技', '競技'], ['持续', '持續'], ['半径', '半徑'], ['达到', '達到'],
+    ['秒数', '秒數'], ['数量', '數量'], ['环境', '環境'], ['并且', '並且'],
+    ['横向', '橫向'], ['穿过', '穿過'], ['后撤', '後撤'], ['移动', '移動'],
   ];
   let output = String(value);
   for (const [from, to] of phrases) output = output.replaceAll(from, to);
@@ -459,6 +471,9 @@ function toTraditional(value) {
     仅: '僅', 门: '門', 给: '給', 从: '從', 产: '產', 获: '獲', 导: '導',
     对: '對', 还: '還', 让: '讓', 气: '氣', 会: '會', 现: '現',
     图: '圖', 奖: '獎', 励: '勵', 来: '來', 袭: '襲', 侧: '側', 闪: '閃', 随: '隨',
+    虫: '蟲', 统: '統', 测: '測', 钢: '鋼', 铁: '鐵', 巅: '巔', 议: '議',
+    斗: '鬥', 飞: '飛', 断: '斷', 敌: '敵', 径: '徑', 竞: '競', 环: '環',
+    内: '內', 数: '數', 并: '並', 横: '橫',
   };
   return [...output].map(char => chars[char] || char).join('');
 }
@@ -508,6 +523,7 @@ const ZH_TW = {
   'brief.routeReady': '路線事件已就緒。', 'brief.selectNode': '選擇目前可用節點以繼續。',
   'brief.goals': '校準目標', 'brief.goalEdit': '修改一條規則', 'brief.goalSandbox': '執行一次沙盒測試',
   'preview.waves': '{count} 波', 'preview.hazards': '{count} 個危險區', 'preview.boss': '首領',
+  'combat.hitPoints': '生命值', 'combat.energyBar': '能量', 'combat.temperature': '核心溫度', 'combat.bossHealth': '首領生命',
   'combat.current': '目前邏輯：{label}', 'combat.wave': '波次 {current}/{total}', 'combat.pause': '暫停', 'combat.resume': '繼續',
   'combat.step': '單步', 'combat.speed': '速度 x{speed}', 'combat.quit': '退出戰鬥',
   'combat.directives': '目前指令', 'combat.console': '主控台日誌', 'combat.active': '執行中', 'combat.lowEnergy': '能量不足',
@@ -536,7 +552,7 @@ const ZH_TW = {
   'report.failed': '模擬失敗', 'report.subtitle': '邏輯執行失敗，請偵錯後重試。', 'report.damage': '傷害報告',
   'report.logic': '邏輯報告', 'report.suggest': '建議修復', 'report.performance': '表現分析',
   'report.retry': '重試戰鬥', 'report.edit': '編輯邏輯', 'report.restart': '重新開始',
-  'report.frequency': '動作頻率', 'report.neverTriggered': '⚠ 從未觸發：{actions}', 'report.autoAdd': '+ 自動新增', 'report.added': '已新增 ✔',
+  'report.frequency': '動作頻率', 'report.neverTriggered': '⚠ 從未觸發：{actions}', 'report.autoAdd': '+ 自動新增', 'report.added': '已新增 ✔', 'report.unavailable': '目前不可用',
   'report.tookDamage': '- 受到 {source} 的 {value} 點傷害', 'report.noDamage': '- 未受到傷害',
   'report.mostUsed': '- 最常使用：{name}（×{count}）', 'report.neverUsed': '- 從未使用：{names}',
   'report.shieldNever': '- 護盾：從未使用', 'report.shieldLate': '- 在 {pct}% 生命時啟用護盾（過晚）',

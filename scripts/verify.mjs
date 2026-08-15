@@ -332,6 +332,9 @@ function verifyUiSafetyContracts() {
   assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
   assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
+  assert(html.includes('role="progressbar"'), 'combat meters should expose progress semantics');
+  assert(html.includes('id="btn-pause"') && html.includes('aria-pressed="false"'), 'pause control should expose its state');
+  assert(html.includes('aria-keyshortcuts="S"'), 'speed control should expose its keyboard shortcut');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
@@ -346,10 +349,14 @@ function verifyUiSafetyContracts() {
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
+  assert.equal(t('combat.temperature'), '核心温度');
+  assert.equal(t('report.unavailable'), '当前不可用');
   assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));
   assert.equal(entity('condition', 'hp_low', 'HP Low'), '生命值较低');
   setLocale('zh-TW', { notify: false });
   assert.equal(t('menu.start'), '開始模擬');
+  assert.equal(t('combat.temperature'), '核心溫度');
+  assert.equal(t('report.unavailable'), '目前不可用');
   assert.equal(entity('action', 'shield', 'Shield'), '護盾');
   assert.equal(entity('action', 'basic_attack', 'Basic Attack'), '基礎攻擊');
   assert.equal(t('editor.prio'), '優先級');
@@ -357,8 +364,16 @@ function verifyUiSafetyContracts() {
   assert.match(entity('action', 'shield', 'Shield', 'description'), /短時間/);
   assert.equal(entity('condition', 'projectile_nearby', 'Projectile Nearby'), '來襲彈體接近');
   assert.equal(entity('action', 'sidestep', 'Evasive Sidestep'), '規避側閃');
+  assert.equal(entity('battle', 'battle_4', 'Swarm'), '蟲群');
+  assert.equal(entity('battle', 'battle_1', 'System Calibration'), '系統校準');
+  assert.equal(entity('battle', 'battle_6', 'Iron Tide'), '鋼鐵浪潮');
+  assert.equal(entity('condition', 'battle_time_above', 'Battle Time Above'), '戰鬥時間已達');
+  assert.equal(entity('action', 'interrupt_shot', 'Interrupt Shot'), '打斷射擊');
+  assert.equal(t('editor.duplicate'), '複製規則');
   assert.equal(t('menu.config.modeStandard'), '自由路線與隨機獎勵');
   setLocale('en', { notify: false });
+  assert.equal(t('report.unavailable'), 'Unavailable');
+  assert.equal(t('combat.hitPoints'), 'Hit points');
 }
 
 function verifyRuleTelemetryContracts() {

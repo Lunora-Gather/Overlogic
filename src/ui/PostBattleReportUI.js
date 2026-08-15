@@ -102,15 +102,15 @@ export class PostBattleReportUI {
         addBtn.style.whiteSpace = 'nowrap';
         
         addBtn.addEventListener('click', () => {
-          GameState.addRule(
+          const added = GameState.addRule(
             sug.rule.conditionId,
             sug.rule.conditionValue,
             sug.rule.actionId,
             sug.rule.priority
           );
-          AudioManager.play('rule_add');
+          AudioManager.play(added ? 'rule_add' : 'button_click');
           addBtn.disabled = true;
-          addBtn.textContent = t('report.added');
+          addBtn.textContent = t(added ? 'report.added' : 'report.unavailable');
           addBtn.classList.remove('primary');
           addBtn.style.opacity = '0.6';
         });

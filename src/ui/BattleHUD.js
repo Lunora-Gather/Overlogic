@@ -36,6 +36,7 @@ export class BattleHUD {
       this.renderRulesPanel();
       if (this.arena) {
         this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
+        this.btnPause.setAttribute('aria-pressed', this.arena.paused ? 'true' : 'false');
         this.btnSpeed.textContent = t('combat.speed', { speed: this.arena.speed });
         this.setWave(this.arena.currentWave, this.arena.totalWaves);
       }
@@ -61,6 +62,7 @@ export class BattleHUD {
       if (!this.arena) return;
       this.arena.togglePause();
       this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
+      this.btnPause.setAttribute('aria-pressed', this.arena.paused ? 'true' : 'false');
       this.btnStep.classList.toggle('hidden', !this.arena.paused);
       AudioManager.play('button_click');
     });
@@ -98,6 +100,7 @@ export class BattleHUD {
 
   onBattleStart(battle) {
     this.btnPause.textContent = t('combat.pause');
+    this.btnPause.setAttribute('aria-pressed', 'false');
     this.btnStep.classList.add('hidden');
     this.btnSpeed.textContent = t('combat.speed', { speed: 1 });
     this.curLogic.textContent = t('combat.current', { label: '—' });
@@ -115,14 +118,21 @@ export class BattleHUD {
   setHp(hp, mx) {
     this.hpFill.style.width = `${Math.max(0, (hp / mx) * 100)}%`;
     this.hpText.textContent = `${Math.max(0, hp)|0} / ${mx|0}`;
+    const track = this.hpFill.parentElement;
+    track?.setAttribute('aria-valuemax', String(Math.max(0, mx)));
+    track?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(mx, hp))));
   }
   setEnergy(en, mx) {
     this.enFill.style.width = `${Math.max(0, (en / mx) * 100)}%`;
     this.enText.textContent = `${Math.max(0, en)|0} / ${mx|0}`;
+    const track = this.enFill.parentElement;
+    track?.setAttribute('aria-valuemax', String(Math.max(0, mx)));
+    track?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(mx, en))));
   }
   setOverlogic(val, active) {
     this.olFill.style.width = `${Math.max(0, Math.min(100, val))}%`;
     this.olText.textContent = active ? t('combat.meltdown') : `${val|0}°C`;
+    this.olFill.parentElement?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(100, val))));
     this.olFill.classList.toggle('meltdown-pulse', active);
 
     const activeBool = !!active;
@@ -292,7 +302,12 @@ export class BattleHUD {
 
   showBossBar(name) { this.bossName.textContent = name; this.bossWrap.classList.remove('hidden'); }
   hideBossBar() { this.bossWrap.classList.add('hidden'); }
-  setBossHp(hp, mx) { this.bossFill.style.width = `${Math.max(0, (hp / mx) * 100)}%`; }
+  setBossHp(hp, mx) {
+    this.bossFill.style.width = `${Math.max(0, (hp / mx) * 100)}%`;
+    const track = this.bossFill.parentElement;
+    track?.setAttribute('aria-valuemax', String(Math.max(0, mx)));
+    track?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(mx, hp))));
+  }
 
   showPhaseToast(text) { this.phaseToast.textContent = text; this.phaseToast.classList.remove('hidden'); }
   hidePhaseToast() { this.phaseToast.classList.add('hidden'); }
