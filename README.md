@@ -70,6 +70,8 @@ Program the brain. Observe the battle. Debug the logic.
 
 每局都会生成可复现的运行种子。主菜单支持输入数字种子或 `OLR1-STANDARD-VETERAN-…` 挑战码；战斗结束后，最近战斗、完整通关纪录、个人最佳、操作员等级、XP 与成就进度会保存在本地。设置中的存档工具可以导出包含规则、设置、配置栏、战斗记录、通关档案和操作员档案的完整 JSON 备份；导入过程按事务回滚，不会留下半套数据。
 
+胜利结果会先写入存档，再进入奖励页；如果在奖励选择前刷新页面，主菜单会显示“继续领取奖励”，只结算一次，不会重打已胜战斗或重复累计进度。
+
 ---
 
 ## 繁體中文
@@ -112,6 +114,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Complete three deterministic daily objectives for bonus XP and build a completion streak; sandbox runs never advance formal progression.
 - Keep a deduplicated local archive of completed campaigns and personal-best times, ready for a future opt-in leaderboard.
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
+- Resume a persisted win safely after a refresh: pending rewards are settled once instead of replaying the cleared battle.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
 

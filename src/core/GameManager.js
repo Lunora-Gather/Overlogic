@@ -29,6 +29,19 @@ class GameManagerClass {
   goVictory()     { this.state = State.Victory;         this._show('victory'); }
   goSandbox()     { this.state = State.Combat;          this._show('combat'); this.isUpgradeReward = false; }
 
+  resumePendingBattle() {
+    if (!GameState.hasPendingBattleResolution()) return false;
+    const endHp = Number(GameState.lastReport?._endHp) || null;
+    if (GameState.isPendingFinalBattle()) {
+      GameState.onBattleWon('', endHp);
+      GameState.recordRunCompletion();
+      this.goVictory();
+    } else {
+      this.goRewardSelection();
+    }
+    return true;
+  }
+
   // Called by CombatArena when a battle ends.
   onBattleFinished(won) {
     this.lastBattleWon = won;

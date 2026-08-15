@@ -53,6 +53,10 @@ export class MainMenu {
     this.btnStart.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
+      if (GameState.hasPendingBattleResolution()) {
+        GameManager.resumePendingBattle();
+        return;
+      }
       if (GameState.isDemoCleared()) GameState.resetRun();
       GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._requestedSeed());
       GameManager.goLogicEdit();
@@ -162,7 +166,10 @@ export class MainMenu {
     }
     const complete = GameState.isDemoCleared();
     const active = activeRun;
-    this.btnStart.textContent = complete ? t('menu.replay') : (active ? t('menu.continue') : t('menu.start'));
+    const pending = GameState.hasPendingBattleResolution();
+    this.btnStart.textContent = complete
+      ? t('menu.replay')
+      : (pending ? t('menu.resumeReward') : (active ? t('menu.continue') : t('menu.start')));
     this.btnNewRun?.classList.toggle('hidden', !active);
     if (this.runMode) this.runMode.disabled = active;
     if (this.runDifficulty) this.runDifficulty.disabled = active;

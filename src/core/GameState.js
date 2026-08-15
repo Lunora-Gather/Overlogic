@@ -240,6 +240,10 @@ class GameStateClass {
   // Called when a battle is won. reward_id may be '' for final boss skip.
   // persistentHp: carry the robot's ending HP into the next battle (no full heal).
   onBattleWon(rewardId, endHp = null) {
+    // A victory report is persisted before the reward screen opens. If the
+    // page is refreshed, the same report can be resumed exactly once instead
+    // of replaying the battle or incrementing progression twice.
+    if (this.lastReport?._resolutionApplied === true) return false;
     this.runStats.battlesWon += 1;
     this.runStats.totalDamageDealt += Number(this.lastReport?.total_damage_dealt) || 0;
     this.runStats.totalBattleTime += Number(this.lastReport?.battle_time) || 0;
@@ -283,8 +287,11 @@ class GameStateClass {
       this.selectedNodeId = nextCol[0].id;
     }
 
+    this.lastReport = { ...this.lastReport, _resolutionApplied: true };
+
     this.saveToStorage();
     this._emit('progress');
+    return true;
   }
 
   recordRunCompletion() {
@@ -416,6 +423,16 @@ class GameStateClass {
 
   hasRunProgress() {
     return this.currentMapColumn > 0 || this.runStats.battlesWon > 0;
+  }
+
+  hasPendingBattleResolution() {
+    if (this.lastReport?._won !== true || this.lastReport?._resolutionApplied === true) return false;
+    const activeBattle = this.getActiveBattle();
+    return Boolean(activeBattle && this.lastReport?._battleId === activeBattle.id);
+  }
+
+  isPendingFinalBattle() {
+    return this.hasPendingBattleResolution() && this.currentMapColumn >= this.mapNodes.length - 1;
   }
 
   canConfigureRun() {

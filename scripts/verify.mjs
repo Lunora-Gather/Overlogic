@@ -270,6 +270,28 @@ async function verifyGameplayContracts() {
   assert.deepEqual(GameState.runStats.rewardsChosen, ['pu_max_hp']);
 
   GameState.resetRun();
+  const pendingBattle = GameState.getActiveBattle();
+  GameState.lastReport = {
+    _won: true,
+    _battleId: pendingBattle.id,
+    _endHp: 80,
+    total_damage_dealt: 25,
+    battle_time: 3.5,
+  };
+  assert.equal(GameState.hasPendingBattleResolution(), true, 'won reports must survive a refresh until reward resolution');
+  assert.equal(GameState.isPendingFinalBattle(), false);
+  assert.equal(GameState.onBattleWon('pu_basic_dmg', 80), true);
+  assert.equal(GameState.hasPendingBattleResolution(), false, 'resolved rewards must not be replayable');
+  assert.equal(GameState.onBattleWon('pu_basic_dmg', 80), false, 'duplicate reward resolution must be rejected');
+
+  GameState.resetRun();
+  GameState.currentMapColumn = GameState.mapNodes.length - 1;
+  GameState.selectedNodeId = '6_boss';
+  const pendingFinalBattle = GameState.getActiveBattle();
+  GameState.lastReport = { _won: true, _battleId: pendingFinalBattle.id, _endHp: 45 };
+  assert.equal(GameState.isPendingFinalBattle(), true, 'final boss reports must resume directly to victory');
+
+  GameState.resetRun();
   GameState.rules[0].priority = 42;
   GameState.pushUndoState();
   assert.equal(GameState._undoStack.length > 0, true);
@@ -440,6 +462,7 @@ function verifyUiSafetyContracts() {
   const backgroundAnim = fs.readFileSync('src/systems/BackgroundAnim.js', 'utf8');
   const mainUi = fs.readFileSync('src/main.js', 'utf8');
   const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
+  const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
@@ -469,6 +492,8 @@ function verifyUiSafetyContracts() {
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
   assert(menuUi.includes("this._requestConfirm('menu.newRunConfirm')") && menuUi.includes("this._requestConfirm('reset.confirm')"), 'destructive actions must use the themed confirm flow');
+  assert(menuUi.includes('hasPendingBattleResolution') && menuUi.includes('resumePendingBattle'), 'main menu must recover an unresolved victory after refresh');
+  assert(gameManager.includes('resumePendingBattle') && gameManager.includes('isPendingFinalBattle'), 'game manager must route pending victories safely');
   assert(editorUi.includes('this.codeModal.openExport') && editorUi.includes('this.codeModal.openImport'), 'build sharing must use the themed code dialog');
   assert(!editorUi.includes('prompt('), 'editor must not fall back to native prompt dialogs');
   assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('document.execCommand'), 'code dialog must trap focus and provide a clipboard fallback');
@@ -487,7 +512,6 @@ function verifyUiSafetyContracts() {
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
-  const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
