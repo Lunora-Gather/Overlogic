@@ -1,4 +1,4 @@
-// BossProtocolWarden.js — 3-phase boss. Mirrors scripts/enemies/BossProtocolWarden.gd.
+// BossProtocolWarden.js — four-phase boss. Mirrors scripts/enemies/BossProtocolWarden.gd.
 import { EnemyBase } from './EnemyBase.js?v=20260725-4';
 import { Projectile } from '../vfx/Projectile.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';

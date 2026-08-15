@@ -71,6 +71,18 @@ export class PostBattleReportUI {
         logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: 130px;">${escapeHtml(entity('action', a, a))}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
       }
     }
+    const enemyKills = report.enemy_kills || {};
+    const killEntries = Object.entries(enemyKills)
+      .filter(([, count]) => Number(count) > 0)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+    if (killEntries.length > 0) {
+      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.kills'))}</li>`;
+      for (const [enemyId, count] of killEntries) {
+        const enemy = GameDatabase.getEnemy(enemyId);
+        const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #ff9d6c; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
+      }
+    }
     if (unusedActions.length > 0) {
       logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">${escapeHtml(t('report.neverTriggered', { actions: unusedActions.map(a => entity('action', a, a)).join(', ') }))}</li>`;
     }

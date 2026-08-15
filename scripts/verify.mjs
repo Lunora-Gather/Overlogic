@@ -457,6 +457,8 @@ function verifyRuleTelemetryContracts() {
   tracker.recordAction('basic_attack', 'r1');
   tracker.tick(1);
   tracker.recordDamageTaken(6, 'crawler');
+  tracker.recordEnemyDeath('crawler');
+  tracker.recordEnemyDeath('crawler');
   tracker.recordWave(2, 3);
   const report = tracker.toReport();
   assert.deepEqual(report.active_rule_ids, ['r1']);
@@ -466,6 +468,7 @@ function verifyRuleTelemetryContracts() {
   assert.equal(report.timeline.some(event => event.kind === 'action'), true);
   assert.equal(report.timeline.some(event => event.kind === 'damage'), true);
   assert.equal(report.timeline.some(event => event.kind === 'wave'), true);
+  assert.equal(report.enemy_kills.crawler, 2, 'combat reports should preserve enemy kill distribution');
 }
 
 function verifySynergyContracts() {

@@ -77,7 +77,7 @@ MainMenu → LogicEditing → Combat → (Victory?) → RewardSelection → Logi
 4. 战斗结束：
    - 胜利 → 奖励界面（3 选 1）→ 回到编辑界面 → 下一场
    - 失败 → 复盘界面 → {重新编辑逻辑 / 重打本场 / 重开整局}
-5. 通过 5 场普通战斗后挑战 Boss `Protocol Warden`
+5. 通过 4–5 场普通战斗（路线可包含修复节点）后挑战 Boss `Protocol Warden` 或 `Apex Protocol Warden`
 6. Boss 胜利 → Demo 通关 → 回主菜单
 
 **关键约束**：
@@ -490,7 +490,7 @@ Demo 用按钮 + 下拉菜单实现，不要求拖拽。
 5. 敌人血条（Boss 顶部大血条）
 6. 战斗计时
 7. Pause 按钮
-8. Speed x1 / x2 按钮
+8. Speed x0.5 / x1 / x2 / x4 按钮
 9. Wave 信息（`Wave 1/2`）
 10. Overlogic 值条（见 §15）
 

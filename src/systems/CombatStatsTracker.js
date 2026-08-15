@@ -21,6 +21,7 @@ export class CombatStatsTracker {
     this.deathEnergy = 0;
     this.deathNearbyEnemyCount = 0;
     this.lowHpKills = 0;
+    this.enemyKills = new Map();
     this.timeline = [];
     this._lastDamageEventAt = -Infinity;
   }
@@ -67,7 +68,10 @@ export class CombatStatsTracker {
   recordCastingSeen() { this.castingEventsSeen += 1; }
   recordShieldActivated(hpPct) { this.shieldActivatedAtHp = hpPct; }   // latest activation wins
   recordLowHpKill() { this.lowHpKills += 1; }
-  recordEnemyDeath(enemyId) { /* hook for future use; matches Godot base no-op */ }
+  recordEnemyDeath(enemyId) {
+    if (!enemyId) return;
+    this.enemyKills.set(enemyId, (this.enemyKills.get(enemyId) || 0) + 1);
+  }
   recordWave(wave, total) { this._pushTimeline({ kind: 'wave', wave, total }); }
   recordRecall() { this._pushTimeline({ kind: 'recall' }); }
   _pushTimeline(event) {
@@ -98,6 +102,7 @@ export class CombatStatsTracker {
       death_energy: this.deathEnergy,
       death_nearby_enemy_count: this.deathNearbyEnemyCount,
       low_hp_kills: this.lowHpKills,
+      enemy_kills: Object.fromEntries(this.enemyKills),
       timeline: this.timeline,
     };
   }
