@@ -235,6 +235,9 @@ function verifyGameplayContracts() {
   assert.equal(GameState.currentMapColumn, 4);
 
   GameState.resetRun();
+  const ruleCountBeforeInvalidAdd = GameState.rules.length;
+  assert.equal(GameState.addRule('missing_condition', null, 'basic_attack', 1), false);
+  assert.equal(GameState.rules.length, ruleCountBeforeInvalidAdd, 'invalid rules must not enter the active build');
   const nearbyRule = GameState.rules.find(rule => rule.conditionId === 'enemy_nearby');
   GameState.setRuleConditionValue(nearbyRule.id, -999);
   assert.equal(nearbyRule.conditionValue, 1, 'condition parameters must clamp to their data contract');
@@ -302,12 +305,20 @@ function verifySaveMigration() {
   const changed = GameState.normalizeAfterDatabaseLoad();
   assert.equal(changed, true);
   assert.equal(GameState.currentMapColumn < GameState.mapNodes.length, true);
+  assert.equal(GameState.currentBattleIndex < GameDatabase.getBattleCount(), true);
   assert.equal(GameState.teachNode <= 4, true);
   assert.equal(GameState.persistentHp <= GameState.stats.max_hp, true);
   assert.deepEqual(GameState.unlockedConditionIds, ['surrounded']);
   assert.deepEqual(GameState.unlockedActionIds, ['repair']);
   assert.equal(GameState.rules.length, 1);
   assert.equal(GameState.rules[0].targetPriority, 'nearest', 'invalid target priorities must migrate safely');
+
+  const rulesBeforeInvalidLoadout = JSON.stringify(GameState.rules);
+  localStorage.setItem('overlogic_loadout_slot_1', JSON.stringify([
+    { id: 'bad', conditionId: 'missing_condition', actionId: 'missing_action' },
+  ]));
+  assert.equal(GameState.loadLoadout(1), false, 'invalid loadouts must be rejected without clearing rules');
+  assert.equal(JSON.stringify(GameState.rules), rulesBeforeInvalidLoadout);
 }
 
 function verifyUiSafetyContracts() {
@@ -317,6 +328,9 @@ function verifyUiSafetyContracts() {
   const editorUi = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
+  assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
+  assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
+  assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');

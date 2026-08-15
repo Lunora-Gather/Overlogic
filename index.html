@@ -285,18 +285,18 @@
       <h2 id="settings-title" data-i18n="settings.title">System Configuration</h2>
       <div class="settings-list" style="display: flex; flex-direction: column; gap: 16px; margin: 20px 0; text-align: left; width: 100%; max-width: 320px;">
         <div class="settings-group" style="display: flex; flex-direction: column; gap: 8px;">
-          <label data-i18n="settings.volume" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
+          <label for="setting-volume" data-i18n="settings.volume" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
           <div style="display: flex; align-items: center; gap: 12px;">
             <input type="range" id="setting-volume" min="0" max="1" step="0.05" value="0.8" style="flex: 1; cursor: pointer;">
             <span id="setting-volume-val" style="font-family: monospace; font-size: 12px; color: var(--txt); width: 40px; text-align: right;">80%</span>
           </div>
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
-          <label data-i18n="settings.mute" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Mute Audio</label>
+          <label for="setting-mute" data-i18n="settings.mute" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Mute Audio</label>
           <input type="checkbox" id="setting-mute" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
-          <label data-i18n="settings.shake" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Enable Camera Shake</label>
+          <label for="setting-shake" data-i18n="settings.shake" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Enable Camera Shake</label>
           <input type="checkbox" id="setting-shake" checked style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">

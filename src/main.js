@@ -14,6 +14,7 @@ import { AudioManager } from './systems/AudioManager.js?v=20260725-4';
 import { BackgroundAnim } from './systems/BackgroundAnim.js?v=20260725-4';
 import { escapeHtml } from './ui/safeHtml.js?v=20260725-4';
 import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
+import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
 
 async function main() {
   await GameDatabase.loadAll();
@@ -135,6 +136,7 @@ async function main() {
 
   // Settings Overlay Wiring
   const settingsOverlay = document.getElementById('settings-overlay');
+  trapDialogFocus(settingsOverlay);
   const btnSettingsMain = document.getElementById('btn-settings');
   const btnSettingsEditor = document.getElementById('btn-editor-settings');
   const btnSettingsCombat = document.getElementById('btn-combat-settings');

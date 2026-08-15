@@ -64,7 +64,8 @@ export class RobotController {
           dirX = dx / dist;
           dirY = dy / dist;
         } else {
-          const ang = Math.random() * Math.PI * 2;
+          const random = this.ctx?.random || Math.random;
+          const ang = random() * Math.PI * 2;
           dirX = Math.cos(ang);
           dirY = Math.sin(ang);
         }

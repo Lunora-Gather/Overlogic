@@ -81,7 +81,7 @@ export class RewardUI {
       const card = document.createElement('div');
       card.className = 'reward-card';
       card.tabIndex = 0;
-      card.role = 'button';
+      card.setAttribute('role', 'button');
       card.setAttribute('aria-label', rewardDisplayName(r));
       const icon = TYPE_ICONS[r.rewardType] || '✦';
       const typeLabel = t(`rewardType.${r.rewardType}`);

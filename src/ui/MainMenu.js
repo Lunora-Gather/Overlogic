@@ -4,6 +4,7 @@ import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { GameState } from '../core/GameState.js?v=20260725-4';
 import { getLocale, setLocale, t } from '../i18n/I18n.js?v=20260725-4';
+import { trapDialogFocus } from './focusTrap.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -21,6 +22,7 @@ export class MainMenu {
     this.runConfigHint = document.getElementById('run-config-hint');
     this.howBody = document.getElementById('how-body');
     this._howReturnFocus = null;
+    trapDialogFocus(this.overlay);
     this._bind();
     this.render();
   }

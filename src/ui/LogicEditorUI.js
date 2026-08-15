@@ -487,6 +487,11 @@ export class LogicEditorUI {
 
   renderRules() {
     this.ruleList.innerHTML = '';
+    if (this.btnAddRule) {
+      const atLimit = GameState.rules.length >= 40;
+      this.btnAddRule.disabled = atLimit;
+      this.btnAddRule.title = atLimit ? t('editor.ruleLimit') : '';
+    }
     this._activeWarnings = this.analyzeRules();
 
     const searchQuery = this.rulesSearch ? this.rulesSearch.value.toLowerCase() : '';
@@ -1106,9 +1111,10 @@ export class LogicEditorUI {
 
       const targetPrio = this.fTarget.value || 'nearest';
 
-      GameState.addRule(condId, val, actId, prio, condId2, val2, op, targetPrio);
-      AudioManager.play('rule_add');
-      this.ruleForm.classList.add('hidden');
+      if (GameState.addRule(condId, val, actId, prio, condId2, val2, op, targetPrio)) {
+        AudioManager.play('rule_add');
+        this.ruleForm.classList.add('hidden');
+      }
     });
     this.fCond.addEventListener('change', () => this._refreshFormParam());
     this.fCond2.addEventListener('change', () => this._refreshFormParam2());

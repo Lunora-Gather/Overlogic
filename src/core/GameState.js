@@ -9,6 +9,7 @@ const RUN_MODES = new Set(['standard', 'daily']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
 const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
+const MAX_RULES = 40;
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
 const MAP_NODE_IDS = [
@@ -404,19 +405,26 @@ class GameStateClass {
   }
 
   addRule(condId, condVal, actId, prio, condId2 = null, condVal2 = null, operator = null, targetPriority = 'nearest') {
+    if (this.rules.length >= MAX_RULES) return false;
+    if (!this.availableConditionIds().includes(condId) || !this.availableActionIds().includes(actId)) return false;
+    if ((operator === 'and' || operator === 'or') && !this.availableConditionIds().includes(condId2)) return false;
     this._pushState();
     this.rules.push(this._newRule(condId, condVal, actId, prio, condId2, condVal2, operator, targetPriority));
     this.saveToStorage();
     this._emit('rules');
+    return true;
   }
   setRuleTargetPriority(ruleId, priority) {
     const r = this.rules.find(r => r.id === ruleId);
-    if (r && r.targetPriority !== priority) {
+    const normalized = TARGET_PRIORITIES.has(priority) ? priority : 'nearest';
+    if (r && r.targetPriority !== normalized) {
       this._pushState();
-      r.targetPriority = priority;
+      r.targetPriority = normalized;
       this.saveToStorage();
       this._emit('rules');
+      return true;
     }
+    return false;
   }
   removeRule(ruleId) {
     this._pushState();
@@ -553,6 +561,7 @@ class GameStateClass {
   importRulesCode(code) {
     try {
       const raw = String(code || '').trim();
+      if (raw.length > 65536) return false;
       if (!raw.startsWith('OL1-')) return false;
       const binary = atob(raw.slice(4));
       const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
@@ -770,24 +779,32 @@ class GameStateClass {
       if (!raw) return false;
       const loadedRules = JSON.parse(raw);
       if (!Array.isArray(loadedRules)) return false;
-      this._pushState();
       const availConds = this.availableConditionIds();
       const availActs = this.availableActionIds();
       const prevLength = loadedRules.length;
-      this.rules = loadedRules.filter(r => {
+      const normalizedRules = loadedRules.filter(r => {
+        const operator = r.operator === 'and' || r.operator === 'or' ? r.operator : null;
         const condOk = availConds.includes(r.conditionId);
-        const cond2Ok = !r.operator || availConds.includes(r.conditionId2);
+        const cond2Ok = !operator || availConds.includes(r.conditionId2);
         const actOk = availActs.includes(r.actionId);
         return condOk && cond2Ok && actOk;
       }).slice(0, 40).map(r => ({
         ...r,
+        operator: r.operator === 'and' || r.operator === 'or' ? r.operator : null,
+        conditionId2: r.operator === 'and' || r.operator === 'or' ? r.conditionId2 : null,
         conditionValue: this._normalizeConditionValue(r.conditionId, r.conditionValue),
-        conditionValue2: r.operator && r.conditionId2
+        conditionValue2: (r.operator === 'and' || r.operator === 'or') && r.conditionId2
           ? this._normalizeConditionValue(r.conditionId2, r.conditionValue2)
           : null,
         priority: Math.max(0, Math.min(100, r.priority | 0)),
         targetPriority: TARGET_PRIORITIES.has(r.targetPriority) ? r.targetPriority : 'nearest',
+        negateCondition1: r.negateCondition1 === true,
+        negateCondition2: r.negateCondition2 === true,
+        enabled: r.enabled !== false,
       }));
+      if (normalizedRules.length === 0) return false;
+      this._pushState();
+      this.rules = normalizedRules;
       this.saveToStorage();
       this._emit('rules');
       return { ok: true, filtered: this.rules.length < prevLength };
@@ -840,6 +857,12 @@ class GameStateClass {
     const clampedTeach = Math.max(MIN_TEACH_NODE, Math.min(MAX_TEACH_NODE, this.teachNode | 0));
     if (clampedTeach !== this.teachNode) {
       this.teachNode = clampedTeach;
+      changed = true;
+    }
+    const maxBattleIndex = Math.max(0, GameDatabase.getBattleCount() - 1);
+    const clampedBattleIndex = Math.max(0, Math.min(maxBattleIndex, this.currentBattleIndex | 0));
+    if (clampedBattleIndex !== this.currentBattleIndex) {
+      this.currentBattleIndex = clampedBattleIndex;
       changed = true;
     }
     const mergedStats = { ...baseStats(), ...(this.stats || {}) };
@@ -912,7 +935,7 @@ class GameStateClass {
       if (!validConds.has(rule.conditionId) || !validActs.has(rule.actionId)) return false;
       if (rule.operator && !validConds.has(rule.conditionId2)) return false;
       return true;
-    }).map(rule => {
+    }).slice(0, MAX_RULES).map(rule => {
       let id = String(rule.id || '');
       if (!id || usedRuleIds.has(id)) id = this._nextRuleId();
       usedRuleIds.add(id);
