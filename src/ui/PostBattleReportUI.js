@@ -2,6 +2,7 @@
 
 import { GameState } from '../core/GameState.js?v=20260725-4';
 import { GameManager } from '../core/GameManager.js?v=20260725-4';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 import { buildReport } from '../systems/PostBattleReportBuilder.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { drawStatsChart } from './StatsChart.js?v=20260725-4';

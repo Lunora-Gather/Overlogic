@@ -43,6 +43,15 @@ function verifySyntax() {
   }
 }
 
+async function verifyImportGraph() {
+  // Import every UI module without constructing it. This catches missing
+  // runtime imports that syntax checks cannot see (for example, a report
+  // renderer referencing a database singleton without importing it).
+  for (const file of fs.readdirSync('src/ui').filter((name) => name.endsWith('.js'))) {
+    await import(`../src/ui/${file}`);
+  }
+}
+
 function verifyDataContracts() {
   const errors = [];
   for (let i = 0; i < GameDatabase.getBattleCount(); i += 1) {
@@ -423,6 +432,7 @@ function verifyUiSafetyContracts() {
   assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
+  assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'), 'background animation must pause with hidden combat and resume on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
@@ -430,9 +440,11 @@ function verifyUiSafetyContracts() {
   const buildScript = fs.readFileSync('scripts/build.mjs', 'utf8');
   const devServer = fs.readFileSync('scripts/serve.mjs', 'utf8');
   const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+  const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
+  assert(reportUi.includes("import { GameDatabase } from '../core/GameDatabase.js") && reportUi.includes('GameDatabase.getEnemy'), 'failure report must resolve enemy telemetry through the database');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
   assert.equal(t('combat.temperature'), '核心温度');
@@ -538,6 +550,7 @@ function verifySimulation() {
 }
 
 verifySyntax();
+await verifyImportGraph();
 verifyDataContracts();
 await verifyGameplayContracts();
 verifyReportContracts();

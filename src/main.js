@@ -189,13 +189,14 @@ async function main() {
     if (!arena || GameManager.state !== 'combat') return;
     if (document.hidden && !arena.paused) {
       visibilityPausedCombat = true;
+      bgAnim?.stop();
       arena.setPaused(true);
       battleHUD.btnPause.textContent = t('combat.resume');
       battleHUD.btnPause.setAttribute('aria-pressed', 'true');
       battleHUD.btnStep.classList.remove('hidden');
     } else if (!document.hidden && visibilityPausedCombat) {
       visibilityPausedCombat = false;
-      bgAnim?.stop();
+      bgAnim?.start();
       arena.setPaused(false);
       battleHUD.btnPause.textContent = t('combat.pause');
       battleHUD.btnPause.setAttribute('aria-pressed', 'false');

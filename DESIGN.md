@@ -740,7 +740,7 @@ Your Logic Survived
 
 | 类 | 职责 |
 |----|------|
-| `GameManager` | 全局状态机：MainMenu / LogicEditing / Combat / RewardSelection / PostBattleReport / Victory / GameOver |
+| `GameManager` | 全局状态机：MainMenu / LogicEditing / Combat / RewardSelection / PostBattleReport / Victory |
 | `GameState` | 一局流程状态：战斗进度、奖励累积、失败重开、存档与迁移 |
 | `BattleContext` | 战斗中共享上下文：所有敌人、子弹、地雷、时间、统计 |
 | `LogicBrain` | 读取玩家规则，Tick 判断应执行动作 |
@@ -780,6 +780,8 @@ MainMenu → LogicEditing → Combat → RewardSelection → LogicEditing …
 ```
 Overlogic/
   index.html / style.css      # 应用壳层与响应式视觉系统
+  manifest.webmanifest        # 可安装 Web App 元数据
+  sw.js / icon.svg            # 版本化离线缓存、应用图标
   data/                       # 条件、动作、敌人、战斗、奖励内容
   src/
     core/                     # GameManager、GameState、CombatArena、BattleContext、GameDatabase
@@ -794,6 +796,8 @@ Overlogic/
   scripts/                    # serve、build、verify、balance
   DESIGN.md / README.md       # 设计约束、架构说明与发布指引
 ```
+
+发布层约束：`scripts/build.mjs` 只将上述运行时文件复制到 `dist/`，并为模块、数据和 Service Worker 注入提交版本。Service Worker 只处理同源 GET 请求，导航使用 network-first，静态资源使用 stale-while-revalidate；任何离线能力都不能阻塞首屏启动。
 
 ---
 
@@ -851,20 +855,19 @@ Overlogic/
 
 ---
 
-## 22. 可扩展系统（Demo 不做，结构预留）
+## 22. 可扩展系统（已实现与后续方向）
+
+已实现：高级条件组合 AND / OR、每场战斗时间轴复盘、每日种子、Veteran 难度、沙盒场景、构筑代码导入/导出。
+
+后续方向：
 
 1. 多机器人小队
-2. 规则链条
-3. 逻辑冲突系统（`Directive Conflict Detected`）
-4. 高级条件组合 AND / OR
-5. 敌人弱点识别
-6. 无人机流派
-7. 玩家自定义机器人外观
-8. 日志回放系统
-9. 每场战斗时间轴复盘
-10. 创意工坊分享逻辑配置
-11. B 面高难挑战
-12. 无限模式 / 每日挑战
+2. 规则链条与逻辑冲突系统（`Directive Conflict Detected`）
+3. 敌人弱点识别
+4. 无人机流派与玩家自定义机器人外观
+5. 日志回放系统
+6. 创意工坊与在线构筑分享
+7. B 面高难挑战与无限模式
 
 **Overlogic 失控（预留）**：冲突越多 Overlogic 越高 → 爆发提升 → 过高则短暂失控（忽略低优先级规则）。Demo 仅正向，`OverlogicValue` 字段与失控挂钩点预留。
 
@@ -872,26 +875,26 @@ Overlogic/
 
 ## 23. 验收 Checklist
 
-- [ ] 玩家可进入游戏。
-- [ ] 玩家可编辑逻辑规则。
-- [ ] 机器人按规则自动战斗。
-- [ ] 修改规则明显影响战斗结果。
-- [ ] ≥3 种普通敌人。
-- [ ] ≥1 个 Boss。
-- [ ] ≥6 场战斗。
-- [ ] 战斗胜利后可选奖励。
-- [ ] 失败后有复盘信息。
-- [ ] 游戏可完整通关一次。
-- [ ] 核心系统代码结构清晰、可扩展。
-- [ ] 无导致游戏无法运行的 TODO。
-- [ ] 不是 UI 假界面，有真实战斗逻辑。
-- [ ] 玩家不可直接控制机器人移动。
-- [ ] 标题显示为 `Overlogic`。
-- [ ] 战斗中显示 Current Logic。
-- [ ] 失败复盘含伤害来源、最常用动作、建议。
-- [ ] 11 类音效到位。
-- [ ] 教学逐步解锁（4 个节点）。
-- [ ] Overlogic 值条显示，达阈值有效果。
+- [x] 玩家可进入游戏。
+- [x] 玩家可编辑逻辑规则。
+- [x] 机器人按规则自动战斗。
+- [x] 修改规则明显影响战斗结果。
+- [x] ≥3 种普通敌人。
+- [x] ≥1 个 Boss。
+- [x] ≥6 场战斗。
+- [x] 战斗胜利后可选奖励。
+- [x] 失败后有复盘信息。
+- [x] 游戏可完整通关一次。
+- [x] 核心系统代码结构清晰、可扩展。
+- [x] 无导致游戏无法运行的 TODO。
+- [x] 不是 UI 假界面，有真实战斗逻辑。
+- [x] 玩家不可直接控制机器人移动。
+- [x] 标题显示为 `Overlogic`。
+- [x] 战斗中显示 Current Logic。
+- [x] 失败复盘含伤害来源、最常用动作、建议。
+- [x] 11 类音效到位。
+- [x] 教学逐步解锁（4 个节点）。
+- [x] Overlogic 值条显示，达阈值有效果。
 
 ---
 
