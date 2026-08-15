@@ -24,8 +24,9 @@ const appNoticeAction = document.getElementById('btn-app-notice-action');
 const appNoticeClose = document.getElementById('btn-app-notice-close');
 const appVersion = document.getElementById('app-version');
 const releaseMeta = document.querySelector('meta[name="overlogic-release"]');
-if (appVersion) appVersion.textContent = releaseMeta?.content && releaseMeta.content !== '__RELEASE__'
-  ? releaseMeta.content : 'DEV';
+const releaseId = releaseMeta?.content || '';
+if (appVersion) appVersion.textContent = /^[A-Za-z0-9][A-Za-z0-9._-]{6,39}$/.test(releaseId)
+  ? releaseId : 'DEV';
 let noticeTimer = null;
 let noticeActionHandler = null;
 
