@@ -36,6 +36,10 @@ export class BackgroundAnim {
     const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
     this.canvas.width = this.width * pixelRatio;
     this.canvas.height = this.height * pixelRatio;
+    // Assigning canvas.width/height resets the bitmap, but not every browser
+    // implementation resets the 2D transform consistently across resize
+    // events. Explicitly reset it so repeated resizes never compound scale().
+    this.g.setTransform(1, 0, 0, 1, 0, 0);
     this.g.scale(pixelRatio, pixelRatio);
   }
 

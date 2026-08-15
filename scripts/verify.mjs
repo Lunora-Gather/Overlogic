@@ -371,6 +371,7 @@ function verifyUiSafetyContracts() {
   const editorUi = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
   const codeModalUi = fs.readFileSync('src/ui/CodeModal.js', 'utf8');
   const particleSystem = fs.readFileSync('src/vfx/ParticleSystem.js', 'utf8');
+  const backgroundAnim = fs.readFileSync('src/systems/BackgroundAnim.js', 'utf8');
   const mainUi = fs.readFileSync('src/main.js', 'utf8');
   const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
@@ -404,6 +405,7 @@ function verifyUiSafetyContracts() {
   assert(!editorUi.includes('prompt('), 'editor must not fall back to native prompt dialogs');
   assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('document.execCommand'), 'code dialog must trap focus and provide a clipboard fallback');
   assert(particleSystem.includes('reduceMotion') && particleSystem.includes('spawnEngineTrail'), 'reduced motion must reach the canvas particle system');
+  assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
