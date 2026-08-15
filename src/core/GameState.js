@@ -427,10 +427,12 @@ class GameStateClass {
     return false;
   }
   removeRule(ruleId) {
+    if (!this.rules.some(rule => rule.id === ruleId)) return false;
     this._pushState();
     this.rules = this.rules.filter(r => r.id !== ruleId);
     this.saveToStorage();
     this._emit('rules');
+    return true;
   }
   setRulePriority(ruleId, prio) {
     const r = this.rules.find(r => r.id === ruleId);
@@ -496,10 +498,11 @@ class GameStateClass {
   }
   setRuleOperator(ruleId, op) {
     const r = this.rules.find(r => r.id === ruleId);
-    if (r && r.operator !== op) {
+    const normalizedOp = op === 'and' || op === 'or' ? op : null;
+    if (r && r.operator !== normalizedOp) {
       this._pushState();
-      r.operator = op || null;
-      if (!op) {
+      r.operator = normalizedOp;
+      if (!normalizedOp) {
         r.conditionId2 = null;
         r.conditionValue2 = null;
       } else if (!r.conditionId2) {
@@ -782,26 +785,40 @@ class GameStateClass {
       const availConds = this.availableConditionIds();
       const availActs = this.availableActionIds();
       const prevLength = loadedRules.length;
+      const normalizedRuleIds = new Set();
       const normalizedRules = loadedRules.filter(r => {
         const operator = r.operator === 'and' || r.operator === 'or' ? r.operator : null;
         const condOk = availConds.includes(r.conditionId);
         const cond2Ok = !operator || availConds.includes(r.conditionId2);
         const actOk = availActs.includes(r.actionId);
         return condOk && cond2Ok && actOk;
-      }).slice(0, 40).map(r => ({
-        ...r,
-        operator: r.operator === 'and' || r.operator === 'or' ? r.operator : null,
-        conditionId2: r.operator === 'and' || r.operator === 'or' ? r.conditionId2 : null,
-        conditionValue: this._normalizeConditionValue(r.conditionId, r.conditionValue),
-        conditionValue2: (r.operator === 'and' || r.operator === 'or') && r.conditionId2
-          ? this._normalizeConditionValue(r.conditionId2, r.conditionValue2)
-          : null,
-        priority: Math.max(0, Math.min(100, r.priority | 0)),
-        targetPriority: TARGET_PRIORITIES.has(r.targetPriority) ? r.targetPriority : 'nearest',
-        negateCondition1: r.negateCondition1 === true,
-        negateCondition2: r.negateCondition2 === true,
-        enabled: r.enabled !== false,
-      }));
+      }).slice(0, 40).map(r => {
+        // Loadouts can outlive the current run or come from a shared file.
+        // Keep stable IDs when possible, but repair duplicates and advance the
+        // counter so a subsequent addRule() cannot create the same ID.
+        const rawId = String(r.id || '');
+        const idMatch = /^rule_(\d+)$/.exec(rawId);
+        const numericId = idMatch ? Number(idMatch[1]) : 0;
+        if (Number.isSafeInteger(numericId)) this._ruleCounter = Math.max(this._ruleCounter, numericId);
+        const id = rawId && !normalizedRuleIds.has(rawId) ? rawId : this._nextRuleId();
+        normalizedRuleIds.add(id);
+        const operator = r.operator === 'and' || r.operator === 'or' ? r.operator : null;
+        return {
+          ...r,
+          id,
+          operator,
+          conditionId2: operator ? r.conditionId2 : null,
+          conditionValue: this._normalizeConditionValue(r.conditionId, r.conditionValue),
+          conditionValue2: operator && r.conditionId2
+            ? this._normalizeConditionValue(r.conditionId2, r.conditionValue2)
+            : null,
+          priority: Math.max(0, Math.min(100, r.priority | 0)),
+          targetPriority: TARGET_PRIORITIES.has(r.targetPriority) ? r.targetPriority : 'nearest',
+          negateCondition1: r.negateCondition1 === true,
+          negateCondition2: r.negateCondition2 === true,
+          enabled: r.enabled !== false,
+        };
+      });
       if (normalizedRules.length === 0) return false;
       this._pushState();
       this.rules = normalizedRules;
@@ -928,7 +945,8 @@ class GameStateClass {
     const beforeRulesJson = JSON.stringify(this.rules || []);
     for (const rule of this.rules || []) {
       const match = /^rule_(\d+)$/.exec(String(rule.id || ''));
-      if (match) this._ruleCounter = Math.max(this._ruleCounter, Number(match[1]) || 0);
+      const numericId = match ? Number(match[1]) : 0;
+      if (Number.isSafeInteger(numericId)) this._ruleCounter = Math.max(this._ruleCounter, numericId);
     }
     const usedRuleIds = new Set();
     this.rules = (this.rules || []).filter(rule => {

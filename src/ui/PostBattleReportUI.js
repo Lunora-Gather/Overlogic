@@ -121,6 +121,7 @@ export class PostBattleReportUI {
     
     // Draw performance charts
     drawStatsChart(this.canvas, report);
+    this.btnRetry?.focus();
   }
 
   _renderTimeline(events) {

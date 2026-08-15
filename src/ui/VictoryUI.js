@@ -42,6 +42,7 @@ export class VictoryUI {
     drawStatsChart(this.canvas, report);
     this._renderStats(report);
     this._renderRulesSummary();
+    this.replayBtn?.focus();
   }
 
   _renderStats(report) {

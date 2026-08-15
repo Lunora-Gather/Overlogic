@@ -34,6 +34,7 @@ export class RewardUI {
       this._currentOptions = buildRewardOptions(justWonBattle);
     }
     this._render();
+    this.optionsEl.querySelector('.reward-card, button')?.focus();
   }
 
   _render() {

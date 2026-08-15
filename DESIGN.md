@@ -83,7 +83,7 @@ MainMenu → LogicEditing → Combat → (Victory?) → RewardSelection → Logi
 **关键约束**：
 
 - 战斗中玩家不可移动机器人、不可改逻辑。
-- 战斗中可暂停、可调速（x1 / x2）。
+- 战斗中可暂停、可调速（x0.5 / x1 / x2 / x4）。
 - 仅战斗结束后可改逻辑。
 
 ---
@@ -168,7 +168,7 @@ function TickLogicBrain(robot, ctx, rules):
 | `enemy_casting` | Enemy Casting | none | — | — | — | ✅ |
 | `surrounded` | Surrounded | {radius(m), count} | {4, 3} | — | — | [扩展] |
 | `skill_ready` | Skill Ready | actionId | `basic_attack` | — | — | [扩展] |
-| `boss_phase` | Boss Phase | phase(int) | 2 | 1 | 3 | [扩展] |
+| `boss_phase` | Boss Phase | phase(int) | 2 | 1 | 4 | ✅ |
 | `enemy_hp_low` | Enemy HP Low | percent(0–1) | 0.25 | 0.05 | 0.95 | [扩展] |
 | `projectile_nearby` | Projectile Nearby | radius(m) | 2.4 | 0.8 | 8 | ✅ |
 
@@ -262,7 +262,7 @@ function TickLogicBrain(robot, ctx, rules):
 
 #### Boss 状态（阶段机）
 
-`Phase1 (100%–65%) → Phase2 (65%–30%) → Phase3 (30%–0%) → Dead`
+`Phase1 (100%–65%) → Phase2 (65%–30%) → Phase3 (30%–15%) → Phase4 (15%–0%) → Dead`
 
 ---
 
@@ -324,6 +324,7 @@ function TickLogicBrain(robot, ctx, rules):
 | Body Radius | 0.8 m |
 | Phase 2 触发 | HP ≤ 65% |
 | Phase 3 触发 | HP ≤ 30% |
+| Phase 4 触发 | HP ≤ 15% |
 
 #### Phase 1（100%–65%）
 
@@ -337,17 +338,22 @@ function TickLogicBrain(robot, ctx, rules):
 - 弹幕频率提升至每 `1.3s` 一次。
 - 玩家应：被包围 Dash Away、优先清小怪、合理 Overdrive。
 
-#### Phase 3（30%–0%）
+#### Phase 3（30%–15%）
 
 - 每 `5s` 进入 `Casting`（telegraph `1.5s`）释放大范围激光：覆盖前方 `8m × 3m` 矩形，命中 `30 dmg`。
 - 激光可被 Interrupt Shot 打断。
 - 玩家应：Enemy Casting → Interrupt Shot；Interrupt Shot 冷却中 → Shield。
 
+#### Phase 4（15%–0%）
+
+- Boss 围绕竞技场中心高速环绕，每 `0.55s` 释放 6 发环形弹幕（`7 m/s`，每发 `6 dmg`）。
+- 进入最终阶段后不再施放激光，重点考验弹幕规避、护盾与能量循环。
+
 **阶段切换反馈**：屏幕震动 `0.3s` + UI 提示 `Protocol Warden: Phase N` + 阶段切换音效。
 
 ---
 
-## 9. 关卡设计（6 场）
+## 9. 关卡设计（10 个战斗内容；每局选择 6 个战斗节点）
 
 | # | 名称 | 敌人组成 | 教学目的 | 解锁/奖励 |
 |---|------|----------|----------|-----------|
@@ -355,10 +361,14 @@ function TickLogicBrain(robot, ctx, rules):
 | 2 | Distance Test | 2 × Shooter + 2 × Crawler | 突进远程 | 胜利后奖励 3 选 1 |
 | 3 | Charge Warning | 2 × Charger + 2 × Crawler | 打断 | 胜利后奖励 3 选 1 |
 | 4 | Swarm | 8 × Crawler + 1 × Shooter | 包围逃脱 | 胜利后奖励 3 选 1 |
-| 5 | Mixed Protocol | 3 × Crawler + 2 × Shooter + 2 × Charger | 综合 | 胜利后奖励 3 选 1 |
-| 6 | Protocol Warden | Boss | 终局 | 通关 |
+| 5 | Shadow Grid | 5 × Shooter + 2 × EMP Drone | 弹幕与 EMP | 胜利后奖励 3 选 1 |
+| 6 | Iron Tide | 5 × Charger + 3 × Crawler | 多波冲锋 | 胜利后奖励 3 选 1 |
+| 7 | Mixed Protocol | 3 × Crawler + 2 × Shooter + 2 × Charger | 综合 | 胜利后奖励 3 选 1 |
+| 8 | Crucible | 6 × Crawler + 3 × EMP Drone + 2 × Charger + 3 × Shooter | 全敌人混合 | 胜利后奖励 3 选 1 |
+| 9 | Protocol Warden | Boss | 终局标准路线 | 通关 |
+| 10 | Apex Protocol Warden | Apex Boss + 2 × EMP Drone | 终局挑战路线 | 通关 |
 
-每场敌人分 2 波生成（避免一开场全挤在场边）；波间隔 `2s`。
+每场敌人按数据表分 1–3 波生成（避免一开场全挤在场边）；波间隔 `1.15s`。
 
 ---
 
@@ -367,11 +377,11 @@ function TickLogicBrain(robot, ctx, rules):
 | 节点 | 解锁内容 | 自动追加规则 |
 |------|----------|--------------|
 | Battle 1 前 | `enemy_nearby`, `basic_attack`, `dash_away`, `hp_low`, `shield` | Rule 1/2/3（见 §5.3） |
-| Battle 2 后 | `enemy_far`, `dash_toward` | Rule 4: `IF enemy_far @5 THEN dash_toward PRIORITY 50` |
-| Battle 3 后 | `enemy_casting`, `interrupt_shot` | Rule 5: `IF enemy_casting THEN interrupt_shot PRIORITY 90` |
-| Battle 4 后 | `energy_high`, `overdrive` | Rule 6: `IF energy_high @80% THEN overdrive PRIORITY 60` |
+| Battle 1 后 | `enemy_far`, `projectile_nearby`, `hp_above`, `dash_toward`, `sidestep` | 自动追加站位与弹幕规避规则 |
+| Battle 2 后 | `battle_time_above`, `enemy_count_high`, `enemy_casting`, `interrupt_shot` | 自动追加蓄力打断规则 |
+| Battle 3 后 | `energy_high`, `overdrive` | 自动追加 `IF energy_high @80% THEN overdrive PRIORITY 60` |
 
-> 修正：原文"第四关后解锁 Overdrive"与"Battle 4 后解锁"一致；Battle 5、6 不再解锁新模块，靠奖励系统扩展。
+> Battle 4 之后不再自动追加教学规则，后续通过奖励模块、协同协议与路线选择扩展构筑。
 
 ---
 
@@ -731,7 +741,7 @@ Your Logic Survived
 | 类 | 职责 |
 |----|------|
 | `GameManager` | 全局状态机：MainMenu / LogicEditing / Combat / RewardSelection / PostBattleReport / Victory / GameOver |
-| `RunManager` | 一局流程：战斗进度、奖励累积、失败重开 |
+| `GameState` | 一局流程状态：战斗进度、奖励累积、失败重开、存档与迁移 |
 | `BattleContext` | 战斗中共享上下文：所有敌人、子弹、地雷、时间、统计 |
 | `LogicBrain` | 读取玩家规则，Tick 判断应执行动作 |
 | `ConditionEvaluator` | 条件判定（按 conditionId 分派） |
@@ -740,9 +750,9 @@ Your Logic Survived
 | `RobotStats` | 机器人属性（含被动强化累积） |
 | `EnemyBase` | 敌人基类：状态机、HP、移动、受伤 |
 | `CrawlerEnemy` / `ShooterEnemy` / `ChargerEnemy` | 三种普通敌人 |
-| `BossProtocolWarden` | Boss 三阶段 |
+| `BossProtocolWarden` | Protocol Warden 四阶段与阶段技能 |
 | `Projectile` | 子弹：移动、命中、销毁 |
-| `ArenaManager` | 生成敌人、竞技场边界、波次 |
+| `CombatArena` | 生成敌人、竞技场边界、波次、碰撞与战斗循环 |
 | `RewardManager` | 奖励生成、解锁分段、应用 |
 | `CombatStatsTracker` | 战斗统计记录（供复盘） |
 | `PostBattleReportBuilder` | 复盘报告生成（确定性） |
@@ -752,6 +762,8 @@ Your Logic Survived
 | `PostBattleReportUI` | 复盘界面 |
 | `AudioManager` | 音效音乐管理 |
 | `OverlogicSystem` | Overlogic 值计算与效果 |
+| `GameDatabase` | 加载并校验 `data/*.json`，向运行时提供统一内容契约 |
+| `ProtocolSynergies` / `RunModifiers` | 协同协议与难度/路线修正 |
 
 ### 18.2 主状态机
 
@@ -763,22 +775,24 @@ MainMenu → LogicEditing → Combat → RewardSelection → LogicEditing …
                           Victory → MainMenu
 ```
 
-### 18.3 文件结构（Godot 4 参考）
+### 18.3 文件结构（Web / ES Modules）
 
 ```
-res://
-  scenes/        MainMenu.tscn LogicEditor.tscn CombatArena.tscn RewardScreen.tscn PostBattleReport.tscn
-  scripts/
-    core/        GameManager.gd RunManager.gd BattleContext.gd
-    logic/       LogicBrain.gd LogicRule.gd ConditionEvaluator.gd ActionExecutor.gd
-    robot/       RobotController.gd RobotStats.gd
-    enemies/     EnemyBase.gd CrawlerEnemy.gd ShooterEnemy.gd ChargerEnemy.gd BossProtocolWarden.gd
-    vfx/         Projectile.gd Mine.gd
-    ui/          LogicEditorUI.gd BattleHUD.gd RewardUI.gd PostBattleReportUI.gd
-    data/        ConditionData.gd ActionData.gd EnemyData.gd RewardData.gd
-    systems/     OverlogicSystem.gd CombatStatsTracker.gd PostBattleReportBuilder.gd AudioManager.gd
-  assets/        sprites/ audio/ fonts/ vfx/
-  data/          conditions.json actions.json enemies.json battles.json rewards.json
+Overlogic/
+  index.html / style.css      # 应用壳层与响应式视觉系统
+  data/                       # 条件、动作、敌人、战斗、奖励内容
+  src/
+    core/                     # GameManager、GameState、CombatArena、BattleContext、GameDatabase
+    logic/                    # LogicBrain、LogicRule、ConditionEvaluator、ActionExecutor
+    robot/                    # RobotController、RobotStats
+    enemies/                  # EnemyBase、普通敌人、BossProtocolWarden
+    render/                   # ArenaRenderer、Camera
+    vfx/                      # Projectile、Mine、HazardTile、ParticleSystem
+    systems/                  # 奖励、协同协议、统计、报告、音频与运行修正
+    ui/                       # 主菜单、编辑器、HUD、奖励、报告与胜利界面
+    i18n/                     # 简体中文、繁體中文、English 文案
+  scripts/                    # serve、build、verify、balance
+  DESIGN.md / README.md       # 设计约束、架构说明与发布指引
 ```
 
 ---
@@ -792,7 +806,7 @@ res://
 | 3 | 逻辑编辑 UI：规则列表 + 增删 + 改优先级 + 改条件参数 + 开始战斗按钮 | 不写代码即可配置机器人行为 |
 | 4 | 敌人类型：Crawler / Shooter / Charger | 三种行为明显不同，需不同逻辑应对 |
 | 5 | 奖励系统：胜利后 3 选 1，奖励影响后续战斗 | 每场后构筑变强或产生新策略 |
-| 6 | Boss：Protocol Warden 三阶段 + 血量切换 + 通关 | Boss 逼迫玩家综合使用前述逻辑 |
+| 6 | Boss：Protocol Warden 四阶段 + 血量切换 + 通关 | Boss 逼迫玩家综合使用前述逻辑 |
 | 7 | 复盘系统：失败原因 + 伤害来源 + 最常用动作 + 建议 | 玩家失败后能知道如何调整逻辑 |
 | 8 | 表现增强：粒子 + 音效 + UI 动画 + 震屏 + 阶段提示 + 开始/胜利反馈 | 基本完成度，不像纯测试项目 |
 

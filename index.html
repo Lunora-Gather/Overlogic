@@ -138,24 +138,24 @@
         </div>
 
         <div id="rule-form" class="rule-form hidden">
-          <select id="f-cond"></select>
+          <select id="f-cond" aria-label="Primary condition for new rule" data-i18n-aria-label="editor.formCondition1"></select>
           <span id="f-cond-param"></span>
-          <select id="f-op" style="width: 80px;">
+          <select id="f-op" style="width: 80px;" aria-label="Condition operator for new rule" data-i18n-aria-label="editor.formOperator">
             <option value="" data-i18n="common.none">None</option>
             <option value="and">AND</option>
             <option value="or">OR</option>
           </select>
-          <select id="f-cond2" class="hidden"></select>
+          <select id="f-cond2" class="hidden" aria-label="Secondary condition for new rule" data-i18n-aria-label="editor.formCondition2"></select>
           <span id="f-cond2-param" class="hidden"></span>
           <span class="muted">→</span>
-          <select id="f-act"></select>
-          <select id="f-target" class="hidden" style="width: 100px;">
+          <select id="f-act" aria-label="Action for new rule" data-i18n-aria-label="editor.formAction"></select>
+          <select id="f-target" class="hidden" style="width: 100px;" aria-label="Target priority for new rule" data-i18n-aria-label="editor.formTarget">
             <option value="nearest" data-i18n="target.nearest">Nearest</option>
             <option value="lowest_hp" data-i18n="target.lowest_hp">Lowest HP</option>
             <option value="caster" data-i18n="target.caster">Caster</option>
             <option value="boss" data-i18n="target.boss">Boss</option>
           </select>
-          <input id="f-prio" type="number" min="0" max="100" value="50" title="priority" data-i18n-title="editor.priorityHint">
+          <input id="f-prio" type="number" min="0" max="100" value="50" title="priority" data-i18n-title="editor.priorityHint" aria-label="Priority for new rule" data-i18n-aria-label="editor.formPriority">
           <button id="f-add" class="btn small primary" data-i18n="common.add">Add</button>
           <button id="f-cancel" class="btn small ghost" data-i18n="common.cancel">Cancel</button>
         </div>
@@ -213,7 +213,7 @@
       <div class="bar-track boss" role="progressbar" aria-label="Boss health" data-i18n-aria-label="combat.bossHealth" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100"><div id="boss-fill" class="bar-fill boss"></div></div>
     </div>
     <div class="combat-main-layout">
-      <canvas id="arena" width="720" height="720"></canvas>
+      <canvas id="arena" width="720" height="720" role="img" aria-label="Combat arena" data-i18n-aria-label="combat.arena"></canvas>
       <aside class="panel combat-rules-panel">
         <div class="directives-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
           <h3 data-i18n="combat.directives">Active Directives</h3>
@@ -249,7 +249,7 @@
       </div>
       <div class="report-card" style="grid-column: span 3; display: flex; flex-direction: column; align-items: center;">
         <h3 data-i18n="report.performance">Performance Analysis</h3>
-        <canvas id="chart-report" width="680" height="200" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
+        <canvas id="chart-report" width="680" height="200" role="img" aria-label="Battle performance chart" data-i18n-aria-label="chart.reportAlt" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
       </div>
     </div>
     <div class="report-actions">
@@ -267,7 +267,7 @@
     <div id="victory-run-stats" class="victory-stats-grid"></div>
     <div class="report-card" style="max-width: 680px; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px;">
       <h3 data-i18n="victory.performance">Final Battle Performance</h3>
-      <canvas id="chart-victory" width="680" height="200" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
+      <canvas id="chart-victory" width="680" height="200" role="img" aria-label="Final battle performance chart" data-i18n-aria-label="chart.victoryAlt" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
     </div>
     <div class="report-card" style="max-width: 680px; width: 100%; margin-top: 16px;">
       <h3 data-i18n="victory.rules">Your Final Logic (Rule Replay)</h3>

@@ -901,20 +901,39 @@ export class LogicEditorUI {
       const v = Array.isArray(condVal) ? condVal : c.defaultValue;
       const inpR = document.createElement('input'); inpR.type = 'number'; inpR.value = v[0]; inpR.step = 0.5; inpR.style.width = '45px';
       const inpC = document.createElement('input'); inpC.type = 'number'; inpC.value = v[1]; inpC.step = 1;   inpC.style.width = '35px';
+      if (Number.isFinite(c.minValue?.[0])) inpR.min = c.minValue[0];
+      if (Number.isFinite(c.maxValue?.[0])) inpR.max = c.maxValue[0];
+      if (Number.isFinite(c.minValue?.[1])) inpC.min = c.minValue[1];
+      if (Number.isFinite(c.maxValue?.[1])) inpC.max = c.maxValue[1];
+      const label = t(isSecondary ? 'editor.conditionValue2' : 'editor.conditionValue', { id: ruleId });
+      inpR.setAttribute('aria-label', label + ' 1');
+      inpC.setAttribute('aria-label', label + ' 2');
       const apply = () => setter([+inpR.value, +inpC.value|0]);
       inpR.addEventListener('change', apply); inpC.addEventListener('change', apply);
       cell.appendChild(inpR); cell.appendChild(document.createTextNode('/')); cell.appendChild(inpC);
     } else if (c.parameterType === 'percent') {
-      const inp = document.createElement('input'); inp.type = 'number'; inp.min = 5; inp.max = 95; inp.value = Math.round(condVal * 100); inp.style.width = '45px';
+      const inp = document.createElement('input'); inp.type = 'number';
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue * 100;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue * 100;
+      inp.value = Math.round(condVal * 100); inp.style.width = '45px';
+      inp.setAttribute('aria-label', t(isSecondary ? 'editor.conditionValue2' : 'editor.conditionValue', { id: ruleId }));
       const suffix = document.createTextNode('%');
       inp.addEventListener('change', () => setter(+inp.value / 100));
       cell.appendChild(inp); cell.appendChild(suffix);
     } else if (c.parameterType === 'int') {
-      const inp = document.createElement('input'); inp.type = 'number'; inp.value = condVal|0; inp.style.width = '45px';
+      const inp = document.createElement('input'); inp.type = 'number';
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
+      inp.value = condVal|0; inp.style.width = '45px';
+      inp.setAttribute('aria-label', t(isSecondary ? 'editor.conditionValue2' : 'editor.conditionValue', { id: ruleId }));
       inp.addEventListener('change', () => setter(+inp.value|0));
       cell.appendChild(inp);
     } else { // float
-      const inp = document.createElement('input'); inp.type = 'number'; inp.step = 0.5; inp.value = condVal; inp.style.width = '50px';
+      const inp = document.createElement('input'); inp.type = 'number'; inp.step = 0.5;
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
+      inp.value = condVal; inp.style.width = '50px';
+      inp.setAttribute('aria-label', t(isSecondary ? 'editor.conditionValue2' : 'editor.conditionValue', { id: ruleId }));
       inp.addEventListener('change', () => setter(+inp.value));
       cell.appendChild(inp);
     }
@@ -1250,19 +1269,38 @@ export class LogicEditorUI {
 
   _refreshParamEl(container, c, idR, idC, idPct, idInt, idFlt) {
     if (!c || c.parameterType === 'none') return;
+    const labelKey = idR.endsWith('2') || idC.endsWith('2') || idPct.endsWith('2') || idInt.endsWith('2') || idFlt.endsWith('2')
+      ? 'editor.formParameter2'
+      : 'editor.formParameter';
+    const label = t(labelKey);
     if (c.parameterType === 'vec2') {
       const v = c.defaultValue;
       const inpR = document.createElement('input'); inpR.type = 'number'; inpR.value = v[0]; inpR.step = 0.5; inpR.id = idR; inpR.style.width = '50px';
       const inpC = document.createElement('input'); inpC.type = 'number'; inpC.value = v[1]; inpC.step = 1;   inpC.id = idC; inpC.style.width = '40px';
+      if (Number.isFinite(c.minValue?.[0])) inpR.min = c.minValue[0];
+      if (Number.isFinite(c.maxValue?.[0])) inpR.max = c.maxValue[0];
+      if (Number.isFinite(c.minValue?.[1])) inpC.min = c.minValue[1];
+      if (Number.isFinite(c.maxValue?.[1])) inpC.max = c.maxValue[1];
+      inpR.setAttribute('aria-label', label + ' 1');
+      inpC.setAttribute('aria-label', label + ' 2');
       container.appendChild(inpR); container.appendChild(document.createTextNode(' / ')); container.appendChild(inpC);
     } else if (c.parameterType === 'percent') {
-      const inp = document.createElement('input'); inp.type = 'number'; inp.value = Math.round(c.defaultValue * 100); inp.min = 5; inp.max = 95; inp.id = idPct; inp.style.width = '50px';
+      const inp = document.createElement('input'); inp.type = 'number'; inp.value = Math.round(c.defaultValue * 100); inp.id = idPct; inp.style.width = '50px';
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue * 100;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue * 100;
+      inp.setAttribute('aria-label', label);
       container.appendChild(inp); container.appendChild(document.createTextNode('%'));
     } else if (c.parameterType === 'int') {
       const inp = document.createElement('input'); inp.type = 'number'; inp.value = c.defaultValue|0; inp.id = idInt; inp.style.width = '50px';
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
+      inp.setAttribute('aria-label', label);
       container.appendChild(inp);
     } else {
       const inp = document.createElement('input'); inp.type = 'number'; inp.value = c.defaultValue; inp.step = 0.5; inp.id = idFlt; inp.style.width = '60px';
+      if (Number.isFinite(c.minValue)) inp.min = c.minValue;
+      if (Number.isFinite(c.maxValue)) inp.max = c.maxValue;
+      inp.setAttribute('aria-label', label);
       container.appendChild(inp);
     }
   }

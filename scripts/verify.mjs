@@ -81,6 +81,8 @@ function verifyGameplayContracts() {
 
   assert(GameDatabase.getCondition('projectile_nearby'), 'projectile warning condition must exist');
   assert(GameDatabase.getAction('sidestep'), 'evasive sidestep action must exist');
+  assert.equal(GameDatabase.getCondition('boss_phase').maxValue, 4, 'boss phase condition must expose the final phase');
+  assert.equal(GameDatabase.getCondition('energy_low').minValue, 0.01, 'energy low should allow fine-grained thresholds');
   GameState.resetRun();
   GameState.advanceTeachNode();
   assert(GameState.availableConditionIds().includes('projectile_nearby'));
@@ -319,6 +321,19 @@ function verifySaveMigration() {
   ]));
   assert.equal(GameState.loadLoadout(1), false, 'invalid loadouts must be rejected without clearing rules');
   assert.equal(JSON.stringify(GameState.rules), rulesBeforeInvalidLoadout);
+
+  GameState.resetRun();
+  localStorage.setItem('overlogic_loadout_slot_2', JSON.stringify([
+    { id: 'rule_99', conditionId: 'hp_low', conditionValue: 0.3, actionId: 'shield', priority: 100 },
+    { id: 'rule_99', conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 },
+  ]));
+  assert.equal(GameState.loadLoadout(2).ok, true, 'valid loadouts should load');
+  assert.equal(new Set(GameState.rules.map(rule => rule.id)).size, GameState.rules.length, 'loaded rules must have unique IDs');
+  assert.equal(GameState.addRule('enemy_nearby', 6, 'basic_attack', 5), true);
+  assert.equal(new Set(GameState.rules.map(rule => rule.id)).size, GameState.rules.length, 'new rules must not collide with loaded IDs');
+  const undoDepthBeforeMissingDelete = GameState._undoStack.length;
+  assert.equal(GameState.removeRule('missing-rule'), false, 'deleting a missing rule must be a no-op');
+  assert.equal(GameState._undoStack.length, undoDepthBeforeMissingDelete);
 }
 
 function verifyUiSafetyContracts() {
@@ -333,6 +348,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
   assert(html.includes('role="progressbar"'), 'combat meters should expose progress semantics');
+  assert(html.includes('data-i18n-aria-label="combat.arena"'), 'combat canvas should have a localized accessible label');
+  assert(html.includes('data-i18n-aria-label="chart.reportAlt"'), 'report chart should have an accessible label');
   assert(html.includes('id="btn-pause"') && html.includes('aria-pressed="false"'), 'pause control should expose its state');
   assert(html.includes('aria-keyshortcuts="S"'), 'speed control should expose its keyboard shortcut');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
@@ -340,6 +357,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
+  assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
+  assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
   assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');

@@ -124,12 +124,14 @@ async function main() {
       visibilityPausedCombat = true;
       arena.setPaused(true);
       battleHUD.btnPause.textContent = t('combat.resume');
+      battleHUD.btnPause.setAttribute('aria-pressed', 'true');
       battleHUD.btnStep.classList.remove('hidden');
     } else if (!document.hidden && visibilityPausedCombat) {
       visibilityPausedCombat = false;
       bgAnim?.stop();
       arena.setPaused(false);
       battleHUD.btnPause.textContent = t('combat.pause');
+      battleHUD.btnPause.setAttribute('aria-pressed', 'false');
       battleHUD.btnStep.classList.add('hidden');
     }
   });
@@ -167,6 +169,7 @@ async function main() {
     if (resumeCombatAfterSettings) {
       arena.setPaused(true);
       battleHUD.btnPause.textContent = t('combat.resume');
+      battleHUD.btnPause.setAttribute('aria-pressed', 'true');
       battleHUD.btnStep.classList.remove('hidden');
     }
     settingsOverlay.classList.remove('hidden');
@@ -181,6 +184,7 @@ async function main() {
     if (resumeCombatAfterSettings && arena && !arena._finished) {
       arena.setPaused(false);
       battleHUD.btnPause.textContent = t('combat.pause');
+      battleHUD.btnPause.setAttribute('aria-pressed', 'false');
       battleHUD.btnStep.classList.add('hidden');
     }
     resumeCombatAfterSettings = false;
