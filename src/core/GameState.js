@@ -8,6 +8,7 @@ const SAVE_VERSION = 5;
 const RUN_MODES = new Set(['standard', 'daily']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
+const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
 const MAP_NODE_IDS = [
@@ -140,7 +141,7 @@ class GameStateClass {
       operator: operator,
       actionId: actId,
       priority: prio,
-      targetPriority: targetPriority,
+      targetPriority: TARGET_PRIORITIES.has(targetPriority) ? targetPriority : 'nearest',
       negateCondition1: negateCondition1 === true,
       negateCondition2: negateCondition2 === true,
       enabled: true,
@@ -469,7 +470,7 @@ class GameStateClass {
       this._pushState();
       r.conditionId = condId;
       const cd = GameDatabase.getCondition(condId);
-      r.conditionValue = cd ? cd.defaultValue : null;
+      r.conditionValue = cd ? this._normalizeConditionValue(condId, cd.defaultValue) : null;
       this.saveToStorage();
       this._emit('rules');
     }
@@ -480,7 +481,7 @@ class GameStateClass {
       this._pushState();
       r.conditionId2 = condId2;
       const cd = GameDatabase.getCondition(condId2);
-      r.conditionValue2 = cd ? cd.defaultValue : null;
+      r.conditionValue2 = cd ? this._normalizeConditionValue(condId2, cd.defaultValue) : null;
       this.saveToStorage();
       this._emit('rules');
     }
@@ -497,7 +498,7 @@ class GameStateClass {
         const avail = this.availableConditionIds();
         r.conditionId2 = avail[0] || 'hp_low';
         const cd = GameDatabase.getCondition(r.conditionId2);
-        r.conditionValue2 = cd ? cd.defaultValue : null;
+        r.conditionValue2 = cd ? this._normalizeConditionValue(r.conditionId2, cd.defaultValue) : null;
       }
       this.saveToStorage();
       this._emit('rules');
@@ -778,13 +779,14 @@ class GameStateClass {
         const cond2Ok = !r.operator || availConds.includes(r.conditionId2);
         const actOk = availActs.includes(r.actionId);
         return condOk && cond2Ok && actOk;
-      }).map(r => ({
+      }).slice(0, 40).map(r => ({
         ...r,
         conditionValue: this._normalizeConditionValue(r.conditionId, r.conditionValue),
         conditionValue2: r.operator && r.conditionId2
           ? this._normalizeConditionValue(r.conditionId2, r.conditionValue2)
           : null,
         priority: Math.max(0, Math.min(100, r.priority | 0)),
+        targetPriority: TARGET_PRIORITIES.has(r.targetPriority) ? r.targetPriority : 'nearest',
       }));
       this.saveToStorage();
       this._emit('rules');
@@ -924,7 +926,7 @@ class GameStateClass {
         operator,
         actionId: rule.actionId,
         priority: Math.max(0, Math.min(100, rule.priority | 0)),
-        targetPriority: rule.targetPriority || 'nearest',
+        targetPriority: TARGET_PRIORITIES.has(rule.targetPriority) ? rule.targetPriority : 'nearest',
         negateCondition1: rule.negateCondition1 === true,
         negateCondition2: rule.negateCondition2 === true,
         enabled: rule.enabled !== false,

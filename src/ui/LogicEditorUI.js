@@ -298,11 +298,12 @@ export class LogicEditorUI {
         </div>
         <span class="brief-advice">${escapeHtml(advice?.reason || t('brief.selectNode'))}</span>
       </div>
-      <div class="brief-checks" aria-label="Launch checks">
+      <div class="brief-checks" aria-label="${escapeHtml(t('brief.launchChecks'))}">
         <span class="${hasOffense ? 'ok' : 'bad'}">${hasOffense ? '✓' : '!'} ${escapeHtml(t('brief.offense'))}</span>
         <span class="${hasDefense ? 'ok' : 'bad'}">${hasDefense ? '✓' : '!'} ${escapeHtml(t('brief.survival'))}</span>
         <span class="${warnings.size === 0 ? 'ok' : 'warn'}">${warnings.size === 0 ? `✓ ${escapeHtml(t('brief.clean'))}` : `⚠ ${escapeHtml(t('brief.warnings', { count: warningCount }))}`}</span>
         <span class="${healthy ? 'ok' : 'bad'}">${healthy ? `✓ ${escapeHtml(t('brief.hullStable'))}` : `! ${escapeHtml(t('brief.lowHp'))}`}</span>
+        <span class="${hasCounter ? 'ok' : 'bad'}">${hasCounter ? '✓' : '!'} ${escapeHtml(t('brief.countermeasure'))}</span>
       </div>
       <div class="brief-actions">
         ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : `<span class="counter-ready">✓ ${escapeHtml(t('brief.counterLoaded'))}</span>`}

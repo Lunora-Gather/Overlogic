@@ -23,7 +23,7 @@ export class LogicBrain {
     // overlogic fast-switch detection
     this.recentRuleIds = [];
     this.recentRuleWindow = 0;
-    this.onLabel = null;        // callback(label, rule)
+    this.onLabel = null;        // callback(label, rule, diagnostics, diagnosticReasons)
   }
 
   setup(robot, ctx, executor, tracker) {
@@ -56,6 +56,7 @@ export class LogicBrain {
     const rules = GameState.rules;
     const valid = [];
     const diagnostics = {};
+    const diagnosticReasons = {};
 
     // Default movement: pursue nearest enemy at 60% speed.
     // If a rule changes movement (like dash or pursue out-of-range basic attack), it will override this.
@@ -87,8 +88,10 @@ export class LogicBrain {
         diagnostics[r.id] = 'energy';
         continue;
       }
-      if (this.executor.unavailableReason(actId, r)) {
+      const unavailableReason = this.executor.unavailableReason(actId, r);
+      if (unavailableReason) {
         diagnostics[r.id] = 'action_unavailable';
+        diagnosticReasons[r.id] = unavailableReason;
         continue;
       }
       if (actId === 'interrupt_shot' && this.ctx.castingEnemies().length === 0) {
@@ -107,7 +110,7 @@ export class LogicBrain {
       this.robot.aimTarget = null;
       this.executor.executeDefault();
       if (this.tracker) this.tracker.recordDiagnostics(diagnostics);
-      this._emit(null, t('combat.idle'), diagnostics);
+      this._emit(null, t('combat.idle'), diagnostics, diagnosticReasons);
       return;
     }
 
@@ -126,7 +129,7 @@ export class LogicBrain {
     const ok = this.executor.execute(chosen.actionId, chosen);
     if (ok) {
       this._trackAndOverlogic(chosen);
-      this._emit(chosen, formatLabel(chosen, GameDatabase), diagnostics);
+      this._emit(chosen, formatLabel(chosen, GameDatabase), diagnostics, diagnosticReasons);
     } else {
       if (['basic_attack', 'interrupt_shot', 'dash_through'].includes(chosen.actionId)) {
         diagnostics[chosen.id] = 'pursuing';
@@ -135,9 +138,10 @@ export class LogicBrain {
         }), diagnostics);
       } else {
         diagnostics[chosen.id] = 'action_unavailable';
+        diagnosticReasons[chosen.id] = this.executor.unavailableReason(chosen.actionId, chosen) || 'unknown';
         this.robot.aimTarget = null;
         this.executor.executeDefault();
-        this._emit(null, t('combat.idle'), diagnostics);
+        this._emit(null, t('combat.idle'), diagnostics, diagnosticReasons);
       }
     }
     if (this.tracker) this.tracker.recordDiagnostics(diagnostics);
@@ -153,9 +157,9 @@ export class LogicBrain {
     }
   }
 
-  _emit(rule, label, diagnostics = null) {
+  _emit(rule, label, diagnostics = null, diagnosticReasons = null) {
     this.currentRule = rule;
     this.currentLabel = label;
-    if (this.onLabel) this.onLabel(label, rule, diagnostics);
+    if (this.onLabel) this.onLabel(label, rule, diagnostics, diagnosticReasons);
   }
 }

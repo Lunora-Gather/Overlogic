@@ -293,7 +293,7 @@ function verifySaveMigration() {
     unlockedConditionIds: ['surrounded', 'missing_condition'],
     unlockedActionIds: ['repair', 'missing_action'],
     rules: [
-      { id: 'r1', conditionId: 'hp_low', conditionValue: 0.3, actionId: 'shield', priority: 100, enabled: true },
+      { id: 'r1', conditionId: 'hp_low', conditionValue: 0.3, actionId: 'shield', priority: 100, targetPriority: 'invalid-target', enabled: true },
       { id: 'r2', conditionId: 'missing_condition', actionId: 'missing_action', priority: 1, enabled: true },
     ],
     _ruleCounter: 2,
@@ -307,12 +307,14 @@ function verifySaveMigration() {
   assert.deepEqual(GameState.unlockedConditionIds, ['surrounded']);
   assert.deepEqual(GameState.unlockedActionIds, ['repair']);
   assert.equal(GameState.rules.length, 1);
+  assert.equal(GameState.rules[0].targetPriority, 'nearest', 'invalid target priorities must migrate safely');
 }
 
 function verifyUiSafetyContracts() {
   assert.equal(escapeHtml('<img src=x onerror=alert(1)>'), '&lt;img src=x onerror=alert(1)&gt;');
   assert.equal(escapeHtml(`"quoted" & 'single'`), '&quot;quoted&quot; &amp; &#39;single&#39;');
   const html = fs.readFileSync('index.html', 'utf8');
+  const editorUi = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('aria-live="assertive"'), 'critical combat status should be announced');
@@ -323,6 +325,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
+  assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
+  assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
@@ -391,6 +395,9 @@ function verifySimulation() {
     const result = simulateBattle(GameDatabase.getBattle(index), { maxTime: 60 });
     assert.equal(result.won, true, `default rules should clear ${result.battleName}`);
     assert(result.damageDealt > 0, 'simulation should record player damage');
+    assert(result.timelineEvents > 0, 'simulation should expose combat telemetry');
+    const expectedWaves = new Set((GameDatabase.getBattle(index).enemySpawns || []).map((spawn) => spawn.wave || 1)).size;
+    assert.equal(result.wavesRecorded, expectedWaves, 'simulation should record every deployed wave');
   }
 
   // A realistic upgraded starter build must be able to finish the standard

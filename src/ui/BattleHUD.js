@@ -201,12 +201,12 @@ export class BattleHUD {
     }
   }
 
-  updateDiagnostics(diagnostics) {
+  updateDiagnostics(diagnostics, diagnosticReasons = {}) {
     for (const [ruleId, state] of Object.entries(diagnostics)) {
       const li = document.getElementById(`combat-rule-${ruleId}`);
       if (!li) continue;
       
-      li.classList.remove('diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing', 'diag-pursuing', 'diag-action_unavailable');
+      li.classList.remove('diag-disabled', 'diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing', 'diag-pursuing', 'diag-action_unavailable');
       
       const oldBadge = li.querySelector('.diag-status-badge');
       if (oldBadge) oldBadge.remove();
@@ -261,7 +261,10 @@ export class BattleHUD {
           badge.style.border = '1px solid rgba(0, 210, 255, 0.45)';
           break;
         case 'action_unavailable':
-          badge.textContent = t('combat.blocked');
+          const reason = diagnosticReasons[ruleId] || 'unknown';
+          badge.textContent = t(`diagnostic.reason.${reason}`);
+          badge.title = t(`diagnostic.reason.${reason}`);
+          badge.setAttribute('aria-label', t(`diagnostic.reason.${reason}`));
           badge.style.background = 'rgba(255, 185, 56, 0.12)';
           badge.style.color = '#ffcf73';
           badge.style.border = '1px solid rgba(255, 185, 56, 0.4)';

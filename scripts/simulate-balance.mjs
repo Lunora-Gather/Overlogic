@@ -103,9 +103,12 @@ export function simulateBattle(battle, options = {}) {
   let won = false;
   let waveClearTime = 0;
   let deployed = false;
+  let currentWave = 0;
   while (time < maxTime && !robot.dead) {
     if (!deployed && pending.length > 0) {
       spawnWave(ctx, pending.shift().spawns, random);
+      currentWave += 1;
+      ctx.tracker.recordWave(currentWave, waves.size);
       deployed = true;
     }
     ctx.time = time;
@@ -127,6 +130,8 @@ export function simulateBattle(battle, options = {}) {
       waveClearTime += dt;
       if (waveClearTime >= 1.15) {
         spawnWave(ctx, pending.shift().spawns, random);
+        currentWave += 1;
+        ctx.tracker.recordWave(currentWave, waves.size);
         waveClearTime = 0;
       }
     } else {
@@ -150,6 +155,8 @@ export function simulateBattle(battle, options = {}) {
     damageTaken: Math.round(Object.values(report.damage_by_source).reduce((sum, value) => sum + value, 0)),
     damageDealt: Math.round(report.total_damage_dealt || 0),
     actions: report.action_usage,
+    timelineEvents: report.timeline.length,
+    wavesRecorded: report.timeline.filter((event) => event.kind === 'wave').length,
   };
 }
 
