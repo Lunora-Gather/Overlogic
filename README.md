@@ -38,6 +38,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **以失败推动学习**：伤害分析、动作频率、规则使用率、关键事件时间轴和自动修复建议共同解释失败原因。
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子与多种难度。
+- **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP；进度可随完整备份迁移。
 - **随时验证逻辑**：混合、弹幕、虫群和 Boss 四种沙盒场景，不消耗正式流程进度。
 - **跨设备体验**：支持桌面与移动布局、触控排序、键盘操作、减少动态效果及镜头震动设置。
 - **三语界面**：完整支持简体中文、繁体中文和英文。
@@ -106,6 +107,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Test logic safely in mixed, projectile, swarm, and boss sandbox scenarios.
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.
 - Reproduce a run with a numeric seed or an `OLR1-…` challenge code, then review recent battle history and operator progression locally.
+- Complete three deterministic daily objectives for bonus XP; sandbox runs never advance formal progression.
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
@@ -146,7 +148,7 @@ Overlogic/
 │  ├─ logic/             # 条件评估、规则选择与动作执行
 │  ├─ robot/             # 机器人属性与战斗行为
 │  ├─ enemies/           # 敌人与 Boss 行为
-│  ├─ systems/           # 音频、统计、奖励、协同协议、档案与运行记录
+│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标与运行记录
 │  ├─ ui/                # 编辑器、HUD、奖励、报告与胜利界面
 │  ├─ render/            # 竞技场与镜头渲染
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
@@ -180,7 +182,7 @@ Overlogic/
 
 当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、操作员档案、成就基础、完整存档备份、每日种子、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、操作员档案、成就基础、每日目标、完整存档备份、每日种子、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

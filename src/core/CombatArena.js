@@ -321,6 +321,7 @@ export class CombatArena {
     report._difficulty = GameState.runConfig?.difficulty || 'standard';
     report._battleId = this.battle?.id || null;
     report._won = won === true;
+    report._sandbox = String(this.battle?.id || '').startsWith('sandbox_');
     if (!won) {
       this.ctx.tracker.snapshotDeath(
         this.robot.hp, this.robot.energy,
@@ -339,7 +340,17 @@ export class CombatArena {
       this.hud.logConsole(t('log.success'), 'success');
     }
     GameState.saveToStorage();
-    recordBattle(GameState.lastReport);
+    // Sandbox is for debugging builds, not a progression faucet. Keep its
+    // report available for the current screen, but never award profile XP,
+    // achievements, or formal history entries for it.
+    if (!report._sandbox) {
+      const progression = recordBattle(GameState.lastReport);
+      if (progression?.challenges?.unlocked?.length && typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('overlogic:challenge-complete', {
+          detail: { count: progression.challenges.unlocked.length },
+        }));
+      }
+    }
     this.hud.hideBossBar();
     if (this.onFinished) this.onFinished(won);
   }

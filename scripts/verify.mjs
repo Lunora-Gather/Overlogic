@@ -28,6 +28,7 @@ const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=2
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
+const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -453,6 +454,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('aria-keyshortcuts="S"'), 'speed control should expose its keyboard shortcut');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
+  assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
@@ -483,12 +485,16 @@ function verifyUiSafetyContracts() {
   const serviceWorker = fs.readFileSync('sw.js', 'utf8');
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
+  const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
   assert(reportUi.includes("import { GameDatabase } from '../core/GameDatabase.js") && reportUi.includes('GameDatabase.getEnemy'), 'failure report must resolve enemy telemetry through the database');
   assert(historyUi.includes("import { escapeHtml } from './safeHtml.js") && historyUi.includes('escapeHtml(battle)'), 'history cards must escape imported identifiers');
+  assert(arenaUi.includes('if (!report._sandbox)') && arenaUi.includes('recordBattle(GameState.lastReport)'), 'sandbox runs must not enter progression history');
+  assert(arenaUi.includes("overlogic:challenge-complete"), 'completed daily objectives must provide player feedback');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
+  assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
   assert.equal(t('combat.temperature'), '核心温度');
@@ -565,6 +571,7 @@ function verifySynergyContracts() {
 function verifyRunHistoryContracts() {
   clearHistory();
   resetProfile();
+  clearChallenges();
   localStorage.setItem('overlogic_run_history', JSON.stringify([{ battleId: '<script>', difficulty: 'admin', won: 'yes', battleTime: 'NaN' }]));
   const sanitized = recentBattles(1)[0];
   assert.equal(sanitized.battleId, 'unknown');
@@ -572,6 +579,26 @@ function verifyRunHistoryContracts() {
   assert.equal(sanitized.won, false);
   assert.equal(sanitized.battleTime, 0);
   clearHistory();
+  assert.equal(recordBattle({ _sandbox: true, _battleId: 'sandbox_boss', _won: true }), null, 'sandbox reports must not award progression');
+  assert.equal(recentBattles().length, 0);
+  const challengeStart = challengeSnapshot();
+  recordChallengeBattle({ won: true, damageDealt: 200, battleId: 'battle_1' });
+  recordChallengeBattle({ won: true, damageDealt: 200, battleId: 'battle_1' });
+  const challengeProgress = challengeSnapshot();
+  assert.equal(challengeProgress.objectives.daily_wins.progress, 2);
+  assert.equal(challengeProgress.objectives.daily_damage.progress, Math.min(challengeStart.objectives.daily_damage.target, 400));
+  for (let index = 0; index < 6; index += 1) {
+    if (Object.values(challengeSnapshot().objectives).every((item) => item.completed)) break;
+    recordChallengeBattle({ won: true, damageDealt: 1000, battleId: 'battle_9' });
+  }
+  const challengeComplete = challengeSnapshot();
+  assert.equal(challengeComplete.objectives.daily_wins.completed, true);
+  assert.equal(challengeComplete.objectives.daily_damage.completed, true);
+  assert.equal(challengeComplete.objectives.daily_boss.completed, true);
+  const challengeBackup = GameState.exportSaveData();
+  clearChallenges();
+  assert.equal(GameState.importSaveData(challengeBackup), true, 'full backups must include daily challenge state');
+  assert.equal(challengeSnapshot().objectives.daily_boss.completed, true);
   recordBattle({
     _battleId: 'battle_4', _runSeed: 20260816, _runMode: 'daily', _difficulty: 'veteran',
     _won: true, battle_time: 12.34, _endHp: 77, total_damage_dealt: 248,
@@ -603,6 +630,7 @@ function verifyRunHistoryContracts() {
   assert.equal(profileSnapshot().wins, 1);
   clearHistory();
   resetProfile();
+  clearChallenges();
 }
 
 function verifySimulation() {

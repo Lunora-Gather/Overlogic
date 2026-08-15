@@ -1,0 +1,156 @@
+// LiveChallenges.js — deterministic, local daily objectives.
+//
+// Challenges are intentionally device-local until an online service exists.
+// The normalized shape is portable so a future account/season backend can
+// consume it without changing battle code or silently collecting telemetry.
+
+const CHALLENGE_KEY = 'overlogic_live_challenges';
+const CHALLENGE_VERSION = 1;
+
+const POOLS = Object.freeze({
+  wins: [
+    { id: 'daily_wins', titleKey: 'challenge.dailyWins', target: 3, xp: 60 },
+    { id: 'daily_wins', titleKey: 'challenge.dailyWins', target: 5, xp: 90 },
+  ],
+  damage: [
+    { id: 'daily_damage', titleKey: 'challenge.dailyDamage', target: 500, xp: 60 },
+    { id: 'daily_damage', titleKey: 'challenge.dailyDamage', target: 1000, xp: 100 },
+  ],
+  boss: [
+    { id: 'daily_boss', titleKey: 'challenge.dailyBoss', target: 1, xp: 100 },
+    { id: 'daily_boss', titleKey: 'challenge.dailyBoss', target: 2, xp: 160 },
+  ],
+});
+
+function dayHash(date) {
+  let hash = 2166136261;
+  for (const char of date) {
+    hash ^= char.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return hash >>> 0;
+}
+
+function definitionsForDate(date = utcDate()) {
+  const hash = dayHash(date);
+  return [
+    POOLS.wins[hash % POOLS.wins.length],
+    POOLS.damage[(hash >>> 3) % POOLS.damage.length],
+    POOLS.boss[(hash >>> 6) % POOLS.boss.length],
+  ];
+}
+
+function utcDate(date = new Date()) {
+  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+}
+
+function emptyState(date = utcDate()) {
+  const definitions = definitionsForDate(date);
+  return {
+    version: CHALLENGE_VERSION,
+    date,
+    objectives: Object.fromEntries(definitions.map((definition) => [definition.id, {
+      progress: 0,
+      completed: false,
+      completedAt: null,
+    }])),
+  };
+}
+
+function normalizeState(raw, date = utcDate()) {
+  const definitions = definitionsForDate(date);
+  const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : null;
+  const base = source?.date === date ? source : emptyState(date);
+  const objectives = {};
+  for (const definition of definitions) {
+    const item = base.objectives?.[definition.id];
+    const progress = Number(item?.progress);
+    objectives[definition.id] = {
+      progress: Number.isFinite(progress) ? Math.max(0, Math.min(definition.target, progress)) : 0,
+      completed: item?.completed === true || (Number.isFinite(progress) && progress >= definition.target),
+      completedAt: typeof item?.completedAt === 'string' ? item.completedAt.slice(0, 40) : null,
+    };
+  }
+  return { version: CHALLENGE_VERSION, date, objectives };
+}
+
+function readState(date = utcDate()) {
+  try {
+    const raw = localStorage.getItem(CHALLENGE_KEY);
+    return normalizeState(raw ? JSON.parse(raw) : null, date);
+  } catch {
+    return emptyState(date);
+  }
+}
+
+function writeState(state) {
+  try {
+    localStorage.setItem(CHALLENGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function challengeDefinitions() {
+  return definitionsForDate().map((definition) => ({ ...definition }));
+}
+
+export function challengeSnapshot(date = new Date()) {
+  const dateKey = utcDate(date);
+  const definitions = definitionsForDate(dateKey);
+  const state = readState(dateKey);
+  return {
+    version: state.version,
+    date: state.date,
+    objectives: Object.fromEntries(definitions.map((definition) => [definition.id, {
+      ...state.objectives[definition.id],
+      target: definition.target,
+      titleKey: definition.titleKey,
+      xp: definition.xp,
+    }])),
+  };
+}
+
+export function replaceChallenges(raw) {
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+  return writeState(normalizeState(raw));
+}
+
+export function recordChallengeBattle(entry = {}, date = new Date()) {
+  if (entry._sandbox === true) return { ...challengeSnapshot(date), unlocked: [], bonusXp: 0 };
+  const dateKey = utcDate(date);
+  const definitions = definitionsForDate(dateKey);
+  const state = readState(dateKey);
+  const unlocked = [];
+  const increment = {
+    daily_wins: entry.won === true ? 1 : 0,
+    daily_damage: Math.max(0, Number(entry.damageDealt) || 0),
+    daily_boss: entry.won === true && ['battle_9', 'battle_10'].includes(entry.battleId) ? 1 : 0,
+  };
+  for (const definition of definitions) {
+    const item = state.objectives[definition.id];
+    if (item.completed) continue;
+    item.progress = Math.min(definition.target, item.progress + increment[definition.id]);
+    if (item.progress >= definition.target) {
+      item.completed = true;
+      item.completedAt = new Date().toISOString();
+      unlocked.push(definition.id);
+    }
+  }
+  writeState(state);
+  return {
+    ...challengeSnapshot(date),
+    unlocked,
+    bonusXp: unlocked.reduce((sum, id) => sum + (definitions.find((definition) => definition.id === id)?.xp || 0), 0),
+  };
+}
+
+export function clearChallenges() {
+  try {
+    localStorage.removeItem(CHALLENGE_KEY);
+    return true;
+  } catch {
+    return false;
+  }
+}

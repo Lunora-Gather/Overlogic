@@ -76,11 +76,11 @@ export function profileRank(xp) {
   return { level, current: Math.max(0, xp - floor), required: next - floor };
 }
 
-export function recordProfileBattle(entry = {}) {
+export function recordProfileBattle(entry = {}, bonusXp = 0) {
   const profile = readProfile();
   const unlocked = [];
   profile.totalBattles += 1;
-  profile.xp += entry.won ? 30 : 10;
+  profile.xp += (entry.won ? 30 : 10) + Math.max(0, Number(bonusXp) || 0);
   if (entry.won) profile.wins += 1;
   else profile.losses += 1;
   if (entry.won && entry.mode === 'daily') profile.dailyWins += 1;

@@ -27,6 +27,7 @@ const releaseMeta = document.querySelector('meta[name="overlogic-release"]');
 const releaseId = releaseMeta?.content || '';
 if (appVersion) appVersion.textContent = /^[A-Za-z0-9][A-Za-z0-9._-]{6,39}$/.test(releaseId)
   ? releaseId : 'DEV';
+globalThis.__OVERLOGIC_RELEASE__ = appVersion?.textContent || 'DEV';
 let noticeTimer = null;
 let noticeActionHandler = null;
 
@@ -97,6 +98,9 @@ function setupRuntimeSafety() {
       actionKey: 'notice.updateNow',
       onAction: () => window.location.reload(),
     });
+  });
+  window.addEventListener('overlogic:challenge-complete', () => {
+    showAppNotice('notice.challengeComplete', { autoHide: 4200 });
   });
   window.addEventListener('storage', (event) => {
     if (event.key !== 'overlogic_run_save' || !event.newValue) return;
@@ -254,6 +258,7 @@ async function main() {
     bgAnim?.start();
     origGoMain();
     if (arena) { arena.stop(); arena = null; }
+    mainMenu.render();
   };
   GameManager.goVictory = () => {
     bgAnim?.start();
@@ -300,6 +305,7 @@ async function main() {
   const btnDataExport = document.getElementById('btn-data-export');
   const btnDataImport = document.getElementById('btn-data-import');
   const btnDataRestore = document.getElementById('btn-data-restore');
+  const btnDataSupport = document.getElementById('btn-data-support');
   const dataImportFile = document.getElementById('data-import-file');
   let settingsReturnFocus = null;
   let resumeCombatAfterSettings = false;
@@ -400,6 +406,21 @@ async function main() {
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 0);
       showAppNotice('notice.saveExported', { autoHide: 3500 });
+    } catch {
+      showAppNotice('notice.exportFailed');
+    }
+  });
+
+  btnDataSupport?.addEventListener('click', () => {
+    try {
+      const blob = new Blob([GameState.exportSupportBundle()], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `overlogic-support-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 0);
+      showAppNotice('notice.supportExported', { autoHide: 3500 });
     } catch {
       showAppNotice('notice.exportFailed');
     }

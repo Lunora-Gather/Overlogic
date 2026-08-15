@@ -5,6 +5,7 @@ import { GameDatabase } from './GameDatabase.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { allBattles, replaceHistory } from '../systems/RunHistory.js?v=20260725-4';
 import { profileSnapshot, replaceProfile } from '../systems/ProfileProgression.js?v=20260725-4';
+import { challengeSnapshot, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -911,6 +912,35 @@ class GameStateClass {
       loadouts,
       battleHistory: allBattles(),
       profile: profileSnapshot(),
+      challenges: challengeSnapshot(),
+    }, null, 2);
+  }
+
+  exportSupportBundle() {
+    const release = globalThis.__OVERLOGIC_RELEASE__ || 'dev';
+    return JSON.stringify({
+      product: 'overlogic',
+      supportVersion: 1,
+      exportedAt: new Date().toISOString(),
+      release,
+      storageStatus: this.storageStatus,
+      settings: {
+        language: this.settings.language,
+        reduceMotion: this.settings.reduceMotion,
+        screenShake: this.settings.screenShake,
+      },
+      run: {
+        mode: this.runConfig?.mode,
+        difficulty: this.runConfig?.difficulty,
+        seed: this.runConfig?.seed,
+        currentBattleIndex: this.currentBattleIndex,
+        currentMapColumn: this.currentMapColumn,
+        battlesWon: this.runStats?.battlesWon || 0,
+      },
+      lastReport: this.lastReport,
+      battleHistory: allBattles().slice(0, 12),
+      profile: profileSnapshot(),
+      challenges: challengeSnapshot(),
     }, null, 2);
   }
 
@@ -919,6 +949,7 @@ class GameStateClass {
     let previousPrimary = null;
     let previousHistory = null;
     let previousProfile = null;
+    let previousChallenges = null;
     try {
       const payload = JSON.parse(raw);
       if (payload?.product !== 'overlogic' || payload?.exportVersion !== 1) return false;
@@ -928,9 +959,12 @@ class GameStateClass {
         (!Array.isArray(payload.battleHistory) || payload.battleHistory.length > 60)) return false;
       if (payload.profile !== undefined &&
         (!payload.profile || typeof payload.profile !== 'object' || Array.isArray(payload.profile))) return false;
+      if (payload.challenges !== undefined &&
+        (!payload.challenges || typeof payload.challenges !== 'object' || Array.isArray(payload.challenges))) return false;
       previousPrimary = localStorage.getItem(RUN_SAVE_KEY);
       previousHistory = allBattles();
       previousProfile = profileSnapshot();
+      previousChallenges = challengeSnapshot();
       if (previousPrimary && parseRunSave(previousPrimary)) {
         localStorage.setItem(RUN_BACKUP_KEY, previousPrimary);
       }
@@ -947,6 +981,7 @@ class GameStateClass {
       }
       if (payload.battleHistory !== undefined) replaceHistory(payload.battleHistory);
       if (payload.profile !== undefined) replaceProfile(payload.profile);
+      if (payload.challenges !== undefined) replaceChallenges(payload.challenges);
       if (!this.loadFromStorage()) throw new Error('Imported save could not be loaded');
       this.normalizeAfterDatabaseLoad();
       this.saveToStorage();
@@ -958,6 +993,7 @@ class GameStateClass {
       }
       if (previousHistory) replaceHistory(previousHistory);
       if (previousProfile) replaceProfile(previousProfile);
+      if (previousChallenges) replaceChallenges(previousChallenges);
       this._setStorageStatus({ lastError: String(error?.message || error) });
       return false;
     }

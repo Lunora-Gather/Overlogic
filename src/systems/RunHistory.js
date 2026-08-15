@@ -4,6 +4,7 @@
 // the same normalized record shape behind explicit consent.
 
 import { recordProfileBattle } from './ProfileProgression.js?v=20260725-4';
+import { recordChallengeBattle } from './LiveChallenges.js?v=20260725-4';
 
 const HISTORY_KEY = 'overlogic_run_history';
 const MAX_ENTRIES = 60;
@@ -62,6 +63,7 @@ function normalizeHistoryEntry(entry = {}) {
 }
 
 export function recordBattle(report = {}) {
+  if (report._sandbox === true) return null;
   const entry = normalizeHistoryEntry({
     id: `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
     timestamp: new Date().toISOString(),
@@ -79,7 +81,8 @@ export function recordBattle(report = {}) {
   const history = readHistory();
   history.unshift(entry);
   writeHistory(history);
-  return { ...entry, progression: recordProfileBattle(entry) };
+  const challenges = recordChallengeBattle(entry);
+  return { ...entry, challenges, progression: recordProfileBattle(entry, challenges.bonusXp) };
 }
 
 export function recentBattles(limit = 4) {

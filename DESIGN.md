@@ -764,7 +764,7 @@ Your Logic Survived
 | `OverlogicSystem` | Overlogic 值计算与效果 |
 | `GameDatabase` | 加载并校验 `data/*.json`，向运行时提供统一内容契约 |
 | `ProtocolSynergies` / `RunModifiers` | 协同协议与难度/路线修正 |
-| `RunHistory` / `ProfileProgression` | 本地战斗记录、等级、成就与可迁移的运营数据骨架；默认不向外发送遥测 |
+| `RunHistory` / `ProfileProgression` / `LiveChallenges` | 本地战斗记录、等级、成就、每日目标与可迁移的运营数据骨架；默认不向外发送遥测 |
 
 ### 18.2 主状态机
 
@@ -791,7 +791,7 @@ Overlogic/
     enemies/                  # EnemyBase、普通敌人、BossProtocolWarden
     render/                   # ArenaRenderer、Camera
     vfx/                      # Projectile、Mine、HazardTile、ParticleSystem
-    systems/                  # 奖励、协同协议、统计、报告、音频、运行记录与档案
+    systems/                  # 奖励、协同协议、统计、报告、音频、运行记录、档案与每日目标
     ui/                       # 主菜单、编辑器、HUD、奖励、报告与胜利界面
     i18n/                     # 简体中文、繁體中文、English 文案
   scripts/                    # serve、build、verify、balance
@@ -940,3 +940,11 @@ Overlogic/
 4. **热能电网：**超导体 + 热能回收。熔毁期间回收热量时额外恢复 4 点能量。
 
 失败报告保存有上限且经过合并的关键事件时间轴。时间轴仅用于诊断，不得影响确定性战斗模拟。
+
+## 28. 每日目标与运营边界
+
+`src/systems/LiveChallenges.js` 为正式战斗提供三类每日目标：胜场、累计伤害与 Boss 击破。目标按 UTC 日期确定性轮换档位，同一天离线玩家得到相同目标；目标状态、完成时间与奖励可随完整存档迁移。
+
+- 沙盒、调试和演示战斗不得推进目标、XP、成就或正式战斗记录。
+- 目标完成奖励只在首次完成时发放，重复刷新页面或重复导入备份不得重复结算。
+- 当前实现只在本地保存，不上传行为数据；未来接入账号、赛季或排行榜时，必须在明确同意后再发送最小化的归一化记录。

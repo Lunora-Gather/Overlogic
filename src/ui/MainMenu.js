@@ -8,6 +8,7 @@ import { trapDialogFocus } from './focusTrap.js?v=20260725-4';
 import { recentBattles, historySummary } from '../systems/RunHistory.js?v=20260725-4';
 import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfileProgression.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
+import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -30,6 +31,7 @@ export class MainMenu {
     this.btnCopyRunSeed = document.getElementById('btn-copy-run-seed');
     this.runConfigHint = document.getElementById('run-config-hint');
     this.runHistory = document.getElementById('run-history');
+    this.runChallenges = document.getElementById('run-challenges');
     this.runProfile = document.getElementById('run-profile');
     this.howBody = document.getElementById('how-body');
     this._howReturnFocus = null;
@@ -170,6 +172,7 @@ export class MainMenu {
     }
     this.renderRunConfig();
     this.renderProfile();
+    this.renderChallenges();
     this.renderHistory();
   }
 
@@ -216,6 +219,26 @@ export class MainMenu {
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._howReturnFocus instanceof HTMLElement) this._howReturnFocus.focus();
     this._howReturnFocus = null;
+  }
+
+  renderChallenges() {
+    if (!this.runChallenges) return;
+    const snapshot = challengeSnapshot();
+    const items = Object.values(snapshot.objectives || {}).map((challenge) => {
+      const progress = Math.max(0, Math.min(challenge.target, Number(challenge.progress) || 0));
+      const percent = Math.round((progress / challenge.target) * 100);
+      const status = challenge.completed ? t('menu.challengeDone') : t('menu.challengeProgress', {
+        current: Number.isInteger(progress) ? progress : progress.toFixed(0),
+        target: challenge.target,
+      });
+      return `<li class="challenge-entry ${challenge.completed ? 'completed' : ''}">
+        <div class="challenge-entry-heading"><span>${escapeHtml(t(challenge.titleKey))}</span><span>${escapeHtml(status)}</span></div>
+        <div class="challenge-progress" role="progressbar" aria-valuemin="0" aria-valuemax="${challenge.target}" aria-valuenow="${progress}" aria-label="${escapeHtml(t(challenge.titleKey))}"><span style="width:${percent}%"></span></div>
+      </li>`;
+    }).join('');
+    this.runChallenges.innerHTML = `
+      <div class="challenge-heading"><span>${escapeHtml(t('menu.challengesTitle'))}</span><span>${escapeHtml(t('menu.challengeDate', { date: snapshot.date }))}</span></div>
+      <ul class="challenge-list">${items}</ul>`;
   }
 
   _requestConfirm(key) {
