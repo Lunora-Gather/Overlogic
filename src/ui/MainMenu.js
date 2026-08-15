@@ -16,13 +16,21 @@ export class MainMenu {
     this.btnExit = document.getElementById('btn-exit');
     this.overlay = document.getElementById('how-overlay');
     this.btnHowClose = document.getElementById('btn-how-close');
+    this.confirmOverlay = document.getElementById('confirm-overlay');
+    this.confirmMessage = document.getElementById('confirm-message');
+    this.btnConfirmAccept = document.getElementById('btn-confirm-accept');
+    this.btnConfirmCancel = document.getElementById('btn-confirm-cancel');
     this.runMode = document.getElementById('run-mode');
     this.runDifficulty = document.getElementById('run-difficulty');
     this.dailySeedLabel = document.getElementById('daily-seed-label');
     this.runConfigHint = document.getElementById('run-config-hint');
     this.howBody = document.getElementById('how-body');
     this._howReturnFocus = null;
+    this._confirmReturnFocus = null;
+    this._confirmKey = null;
+    this._confirmResolver = null;
     trapDialogFocus(this.overlay);
+    trapDialogFocus(this.confirmOverlay);
     this._bind();
     this.render();
   }
@@ -38,11 +46,13 @@ export class MainMenu {
     this.btnNewRun?.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
-      if (!confirm(t('menu.newRunConfirm'))) return;
-      GameState.resetRun();
-      GameState.configureRun(this.runMode.value, this.runDifficulty.value);
-      this.render();
-      GameManager.goLogicEdit();
+      this._requestConfirm('menu.newRunConfirm').then((confirmed) => {
+        if (!confirmed) return;
+        GameState.resetRun();
+        GameState.configureRun(this.runMode.value, this.runDifficulty.value);
+        this.render();
+        GameManager.goLogicEdit();
+      });
     });
     this.btnHow.addEventListener('click', () => {
       AudioManager.resume();
@@ -58,20 +68,30 @@ export class MainMenu {
     this.overlay.addEventListener('click', (event) => {
       if (event.target === this.overlay) this._closeHow();
     });
+    this.btnConfirmAccept?.addEventListener('click', () => this._closeConfirm(true));
+    this.btnConfirmCancel?.addEventListener('click', () => this._closeConfirm(false));
+    this.confirmOverlay?.addEventListener('click', (event) => {
+      if (event.target === this.confirmOverlay) this._closeConfirm(false);
+    });
     document.addEventListener('keydown', (event) => {
       if (event.key === 'Escape' && !this.overlay.classList.contains('hidden')) {
         event.preventDefault();
         this._closeHow();
       }
+      if (event.key === 'Escape' && this.confirmOverlay && !this.confirmOverlay.classList.contains('hidden')) {
+        event.preventDefault();
+        this._closeConfirm(false);
+      }
     });
     this.btnReset.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
-      if (confirm(t('reset.confirm'))) {
+      this._requestConfirm('reset.confirm').then((confirmed) => {
+        if (!confirmed) return;
         GameState.clearStorage();
         this.btnReset.textContent = t('reset.done');
         setTimeout(() => { this.btnReset.textContent = t('menu.reset'); }, 1500);
-      }
+      });
     });
     this.btnExit.addEventListener('click', () => {
       AudioManager.play('button_click');
@@ -87,7 +107,10 @@ export class MainMenu {
     });
     this.runMode?.addEventListener('change', () => this.renderRunConfig());
     this.runDifficulty?.addEventListener('change', () => this.renderRunConfig());
-    window.addEventListener('overlogic:localechange', () => this.render());
+    window.addEventListener('overlogic:localechange', () => {
+      if (this._confirmKey && this.confirmMessage) this.confirmMessage.textContent = t(this._confirmKey);
+      this.render();
+    });
   }
 
   render() {
@@ -120,6 +143,32 @@ export class MainMenu {
     this.overlay.setAttribute('aria-hidden', 'true');
     if (this._howReturnFocus instanceof HTMLElement) this._howReturnFocus.focus();
     this._howReturnFocus = null;
+  }
+
+  _requestConfirm(key) {
+    if (!this.confirmOverlay || !this.btnConfirmAccept || !this.btnConfirmCancel) {
+      return Promise.resolve(false);
+    }
+    if (this._confirmResolver) this._closeConfirm(false);
+    this._confirmKey = key;
+    this._confirmReturnFocus = document.activeElement;
+    this.confirmMessage.textContent = t(key);
+    this.confirmOverlay.classList.remove('hidden');
+    this.confirmOverlay.setAttribute('aria-hidden', 'false');
+    this.btnConfirmAccept.focus();
+    return new Promise((resolve) => { this._confirmResolver = resolve; });
+  }
+
+  _closeConfirm(result) {
+    if (!this.confirmOverlay || !this._confirmResolver) return;
+    const resolve = this._confirmResolver;
+    this._confirmResolver = null;
+    this._confirmKey = null;
+    this.confirmOverlay.classList.add('hidden');
+    this.confirmOverlay.setAttribute('aria-hidden', 'true');
+    if (this._confirmReturnFocus instanceof HTMLElement) this._confirmReturnFocus.focus();
+    this._confirmReturnFocus = null;
+    resolve(result === true);
   }
 
   renderRunConfig() {

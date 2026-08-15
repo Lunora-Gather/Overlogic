@@ -79,6 +79,18 @@ function verifyGameplayContracts() {
   assert.equal(difficultyModifiers('veteran').enemyDamage > 1, true);
   GameState.configureRun('standard', 'standard');
 
+  localStorage.setItem('overlogic_settings', JSON.stringify({
+    volume: 99, mute: 'false', screenShake: 0, reduceMotion: false,
+    language: 'invalid', runMode: 'invalid', difficulty: 'invalid',
+  }));
+  GameState.loadSettings();
+  assert.equal(GameState.settings.volume, 1, 'settings volume must be clamped');
+  assert.equal(GameState.settings.mute, false, 'settings booleans must not trust truthy strings');
+  assert.equal(GameState.settings.screenShake, true, 'invalid settings booleans must use safe defaults');
+  assert.equal(GameState.settings.language, 'en');
+  assert.equal(GameState.settings.runMode, 'standard');
+  assert.equal(GameState.settings.difficulty, 'standard');
+
   assert(GameDatabase.getCondition('projectile_nearby'), 'projectile warning condition must exist');
   assert(GameDatabase.getAction('sidestep'), 'evasive sidestep action must exist');
   assert.equal(GameDatabase.getCondition('boss_phase').maxValue, 4, 'boss phase condition must expose the final phase');
@@ -228,6 +240,22 @@ function verifyGameplayContracts() {
   assert.deepEqual(GameState.runStats.rewardsChosen, ['pu_max_hp']);
 
   GameState.resetRun();
+  GameState.rules[0].priority = 42;
+  GameState.pushUndoState();
+  assert.equal(GameState._undoStack.length > 0, true);
+  GameState.resetRun();
+  assert.deepEqual(GameState.rules.map(rule => rule.id), ['rule_1', 'rule_2', 'rule_3']);
+  assert.equal(GameState._undoStack.length, 0, 'new runs must clear undo history');
+  assert.equal(GameState._redoStack.length, 0, 'new runs must clear redo history');
+  assert.equal(GameState.rules[0].priority, 100);
+
+  GameState.stats = { max_hp: Number.NaN, basic_cd: -10, shield_reduce: 2 };
+  GameState.normalizeAfterDatabaseLoad();
+  assert.equal(GameState.stats.max_hp, 100, 'invalid stats must fall back to base values');
+  assert.equal(GameState.stats.basic_cd, 0.01, 'cooldowns must remain positive after migration');
+  assert.equal(GameState.stats.shield_reduce, 0.99, 'damage reduction must stay below 100%');
+
+  GameState.resetRun();
   GameState.currentMapColumn = 3;
   GameState.selectedNodeId = '3_b';
   GameState.persistentHp = 3;
@@ -341,6 +369,9 @@ function verifyUiSafetyContracts() {
   assert.equal(escapeHtml(`"quoted" & 'single'`), '&quot;quoted&quot; &amp; &#39;single&#39;');
   const html = fs.readFileSync('index.html', 'utf8');
   const editorUi = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
+  const mainUi = fs.readFileSync('src/main.js', 'utf8');
+  const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
+  const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
@@ -355,6 +386,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
+  assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
@@ -363,6 +395,10 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
+  assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
+  assert(menuUi.includes("this._requestConfirm('menu.newRunConfirm')") && menuUi.includes("this._requestConfirm('reset.confirm')"), 'destructive actions must use the themed confirm flow');
+  assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
+  assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');

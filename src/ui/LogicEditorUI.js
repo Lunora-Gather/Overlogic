@@ -92,6 +92,9 @@ export class LogicEditorUI {
 
   show() {
     this.renderAll();
+    // Each transition back to the editor should land on its primary action,
+    // especially after a confirmation dialog or a reward selection.
+    this.btnAddRule?.focus();
   }
 
   _flashButton(button, label) {

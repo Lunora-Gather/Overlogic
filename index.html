@@ -62,6 +62,16 @@
         </div>
       </div>
     </div>
+    <div id="confirm-overlay" class="overlay hidden" aria-hidden="true">
+      <div class="overlay-card confirm-card" role="dialog" aria-modal="true" aria-labelledby="confirm-title" aria-describedby="confirm-message">
+        <h2 id="confirm-title" data-i18n="common.confirmTitle">Confirm Action</h2>
+        <p id="confirm-message" class="confirm-message"></p>
+        <div class="modal-actions">
+          <button id="btn-confirm-accept" class="btn primary modal-confirm" data-i18n="common.confirm">Confirm</button>
+          <button id="btn-confirm-cancel" class="btn ghost" data-i18n="common.cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
   </section>
 
   <!-- ===== Logic Editor ===== -->

@@ -153,10 +153,12 @@ async function main() {
   const settingLanguage = document.getElementById('setting-language');
   let settingsReturnFocus = null;
   let resumeCombatAfterSettings = false;
+  let settingsOriginalVolume = null;
 
   function openSettings() {
     AudioManager.resume();
     // Load current values from GameState
+    settingsOriginalVolume = GameState.settings.volume;
     settingVolume.value = GameState.settings.volume;
     settingVolumeVal.textContent = `${Math.round(GameState.settings.volume * 100)}%`;
     settingMute.checked = GameState.settings.mute;
@@ -179,6 +181,10 @@ async function main() {
   }
 
   function closeSettings() {
+    // Volume is previewed live while the range input moves. Closing without
+    // Apply must not leave an unsaved audio change behind.
+    if (settingsOriginalVolume !== null) AudioManager.setVolume(settingsOriginalVolume);
+    settingsOriginalVolume = null;
     settingsOverlay.classList.add('hidden');
     settingsOverlay.setAttribute('aria-hidden', 'true');
     if (resumeCombatAfterSettings && arena && !arena._finished) {
@@ -223,6 +229,7 @@ async function main() {
       GameState.settings.reduceMotion = settingReduceMotion.checked;
       GameState.settings.language = settingLanguage.value;
       GameState.saveSettings();
+      settingsOriginalVolume = null;
       setLocale(GameState.settings.language);
       document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
       if (bgAnim) bgAnim.setReducedMotion(GameState.settings.reduceMotion);
@@ -316,6 +323,18 @@ async function main() {
       tooltip.classList.add('hidden');
       tooltip.style.display = 'none';
     }
+  });
+
+  // Module and map tooltips are also useful to keyboard and switch-control
+  // users. Reuse the existing hover renderer so focus and pointer input stay
+  // visually identical without duplicating positioning logic.
+  document.addEventListener('focusin', (e) => {
+    const el = e.target.closest?.('[data-tooltip-type]');
+    if (el) el.dispatchEvent(new Event('mouseover', { bubbles: true }));
+  });
+  document.addEventListener('focusout', (e) => {
+    const el = e.target.closest?.('[data-tooltip-type]');
+    if (el) el.dispatchEvent(new Event('mouseout', { bubbles: true }));
   });
 
   // Global Hover Audio Feedback Delegator

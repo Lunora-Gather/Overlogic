@@ -3309,6 +3309,18 @@ select:focus-visible,
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.56), inset 0 1px rgba(255, 255, 255, 0.04);
 }
 
+.confirm-card {
+  width: min(500px, calc(100vw - 40px));
+  max-width: 500px !important;
+}
+
+.confirm-message {
+  margin: 0;
+  color: #b9cbe6;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
 .settings-list {
   width: 100% !important;
   max-width: none !important;

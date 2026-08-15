@@ -55,6 +55,11 @@ export function drawArena(g, canvas, ctx, camera) {
       _gridCache.width = W;
       _gridCache.height = H;
       const gc = _gridCache.getContext('2d');
+      // Cache the grid in a camera-neutral coordinate space. The camera can
+      // follow the robot every frame; baking the current ox/oy into the cache
+      // makes the grid visibly drift once the robot leaves the centre.
+      const cacheOx = W / 2;
+      const cacheOy = H / 2;
 
       gc.strokeStyle = 'rgba(0, 210, 255, 0.05)';
       gc.lineWidth = 1;
@@ -62,9 +67,9 @@ export function drawArena(g, canvas, ctx, camera) {
       // Horizontal grid lines (no warp — identity getWarped)
       for (let gy = -10; gy <= 10; gy++) {
         gc.beginPath();
-        gc.moveTo(ox + (-10) * scale, oy + gy * scale);
+        gc.moveTo(cacheOx + (-10) * scale, cacheOy + gy * scale);
         for (let gx = -9.5; gx <= 10; gx += 0.5) {
-          gc.lineTo(ox + gx * scale, oy + gy * scale);
+          gc.lineTo(cacheOx + gx * scale, cacheOy + gy * scale);
         }
         gc.stroke();
       }
@@ -72,9 +77,9 @@ export function drawArena(g, canvas, ctx, camera) {
       // Vertical grid lines
       for (let gx = -10; gx <= 10; gx++) {
         gc.beginPath();
-        gc.moveTo(ox + gx * scale, oy + (-10) * scale);
+        gc.moveTo(cacheOx + gx * scale, cacheOy + (-10) * scale);
         for (let gy = -9.5; gy <= 10; gy += 0.5) {
-          gc.lineTo(ox + gx * scale, oy + gy * scale);
+          gc.lineTo(cacheOx + gx * scale, cacheOy + gy * scale);
         }
         gc.stroke();
       }
@@ -84,14 +89,18 @@ export function drawArena(g, canvas, ctx, camera) {
       for (let gx = -10; gx <= 10; gx += 5) {
         for (let gy = -10; gy <= 10; gy += 5) {
           gc.beginPath();
-          gc.arc(ox + gx * scale, oy + gy * scale, 2, 0, Math.PI * 2);
+          gc.arc(cacheOx + gx * scale, cacheOy + gy * scale, 2, 0, Math.PI * 2);
           gc.fill();
         }
       }
     }
 
-    // Blit the cached grid in a single drawImage call.
+    // Blit the cached grid in a single drawImage call, applying the current
+    // camera transform at draw time rather than rebuilding the cache.
+    g.save();
+    g.translate(-camera.x * scale + cam.x, -camera.y * scale + cam.y);
     g.drawImage(_gridCache, 0, 0);
+    g.restore();
   } else {
     // Shockwaves active: draw fully-warped grid as before, and invalidate cache.
     _gridCache = null;

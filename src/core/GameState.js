@@ -12,6 +12,15 @@ const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
 const MAX_RULES = 40;
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
+const STAT_LIMITS = Object.freeze({
+  max_hp: [1, 1_000_000], max_energy: [1, 1_000_000], energy_regen: [0, 1_000_000],
+  move_speed: [0.1, 1_000], basic_dmg: [0, 1_000_000], basic_cd: [0.01, 1_000],
+  dash_distance: [0.1, 100], dash_cd: [0.01, 1_000], shield_dur: [0, 1_000],
+  shield_reduce: [0, 0.99], shield_cd: [0.01, 1_000], interrupt_cd: [0.01, 1_000],
+  overdrive_cd: [0.01, 1_000], overdrive_dur: [0, 1_000], reflective_plating: [0, 1],
+  nanite_repair: [0, 1_000], superconductors: [0, 1], emergency_recall: [0, 1],
+  heavy_impact: [0, 1], thermal_recycle: [0, 1], armor_piercing: [0, 1_000],
+});
 const MAP_NODE_IDS = [
   ['0_start'],
   ['1_a', '1_b'],
@@ -81,11 +90,13 @@ class GameStateClass {
       const raw = localStorage.getItem('overlogic_settings');
       if (raw) {
         const parsed = JSON.parse(raw);
-        this.settings.volume = parsed.volume ?? 0.8;
-        this.settings.mute = parsed.mute ?? false;
-        this.settings.screenShake = parsed.screenShake ?? true;
-        this.settings.reduceMotion = parsed.reduceMotion ??
-          (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+        const volume = Number(parsed.volume);
+        this.settings.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.8;
+        this.settings.mute = parsed.mute === true;
+        this.settings.screenShake = parsed.screenShake !== false;
+        this.settings.reduceMotion = typeof parsed.reduceMotion === 'boolean'
+          ? parsed.reduceMotion
+          : (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
         this.settings.language = LANGUAGES.has(parsed.language) ? parsed.language : 'en';
         this.settings.runMode = RUN_MODES.has(parsed.runMode) ? parsed.runMode : 'standard';
         this.settings.difficulty = DIFFICULTIES.has(parsed.difficulty) ? parsed.difficulty : 'standard';
@@ -100,6 +111,14 @@ class GameStateClass {
 
   saveSettings() {
     try {
+      const volume = Number(this.settings.volume);
+      this.settings.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.8;
+      this.settings.mute = this.settings.mute === true;
+      this.settings.screenShake = this.settings.screenShake !== false;
+      this.settings.reduceMotion = this.settings.reduceMotion === true;
+      if (!LANGUAGES.has(this.settings.language)) this.settings.language = 'en';
+      if (!RUN_MODES.has(this.settings.runMode)) this.settings.runMode = 'standard';
+      if (!DIFFICULTIES.has(this.settings.difficulty)) this.settings.difficulty = 'standard';
       localStorage.setItem('overlogic_settings', JSON.stringify(this.settings));
       // Apply to AudioManager
       AudioManager.setVolume(this.settings.volume);
@@ -110,6 +129,12 @@ class GameStateClass {
   }
 
   resetRun() {
+    // A new run must not inherit editing history or rule IDs from a previous
+    // run. Keeping either would let Ctrl+Z resurrect another run's build and
+    // would make fresh share codes/debug logs needlessly non-deterministic.
+    this._undoStack = [];
+    this._redoStack = [];
+    this._ruleCounter = 0;
     this.currentBattleIndex = 0;
     this.currentMapColumn = 0;
     this.selectedNodeId = '0_start';
@@ -882,7 +907,15 @@ class GameStateClass {
       this.currentBattleIndex = clampedBattleIndex;
       changed = true;
     }
-    const mergedStats = { ...baseStats(), ...(this.stats || {}) };
+    const defaultStats = baseStats();
+    const mergedStats = { ...defaultStats, ...(this.stats || {}) };
+    for (const [key, [min, max]] of Object.entries(STAT_LIMITS)) {
+      const numeric = Number(mergedStats[key]);
+      const normalized = Number.isFinite(numeric)
+        ? Math.max(min, Math.min(max, numeric))
+        : defaultStats[key];
+      if (normalized !== mergedStats[key]) mergedStats[key] = normalized;
+    }
     if (JSON.stringify(mergedStats) !== JSON.stringify(this.stats)) {
       this.stats = mergedStats;
       changed = true;
