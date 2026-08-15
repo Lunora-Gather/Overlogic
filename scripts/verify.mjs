@@ -369,6 +369,8 @@ function verifyUiSafetyContracts() {
   assert.equal(escapeHtml(`"quoted" & 'single'`), '&quot;quoted&quot; &amp; &#39;single&#39;');
   const html = fs.readFileSync('index.html', 'utf8');
   const editorUi = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
+  const codeModalUi = fs.readFileSync('src/ui/CodeModal.js', 'utf8');
+  const particleSystem = fs.readFileSync('src/vfx/ParticleSystem.js', 'utf8');
   const mainUi = fs.readFileSync('src/main.js', 'utf8');
   const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
@@ -387,6 +389,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="run-mode"'), 'menu should expose run modes');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
+  assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
@@ -397,6 +400,10 @@ function verifyUiSafetyContracts() {
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
   assert(menuUi.includes("this._requestConfirm('menu.newRunConfirm')") && menuUi.includes("this._requestConfirm('reset.confirm')"), 'destructive actions must use the themed confirm flow');
+  assert(editorUi.includes('this.codeModal.openExport') && editorUi.includes('this.codeModal.openImport'), 'build sharing must use the themed code dialog');
+  assert(!editorUi.includes('prompt('), 'editor must not fall back to native prompt dialogs');
+  assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('document.execCommand'), 'code dialog must trap focus and provide a clipboard fallback');
+  assert(particleSystem.includes('reduceMotion') && particleSystem.includes('spawnEngineTrail'), 'reduced motion must reach the canvas particle system');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');

@@ -74,6 +74,20 @@
     </div>
   </section>
 
+  <!-- ===== Build Code Share / Import ===== -->
+  <div id="code-overlay" class="overlay hidden" aria-hidden="true">
+    <div class="overlay-card code-card" role="dialog" aria-modal="true" aria-labelledby="code-title" aria-describedby="code-description">
+      <h2 id="code-title" data-i18n="editor.codeTitle">Build Code</h2>
+      <p id="code-description" class="code-description"></p>
+      <textarea id="code-textarea" class="code-textarea" spellcheck="false" aria-label="Build code" data-i18n-aria-label="editor.codeField" data-i18n-placeholder="editor.codePlaceholder" placeholder="Paste your build code here..."></textarea>
+      <div class="modal-actions code-actions">
+        <button id="btn-code-primary" class="btn primary modal-confirm"></button>
+        <button id="btn-code-copy" class="btn secondary"></button>
+        <button id="btn-code-cancel" class="btn ghost" data-i18n="common.cancel">Cancel</button>
+      </div>
+    </div>
+  </div>
+
   <!-- ===== Logic Editor ===== -->
   <section id="screen-editor" class="screen hidden">
     <header class="editor-header" style="flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 24px;">

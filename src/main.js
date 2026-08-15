@@ -10,6 +10,7 @@ import { BattleHUD } from './ui/BattleHUD.js?v=20260725-4';
 import { RewardUI } from './ui/RewardUI.js?v=20260725-4';
 import { PostBattleReportUI } from './ui/PostBattleReportUI.js?v=20260725-4';
 import { VictoryUI } from './ui/VictoryUI.js?v=20260725-4';
+import { CodeModal } from './ui/CodeModal.js?v=20260725-4';
 import { AudioManager } from './systems/AudioManager.js?v=20260725-4';
 import { BackgroundAnim } from './systems/BackgroundAnim.js?v=20260725-4';
 import { escapeHtml } from './ui/safeHtml.js?v=20260725-4';
@@ -31,7 +32,8 @@ async function main() {
   }
 
   const mainMenu = new MainMenu();
-  const logicEditor = new LogicEditorUI();
+  const codeModal = new CodeModal();
+  const logicEditor = new LogicEditorUI(codeModal);
   const battleHUD = new BattleHUD(null);
   const rewardUI = new RewardUI();
   const reportUI = new PostBattleReportUI();

@@ -11,7 +11,8 @@ import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
 import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
 
 export class LogicEditorUI {
-  constructor() {
+  constructor(codeModal = null) {
+    this.codeModal = codeModal;
     this.el = document.getElementById('screen-editor');
     this.condList = document.getElementById('cond-list');
     this.actList  = document.getElementById('act-list');
@@ -73,20 +74,20 @@ export class LogicEditorUI {
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); this.renderSynergies(); });
     GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
     window.addEventListener('overlogic:localechange', () => this.renderAll());
-    this.btnExportRules?.addEventListener('click', async () => {
+    this.btnExportRules?.addEventListener('click', () => {
       const code = GameState.exportRulesCode();
-      try {
-        await navigator.clipboard.writeText(code);
-        this._flashButton(this.btnExportRules, t('editor.copied'));
-      } catch {
-        prompt(t('editor.copyCode'), code);
-      }
+      if (this.codeModal) this.codeModal.openExport(code);
+      else this._flashButton(this.btnExportRules, t('editor.copied'));
     });
     this.btnImportRules?.addEventListener('click', () => {
-      const code = prompt(t('editor.pasteCode'));
-      if (code === null) return;
-      const ok = GameState.importRulesCode(code);
-      this._flashButton(this.btnImportRules, ok ? t('editor.imported') : t('editor.invalidCode'));
+      const importCode = this.codeModal
+        ? this.codeModal.openImport()
+        : Promise.resolve(null);
+      Promise.resolve(importCode).then((code) => {
+        if (code === null || code === undefined) return;
+        const ok = GameState.importRulesCode(code);
+        this._flashButton(this.btnImportRules, ok ? t('editor.imported') : t('editor.invalidCode'));
+      });
     });
   }
 

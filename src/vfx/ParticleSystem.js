@@ -1,6 +1,12 @@
 // ParticleSystem.js — advanced particle system supporting sparks, thrusters, shockwaves, and floating numbers.
 // Mirrors scripts/vfx/ParticleSystem.gd.
 
+import { GameState } from '../core/GameState.js?v=20260725-4';
+
+function reducedMotion() {
+  return GameState.settings?.reduceMotion === true;
+}
+
 export class Particle {
   constructor(x, y, vx, vy, life, color, size, type = 'spark', text = '') {
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
@@ -105,6 +111,12 @@ export class Particle {
 
 export function spawnBurst(ctx, x, y, color, count = 8, speed = 4, life = 0.3, size = 4) {
   if (!ctx || !ctx.particles) return;
+  if (reducedMotion()) {
+    // Keep a small, short-lived confirmation spark for state changes without
+    // flooding reduced-motion users with expanding particle fields.
+    count = Math.max(1, Math.ceil(count * 0.2));
+    life *= 0.55;
+  }
   if (ctx.particles.length > 300) ctx.particles.splice(0, ctx.particles.length - 300);
   for (let i = 0; i < count; i++) {
     const a = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
@@ -115,6 +127,7 @@ export function spawnBurst(ctx, x, y, color, count = 8, speed = 4, life = 0.3, s
 
 export function spawnEngineTrail(ctx, x, y, color, size = 0.25) {
   if (!ctx || !ctx.particles) return;
+  if (reducedMotion()) return;
   if (ctx.particles.length > 300) ctx.particles.splice(0, ctx.particles.length - 300);
   // slight drift backward/random
   const angle = Math.random() * Math.PI * 2;
@@ -131,6 +144,7 @@ export function spawnEngineTrail(ctx, x, y, color, size = 0.25) {
 
 export function spawnShockwave(ctx, x, y, color, maxRadius = 2.0, life = 0.4) {
   if (!ctx || !ctx.particles) return;
+  if (reducedMotion()) return;
   ctx.particles.push(new Particle(x, y, 0, 0, life, color, maxRadius, 'shockwave'));
 }
 

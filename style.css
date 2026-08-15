@@ -3321,6 +3321,66 @@ select:focus-visible,
   line-height: 1.7;
 }
 
+.code-card {
+  width: min(720px, calc(100vw - 40px));
+  max-width: 720px !important;
+}
+
+.code-description {
+  margin: -8px 0 16px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.code-textarea {
+  width: 100%;
+  min-height: 180px;
+  max-height: min(46vh, 360px);
+  resize: vertical;
+  padding: 14px;
+  border: 1px solid var(--border-mid);
+  border-radius: var(--radius-sm);
+  background: rgba(2, 7, 16, 0.88);
+  color: var(--accent2);
+  font: 12px/1.55 var(--font-mono);
+  letter-spacing: 0.02em;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.code-textarea:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px rgba(0, 210, 255, 0.12), inset 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.code-textarea.readonly {
+  color: #b9cbe6;
+}
+
+.code-actions .btn {
+  min-width: 132px;
+}
+
+@media (max-width: 560px) {
+  .code-card {
+    padding: 24px 18px 20px;
+  }
+
+  .code-textarea {
+    min-height: 150px;
+  }
+
+  .code-actions {
+    flex-wrap: wrap;
+  }
+
+  .code-actions .btn {
+    flex: 1 1 140px;
+    min-width: 0;
+  }
+}
+
 .settings-list {
   width: 100% !important;
   max-width: none !important;
