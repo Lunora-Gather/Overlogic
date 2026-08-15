@@ -418,8 +418,11 @@ async function main() {
       const link = document.createElement('a');
       link.href = url;
       link.download = `overlogic-support-${new Date().toISOString().slice(0, 10)}.json`;
+      link.className = 'hidden';
+      document.body.appendChild(link);
       link.click();
-      setTimeout(() => URL.revokeObjectURL(url), 0);
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
       showAppNotice('notice.supportExported', { autoHide: 3500 });
     } catch {
       showAppNotice('notice.exportFailed');
