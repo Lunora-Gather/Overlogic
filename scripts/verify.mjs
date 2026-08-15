@@ -256,6 +256,15 @@ function verifyGameplayContracts() {
   assert.equal(GameState.stats.shield_reduce, 0.99, 'damage reduction must stay below 100%');
 
   GameState.resetRun();
+  GameState.currentMapColumn = GameState.mapNodes.length;
+  GameState.selectedNodeId = '6_boss';
+  GameState.saveToStorage();
+  GameState.loadFromStorage();
+  GameState.normalizeAfterDatabaseLoad();
+  assert.equal(GameState.isDemoCleared(), true, 'completed runs must remain completed after reload');
+  assert.equal(GameState.selectedNodeId, null, 'completed runs must not point back to a playable node');
+
+  GameState.resetRun();
   GameState.currentMapColumn = 3;
   GameState.selectedNodeId = '3_b';
   GameState.persistentHp = 3;

@@ -885,16 +885,32 @@ class GameStateClass {
       this._mergeMapCompletion(loadedMap);
       changed = true;
     }
-    const maxColumn = Math.max(0, this.mapNodes.length - 1);
-    const clampedColumn = Math.max(0, Math.min(maxColumn, this.currentMapColumn | 0));
+    // `mapNodes.length` is a deliberate sentinel for a completed run. Clamp
+    // against it rather than the last playable column, otherwise a victory
+    // is silently downgraded to the final boss node after a page refresh.
+    const maxColumn = Math.max(0, this.mapNodes.length);
+    const rawColumn = this.currentMapColumn | 0;
+    // Only the exact sentinel represents a legitimate completed run; larger
+    // corrupt values fall back to the final playable column instead of
+    // granting a malformed save a false victory.
+    const clampedColumn = rawColumn === maxColumn
+      ? maxColumn
+      : Math.max(0, Math.min(Math.max(0, maxColumn - 1), rawColumn));
     if (clampedColumn !== this.currentMapColumn) {
       this.currentMapColumn = clampedColumn;
       changed = true;
     }
-    const activeCol = this.mapNodes[this.currentMapColumn] || [];
-    if (!activeCol.some(node => node.id === this.selectedNodeId)) {
-      this.selectedNodeId = activeCol[0]?.id || '0_start';
-      changed = true;
+    if (this.currentMapColumn >= this.mapNodes.length) {
+      if (this.selectedNodeId !== null) {
+        this.selectedNodeId = null;
+        changed = true;
+      }
+    } else {
+      const activeCol = this.mapNodes[this.currentMapColumn] || [];
+      if (!activeCol.some(node => node.id === this.selectedNodeId)) {
+        this.selectedNodeId = activeCol[0]?.id || '0_start';
+        changed = true;
+      }
     }
     const clampedTeach = Math.max(MIN_TEACH_NODE, Math.min(MAX_TEACH_NODE, this.teachNode | 0));
     if (clampedTeach !== this.teachNode) {
