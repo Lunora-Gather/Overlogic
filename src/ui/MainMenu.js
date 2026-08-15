@@ -34,6 +34,7 @@ export class MainMenu {
     this.runChallenges = document.getElementById('run-challenges');
     this.runProfile = document.getElementById('run-profile');
     this.howBody = document.getElementById('how-body');
+    this._challengeRefreshTimer = null;
     this._howReturnFocus = null;
     this._confirmReturnFocus = null;
     this._confirmKey = null;
@@ -239,6 +240,19 @@ export class MainMenu {
     this.runChallenges.innerHTML = `
       <div class="challenge-heading"><span>${escapeHtml(t('menu.challengesTitle'))}</span><span>${escapeHtml(t('menu.challengeDate', { date: snapshot.date }))}</span></div>
       <ul class="challenge-list">${items}</ul>`;
+    this._scheduleChallengeRefresh();
+  }
+
+  _scheduleChallengeRefresh() {
+    if (this._challengeRefreshTimer) clearTimeout(this._challengeRefreshTimer);
+    if (typeof window === 'undefined') return;
+    const now = new Date();
+    const nextUtcDay = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1);
+    const delay = Math.max(1000, nextUtcDay - now.getTime() + 1000);
+    this._challengeRefreshTimer = window.setTimeout(() => {
+      this._challengeRefreshTimer = null;
+      this.renderChallenges();
+    }, delay);
   }
 
   _requestConfirm(key) {
