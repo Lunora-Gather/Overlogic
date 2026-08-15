@@ -33,11 +33,14 @@ function showBootFailure(error) {
   bootStatus.classList.add('error');
   bootStatus.replaceChildren();
   const title = document.createElement('strong');
+  title.dataset.i18n = 'boot.offlineTitle';
   title.textContent = t('boot.offlineTitle');
   const detail = document.createElement('span');
+  detail.dataset.i18n = 'boot.offlineDetail';
   detail.textContent = t('boot.offlineDetail');
   const retry = document.createElement('button');
   retry.className = 'btn primary small';
+  retry.dataset.i18n = 'boot.retry';
   retry.textContent = t('boot.retry');
   retry.addEventListener('click', () => window.location.reload());
   bootStatus.append(title, detail, retry);
