@@ -4,7 +4,7 @@ import path from 'node:path';
 const root = process.cwd();
 const output = path.join(root, 'dist');
 const release = String(process.env.GITHUB_SHA || process.env.OVERLOGIC_RELEASE || Date.now()).slice(0, 12);
-const include = ['index.html', 'style.css', '.nojekyll', 'LICENSE', 'README.md', 'data', 'src'];
+const include = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', '.nojekyll', 'LICENSE', 'README.md', 'data', 'src'];
 
 await fs.rm(output, { recursive: true, force: true });
 await fs.mkdir(output, { recursive: true });
@@ -28,6 +28,9 @@ async function rewrite(dir) {
 }
 
 await rewrite(output);
+const serviceWorker = path.join(output, 'sw.js');
+const serviceWorkerSource = await fs.readFile(serviceWorker, 'utf8');
+await fs.writeFile(serviceWorker, serviceWorkerSource.replaceAll('__RELEASE__', release));
 await fs.writeFile(path.join(output, 'release.json'), JSON.stringify({
   release,
   builtAt: new Date().toISOString(),

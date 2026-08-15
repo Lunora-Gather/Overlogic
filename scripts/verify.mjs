@@ -38,7 +38,7 @@ function collectJsFiles(dir, out = []) {
 }
 
 function verifySyntax() {
-  for (const file of [...collectJsFiles('src'), ...collectJsFiles('scripts')]) {
+  for (const file of [...collectJsFiles('src'), ...collectJsFiles('scripts'), 'sw.js']) {
     execFileSync('node', ['--check', file], { stdio: 'pipe' });
   }
 }
@@ -65,7 +65,12 @@ function verifyDataContracts() {
   assert.deepEqual(errors, []);
 }
 
-function verifyGameplayContracts() {
+async function verifyGameplayContracts() {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => ({ ok: false, status: 503, async json() { return {}; } });
+  await assert.rejects(GameDatabase._fetchJson('data/unavailable.json', { retries: 0 }), /HTTP 503/);
+  globalThis.fetch = originalFetch;
+
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
   GameState.configureRun('daily', 'veteran');
@@ -386,6 +391,7 @@ function verifyUiSafetyContracts() {
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
+  assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
   assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
   assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
@@ -416,10 +422,17 @@ function verifyUiSafetyContracts() {
   assert(particleSystem.includes('reduceMotion') && particleSystem.includes('spawnEngineTrail'), 'reduced motion must reach the canvas particle system');
   assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
+  assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
+  const buildScript = fs.readFileSync('scripts/build.mjs', 'utf8');
+  const devServer = fs.readFileSync('scripts/serve.mjs', 'utf8');
+  const serviceWorker = fs.readFileSync('sw.js', 'utf8');
+  assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
+  assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
+  assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '开始模拟');
   assert.equal(t('combat.temperature'), '核心温度');
@@ -526,7 +539,7 @@ function verifySimulation() {
 
 verifySyntax();
 verifyDataContracts();
-verifyGameplayContracts();
+await verifyGameplayContracts();
 verifyReportContracts();
 verifySaveMigration();
 verifyUiSafetyContracts();

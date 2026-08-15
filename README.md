@@ -149,6 +149,9 @@ Overlogic/
 ├─ scripts/              # 本地服务、构建、验证与平衡模拟
 ├─ index.html            # 应用结构
 ├─ style.css             # 响应式视觉系统
+├─ manifest.webmanifest  # 可安装 Web App 元数据
+├─ sw.js                 # 版本化离线缓存与弱网回退
+├─ icon.svg              # 应用图标与分享预览图
 └─ DESIGN.md             # 完整设计与维护约束
 ```
 
@@ -164,7 +167,7 @@ Overlogic/
 4. 版本化构建。
 5. GitHub Pages 部署。
 
-部署只上传生成的 `dist/` 内容；构建脚本会为模块与数据地址注入提交版本，避免浏览器混用不同版本的缓存资源。
+部署只上传生成的 `dist/` 内容；构建脚本会为模块与数据地址注入提交版本，并给 Service Worker 写入发布缓存版本，避免浏览器混用不同版本的缓存资源。首次成功加载后，浏览器可安装 Overlogic；弱网或短暂断网时会优先恢复最近一次可用的应用壳层。
 
 ## 开发状态 / Project status
 

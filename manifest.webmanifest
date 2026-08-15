@@ -1,0 +1,15 @@
+{
+  "name": "Overlogic — Program the Brain",
+  "short_name": "Overlogic",
+  "description": "Program a robot's combat logic, inspect the simulation, and refine the build.",
+  "lang": "en",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#030509",
+  "theme_color": "#07111f",
+  "icons": [
+    { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

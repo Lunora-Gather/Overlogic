@@ -17,6 +17,68 @@ import { escapeHtml } from './ui/safeHtml.js?v=20260725-4';
 import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
 
+const bootStatus = document.getElementById('boot-status');
+
+// Apply the saved locale before the first network request so a slow/failed
+// boot never flashes the wrong language or falls back to English-only copy.
+setLocale(GameState.settings.language, { notify: false });
+
+function hideBootStatus() {
+  bootStatus?.classList.add('hidden');
+}
+
+function showBootFailure(error) {
+  if (!bootStatus) return;
+  bootStatus.classList.remove('hidden');
+  bootStatus.classList.add('error');
+  bootStatus.replaceChildren();
+  const title = document.createElement('strong');
+  title.textContent = t('boot.offlineTitle');
+  const detail = document.createElement('span');
+  detail.textContent = t('boot.offlineDetail');
+  const retry = document.createElement('button');
+  retry.className = 'btn primary small';
+  retry.textContent = t('boot.retry');
+  retry.addEventListener('click', () => window.location.reload());
+  bootStatus.append(title, detail, retry);
+  console.error('Overlogic boot failed:', error);
+}
+
+function registerServiceWorker() {
+  if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
+  navigator.serviceWorker.register('./sw.js').catch(() => {
+    // Offline support is progressive enhancement; a blocked registration
+    // must never prevent the game from loading.
+  });
+}
+
+function setupInstallPrompt() {
+  const installButton = document.getElementById('btn-install');
+  if (!installButton || typeof window === 'undefined') return;
+  let deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', (event) => {
+    event.preventDefault();
+    deferredPrompt = event;
+    installButton.classList.remove('hidden');
+  });
+  installButton.addEventListener('click', async () => {
+    if (!deferredPrompt) return;
+    const promptEvent = deferredPrompt;
+    deferredPrompt = null;
+    installButton.classList.add('hidden');
+    try {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+    } catch {
+      // Installation is optional; a dismissed prompt should not affect play.
+    }
+  });
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    installButton.classList.add('hidden');
+  });
+}
+
 async function main() {
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
@@ -355,9 +417,11 @@ async function main() {
   // Start at main menu
   document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
   GameManager.goMainMenu();
+  hideBootStatus();
 }
 
+registerServiceWorker();
+setupInstallPrompt();
 main().catch(err => {
-  console.error('Overlogic boot failed:', err);
-  document.body.innerHTML = `<div style="padding:24px;color:#f55;font-family:monospace">Boot failed: ${escapeHtml(err?.message || err)}<br>Run via a local web server (e.g. <code>python -m http.server</code>) — fetch() needs http, not file://.</div>`;
+  showBootFailure(err);
 });

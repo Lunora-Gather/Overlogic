@@ -5,9 +5,20 @@
 <title>Overlogic</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Program a robot's combat logic, simulate the battle, inspect the result, and refine its brain.">
+<meta name="application-name" content="Overlogic">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Overlogic">
+<meta property="og:type" content="website">
+<meta property="og:title" content="Overlogic — Program the Brain">
+<meta property="og:description" content="Design a robot's logic, observe the battle, and debug the build.">
+<meta property="og:url" content="https://lunora-gather.github.io/Overlogic/">
+<meta property="og:image" content="https://lunora-gather.github.io/Overlogic/icon.svg">
+<link rel="canonical" href="https://lunora-gather.github.io/Overlogic/">
 <meta name="theme-color" content="#07111f">
 <meta name="color-scheme" content="dark">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2307111f'/%3E%3Cpath d='M13 17h15v8H21v14h7v8H13zm38 0H36v8h7v14h-7v8h15z' fill='%234be1ff'/%3E%3Ccircle cx='32' cy='32' r='6' fill='%233eff9d'/%3E%3C/svg%3E">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
@@ -16,6 +27,7 @@
 <body>
 <canvas id="bg-canvas"></canvas>
 <div id="app">
+  <div id="boot-status" class="boot-status" role="status" aria-live="polite" data-i18n="boot.loading">INITIALIZING LOGIC CORE…</div>
 
   <!-- ===== Main Menu ===== -->
   <section id="screen-main" class="screen">
@@ -50,6 +62,7 @@
       <button id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
       <button id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
       <button id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
+      <button id="btn-install" class="btn ghost hidden" data-i18n="menu.install">Install App</button>
       <button id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
       <button id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
     </div>

@@ -97,6 +97,44 @@ body {
   z-index: 10;
 }
 
+.boot-status {
+  position: fixed;
+  z-index: 40;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(420px, calc(100vw - 40px));
+  padding: 18px 22px;
+  transform: translate(-50%, -50%);
+  border: 1px solid var(--border-mid, rgba(111, 205, 255, 0.24));
+  border-radius: var(--radius-md, 11px);
+  background: rgba(5, 10, 21, 0.94);
+  color: var(--accent);
+  font: 12px/1.5 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), 0 0 28px rgba(0, 210, 255, 0.12);
+}
+
+.boot-status.error {
+  color: #ffb4a8;
+  border-color: rgba(255, 62, 62, 0.5);
+  letter-spacing: 0.04em;
+}
+
+.boot-status.error strong {
+  color: #ff6b6b;
+  letter-spacing: 0.12em;
+}
+
+.boot-status.error span {
+  color: var(--muted);
+  letter-spacing: 0;
+}
+
 .screen {
   width: 100%;
   height: 100%;
