@@ -12,6 +12,7 @@ import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
+import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -85,6 +86,10 @@ export class MainMenu {
       }
       if (GameState.isDemoCleared()) GameState.resetRun();
       GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._requestedSeed());
+      recordProductEvent('run_started', {
+        mode: GameState.runConfig.mode,
+        difficulty: GameState.runConfig.difficulty,
+      });
       GameManager.goLogicEdit();
     });
     this.btnNewRun?.addEventListener('click', () => {
@@ -94,6 +99,10 @@ export class MainMenu {
         if (!confirmed) return;
         GameState.resetRun();
         GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._requestedSeed());
+        recordProductEvent('run_started', {
+          mode: GameState.runConfig.mode,
+          difficulty: GameState.runConfig.difficulty,
+        });
         this.render();
         GameManager.goLogicEdit();
       });

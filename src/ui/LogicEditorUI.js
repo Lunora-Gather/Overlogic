@@ -12,6 +12,7 @@ import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
 import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
+import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -1285,6 +1286,7 @@ export class LogicEditorUI {
       const templateId = this.ruleTemplate?.value;
       if (!templateId) return;
       const result = GameState.applyRuleTemplate(templateId);
+      if (result.added > 0) recordProductEvent('rule_template_applied', { source: templateId, added: result.added });
       AudioManager.play(result.added > 0 ? 'rule_add' : 'button_click');
       this._flashButton(
         this.btnApplyTemplate,

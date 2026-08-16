@@ -10,6 +10,7 @@ import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnaps
 import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
+import { clearProductMetrics, productMetricsSnapshot, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -119,6 +120,7 @@ class GameStateClass {
       screenShake: true,
       reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
       highContrast: false,
+      productMetrics: false,
       language: 'en',
       runMode: 'standard',
       difficulty: 'standard',
@@ -148,6 +150,7 @@ class GameStateClass {
           ? parsed.reduceMotion
           : (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
         this.settings.highContrast = parsed.highContrast === true;
+        this.settings.productMetrics = parsed.productMetrics === true;
         this.settings.language = LANGUAGES.has(parsed.language) ? parsed.language : 'en';
         this.settings.runMode = RUN_MODES.has(parsed.runMode) ? parsed.runMode : 'standard';
         this.settings.difficulty = DIFFICULTIES.has(parsed.difficulty) ? parsed.difficulty : 'standard';
@@ -169,6 +172,7 @@ class GameStateClass {
       this.settings.screenShake = this.settings.screenShake !== false;
       this.settings.reduceMotion = this.settings.reduceMotion === true;
       this.settings.highContrast = this.settings.highContrast === true;
+      this.settings.productMetrics = this.settings.productMetrics === true;
       if (!LANGUAGES.has(this.settings.language)) this.settings.language = 'en';
       if (!RUN_MODES.has(this.settings.runMode)) this.settings.runMode = 'standard';
       if (!DIFFICULTIES.has(this.settings.difficulty)) this.settings.difficulty = 'standard';
@@ -341,6 +345,10 @@ class GameStateClass {
     if (result.persisted) {
       this.runStats.completionRecorded = true;
       this.saveToStorage();
+      recordProductEvent('run_completed', {
+        mode: this.runConfig?.mode || 'standard',
+        difficulty: this.runConfig?.difficulty || 'standard',
+      });
     }
     return result;
   }
@@ -1042,6 +1050,7 @@ class GameStateClass {
     cleared = resetProfile() && cleared;
     cleared = clearChallenges() && cleared;
     cleared = clearRunArchive() && cleared;
+    cleared = clearProductMetrics() && cleared;
     this.resetRun();
     return cleared && this.storageStatus.available !== false;
   }
@@ -1101,11 +1110,13 @@ class GameStateClass {
       exportedAt: new Date().toISOString(),
       release,
       operations: operationsSnapshot(),
+      productMetrics: productMetricsSnapshot(),
       storageStatus: this.storageStatus,
       settings: {
         language: this.settings.language,
         reduceMotion: this.settings.reduceMotion,
         highContrast: this.settings.highContrast,
+        productMetrics: this.settings.productMetrics,
         screenShake: this.settings.screenShake,
       },
       run: {

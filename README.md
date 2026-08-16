@@ -46,6 +46,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **随时验证逻辑**：混合、弹幕、虫群、支援和 Boss 五种沙盒场景，不消耗正式流程进度。
 - **跨设备体验**：支持桌面与移动布局、触控排序、键盘操作、减少动态效果及镜头震动设置。
 - **三语界面**：完整支持简体中文、繁体中文和英文。
+- **隐私优先诊断**：可选择在本地记录白名单试玩事件；默认关闭、永不自动上传，关闭后立即清空。
 
 ### 一条规则能做什么
 
@@ -75,7 +76,7 @@ Program the brain. Observe the battle. Debug the logic.
 
 胜利结果会先写入存档，再进入奖励页；如果在奖励选择前刷新页面，主菜单会显示“继续领取奖励”，只结算一次，不会重打已胜战斗或重复累计进度。
 
-支援包仅在玩家主动下载时生成，包含当前版本、存档状态、启动耗时、长帧统计和最近的受限错误摘要；诊断信息只驻留内存，不写入存档，也不会自动上传。
+支援包仅在玩家主动下载时生成，包含当前版本、运营清单、存档状态、启动耗时、长帧统计、最近的受限错误摘要，以及玩家明确开启后的本地产品指标摘要；这些信息不会自动上传。产品指标默认关闭，只记录白名单事件和粗粒度属性，不包含规则代码、挑战种子或身份数据，关闭时会立即删除。
 
 ---
 
@@ -123,6 +124,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 - Resume a persisted win safely after a refresh: pending rewards are settled once instead of replaying the cleared battle.
 - Download a privacy-safe support bundle with bounded runtime diagnostics; diagnostics stay in memory and are never uploaded automatically.
+- Optionally keep a bounded, whitelisted product-metrics log in the current browser; it is disabled by default, never auto-uploaded, and deleted when switched off.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
 
@@ -200,7 +202,7 @@ Overlogic/
 
 当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、沙盒测试、三语界面、离线缓存、护盾中继支援敌人与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、沙盒测试、三语界面、离线缓存、护盾中继支援敌人、版本化运营清单、显式内容 schema、本地可选产品指标与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

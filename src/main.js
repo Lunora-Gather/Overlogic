@@ -18,6 +18,7 @@ import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
 import { markBootComplete, recordRuntimeError, recordRuntimeEvent } from './systems/RuntimeDiagnostics.js?v=20260725-4';
 import { featureEnabled, loadOperationsConfig } from './systems/OperationsConfig.js?v=20260725-4';
+import { configureProductMetrics, recordProductEvent } from './systems/ProductTelemetry.js?v=20260725-4';
 
 const bootStatus = document.getElementById('boot-status');
 const appNotice = document.getElementById('app-notice');
@@ -207,6 +208,7 @@ function setupInstallPrompt() {
 async function main() {
   const bootStartedAt = Date.now();
   const operations = await loadOperationsConfig();
+  configureProductMetrics(GameState.settings.productMetrics);
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
   setLocale(GameState.settings.language, { notify: false });
@@ -356,6 +358,7 @@ async function main() {
   const settingShake = document.getElementById('setting-shake');
   const settingReduceMotion = document.getElementById('setting-reduce-motion');
   const settingHighContrast = document.getElementById('setting-high-contrast');
+  const settingProductMetrics = document.getElementById('setting-product-metrics');
   const settingLanguage = document.getElementById('setting-language');
   const btnDataExport = document.getElementById('btn-data-export');
   const btnDataImport = document.getElementById('btn-data-import');
@@ -376,6 +379,7 @@ async function main() {
     settingShake.checked = GameState.settings.screenShake;
     settingReduceMotion.checked = GameState.settings.reduceMotion;
     if (settingHighContrast) settingHighContrast.checked = GameState.settings.highContrast;
+    if (settingProductMetrics) settingProductMetrics.checked = GameState.settings.productMetrics;
     settingLanguage.value = GameState.settings.language;
     if (btnDataRestore) btnDataRestore.disabled = !GameState.hasBackup();
 
@@ -441,12 +445,14 @@ async function main() {
       GameState.settings.screenShake = settingShake.checked;
       GameState.settings.reduceMotion = settingReduceMotion.checked;
       GameState.settings.highContrast = settingHighContrast?.checked === true;
+      GameState.settings.productMetrics = settingProductMetrics?.checked === true;
       GameState.settings.language = settingLanguage.value;
       GameState.saveSettings();
       settingsOriginalVolume = null;
       setLocale(GameState.settings.language);
       document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
       document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
+      configureProductMetrics(GameState.settings.productMetrics);
       if (bgAnim) bgAnim.setReducedMotion(GameState.settings.reduceMotion);
       
       closeSettings();
@@ -633,6 +639,7 @@ async function main() {
   document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
   GameManager.goMainMenu();
   markBootComplete(Date.now() - bootStartedAt);
+  recordProductEvent('app_boot', { source: operations.source });
   hideBootStatus();
 }
 

@@ -25,6 +25,7 @@ import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { recordFrame } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
+import { durationBucket, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 
 const WAVE_CLEAR_DELAY = 1.15;
 const ENEMY_CLASSES = {
@@ -78,6 +79,13 @@ export class CombatArena {
     this.dpr = dpr;
 
     this.battle = battle;
+    const sandbox = String(battle?.id || '').startsWith('sandbox_');
+    recordProductEvent(sandbox ? 'sandbox_started' : 'battle_started', {
+      battleId: battle?.id || 'unknown',
+      mode: GameState.runConfig?.mode || 'standard',
+      difficulty: GameState.runConfig?.difficulty || 'standard',
+      sandbox,
+    });
     this._finished = false;
     this.battleTime = 0;
     this._noEnemyTime = 0;
@@ -364,6 +372,14 @@ export class CombatArena {
       this.hud.logConsole(t('log.success'), 'success');
     }
     GameState.saveToStorage();
+    recordProductEvent('battle_finished', {
+      battleId: report._battleId || 'unknown',
+      mode: report._runMode,
+      difficulty: report._difficulty,
+      won: report._won,
+      sandbox: report._sandbox,
+      durationBucket: durationBucket(report.battle_time),
+    });
     // Sandbox is for debugging builds, not a progression faucet. Keep its
     // report available for the current screen, but never award profile XP,
     // achievements, or formal history entries for it.

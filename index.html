@@ -377,6 +377,13 @@
           <label for="setting-high-contrast" data-i18n="settings.contrast" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">High Contrast</label>
           <input type="checkbox" id="setting-high-contrast" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
+        <div class="settings-group settings-consent-group">
+          <div class="settings-consent-copy">
+            <label for="setting-product-metrics" data-i18n="settings.metrics">Local Product Metrics</label>
+            <p class="settings-help" data-i18n="settings.metricsHelp">Store anonymous, bounded playtest events in this browser. Nothing is uploaded automatically.</p>
+          </div>
+          <input type="checkbox" id="setting-product-metrics">
+        </div>
         <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
           <label for="setting-language" data-i18n="settings.language" style="font-size:12px;text-transform:uppercase;color:var(--accent);letter-spacing:1px;">Interface Language</label>
           <select id="setting-language" class="settings-select">

@@ -29,6 +29,13 @@ const { entity, setLocale, t, translationDiagnostics } = await import('../src/i1
 const { difficultyModifiers, dailyProtocol, weeklyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
 const { normalizeOperationsConfig, featureEnabled, operationsConfig } = await import('../src/systems/OperationsConfig.js?v=20260725-4');
+const {
+  clearProductMetrics,
+  configureProductMetrics,
+  durationBucket,
+  productMetricsSnapshot,
+  recordProductEvent,
+} = await import('../src/systems/ProductTelemetry.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
@@ -114,6 +121,35 @@ function verifyOperationsContracts() {
   assert.deepEqual(normalized.limits, { recentBattles: 12, archiveEntries: 12, supportErrors: 5 });
   assert.equal(featureEnabled('weeklyGauntlet'), true, 'default operations should keep the current weekly mode enabled');
   assert.equal(operationsConfig().schemaVersion, 1, 'runtime operations snapshot must be versioned');
+}
+
+function verifyProductTelemetryContracts() {
+  clearProductMetrics();
+  configureProductMetrics(false);
+  assert.equal(recordProductEvent('app_boot'), false, 'product metrics must be disabled by default');
+  configureProductMetrics(true);
+  assert.equal(recordProductEvent('rule_template_applied', {
+    source: 'defensive_core', added: 3, seed: 20260816, ruleCode: 'private',
+  }), true);
+  const initialMetrics = productMetricsSnapshot();
+  const templateEvent = initialMetrics.recent.find((entry) => entry.name === 'rule_template_applied');
+  assert.equal(templateEvent.properties.seed, undefined, 'challenge seeds must not enter product metrics');
+  assert.equal(templateEvent.properties.ruleCode, undefined, 'rule codes must not enter product metrics');
+  assert.equal(recordProductEvent('unknown_event'), false, 'unknown product events must be rejected');
+  for (let index = 0; index < 50; index += 1) {
+    recordProductEvent('battle_finished', { battleId: 'battle_1', won: index % 2 === 0, durationBucket: '10_29' });
+  }
+  const snapshot = productMetricsSnapshot();
+  assert.equal(snapshot.enabled, true);
+  assert.equal(snapshot.counts.rule_template_applied, 1);
+  assert.equal(snapshot.counts.battle_finished, 50);
+  assert.equal(snapshot.recent.length, 40, 'product metrics recent events must use a bounded ring buffer');
+  assert.equal(durationBucket(9.9), 'under_10');
+  assert.equal(durationBucket(30), '30_59');
+  assert.equal(durationBucket(120), '60_plus');
+  configureProductMetrics(false);
+  assert.equal(productMetricsSnapshot().enabled, false);
+  assert.equal(localStorage.getItem('overlogic_product_metrics'), null, 'disabling metrics must delete stored events');
 }
 
 function verifyRepairDroneContracts() {
@@ -599,6 +635,8 @@ function verifySaveMigration() {
   assert.equal(supportBundle.product, 'overlogic');
   assert.equal(supportBundle.operations?.schemaVersion, 1,
     'support bundle must include the active operations manifest snapshot');
+  assert.equal(supportBundle.productMetrics?.enabled, false,
+    'support bundle must expose the explicit product-metrics consent state');
   assert.equal(typeof supportBundle.settings.highContrast, 'boolean',
     'support bundle must preserve the contrast preference for visual diagnostics');
   assert(supportBundle.runtimeDiagnostics && supportBundle.runtimeDiagnostics.version === 1,
@@ -649,6 +687,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
+  assert(html.includes('id="setting-product-metrics"') && mainUi.includes('configureProductMetrics'), 'settings should expose explicit local metrics consent');
   assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
   assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes('name="referrer" content="no-referrer"'), 'release shell must declare browser-enforced security and referrer policies');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
@@ -998,6 +1037,7 @@ verifySyntax();
 await verifyImportGraph();
 verifyDataContracts();
 verifyOperationsContracts();
+verifyProductTelemetryContracts();
 verifyRepairDroneContracts();
 verifyShieldRelayContracts();
 verifyRuleTemplateContracts();

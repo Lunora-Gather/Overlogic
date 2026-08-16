@@ -191,6 +191,28 @@ body {
   line-height: 1.5;
 }
 
+.settings-consent-group {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 10px 0;
+}
+
+.settings-consent-copy {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.settings-consent-copy label {
+  color: var(--accent);
+  font-size: 12px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
 .settings-data-actions {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3910,7 +3932,14 @@ html.high-contrast .history-meta {
 .settings-group input[type="checkbox"] {
   width: 20px !important;
   height: 20px !important;
+  flex: 0 0 auto;
+  position: relative;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 1px solid var(--line);
   border-radius: 5px !important;
+  background: #020408;
+  cursor: pointer;
 }
 
 .settings-actions .btn {
