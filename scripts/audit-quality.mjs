@@ -123,6 +123,8 @@ check(/id="setting-product-metrics"/.test(html) && /productMetrics:\s*false/.tes
   'local product metrics must require explicit opt-in consent');
 check(/id="settings-storage-status"/.test(html) && /refreshSettingsStorageStatus/.test(main) && /settings\.storageConflict/.test(i18n),
   'settings must expose localized, actionable save-health state');
+check(/portableSaveIntegrity/.test(gameState) && /payload\.integrity/.test(gameState),
+  'portable save exports must carry a tamper-evident integrity envelope');
 check(/MAX_RECENT\s*=\s*40/.test(productTelemetry) && !/\bfetch\s*\(/.test(productTelemetry) && /clearProductMetrics/.test(productTelemetry),
   'product metrics must remain bounded, local-only, and immediately erasable');
 check(/storageWritesAllowed/.test(storageGate) && /markStorageWriteConflict/.test(storageGate) && /markStorageConflict/.test(main),

@@ -716,6 +716,10 @@ function verifySaveMigration() {
   assert.equal(GameState.rules[0].priority, 100);
   assert.equal(GameState.importSaveData(portableSave), true, 'portable saves must round-trip through validation');
   assert.equal(GameState.rules[0].priority, 91);
+  const tamperedSave = JSON.parse(portableSave);
+  tamperedSave.run.currentBattleIndex = (tamperedSave.run.currentBattleIndex || 0) + 1;
+  assert.equal(GameState.importSaveData(JSON.stringify(tamperedSave)), false,
+    'integrity-checked portable saves must reject modified payloads');
   assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
   const supportBundle = JSON.parse(GameState.exportSupportBundle());
   assert.equal(supportBundle.product, 'overlogic');
@@ -1113,6 +1117,9 @@ function verifyRunHistoryContracts() {
   const baselinePrimary = localStorage.getItem('overlogic_run_save');
   const baselineBackup = localStorage.getItem('overlogic_run_save_backup');
   const transactionalPayload = JSON.parse(GameState.exportSaveData());
+  // Exercise the legacy envelope path as well; old v1 exports remain
+  // importable while newly exported files carry an integrity digest.
+  delete transactionalPayload.integrity;
   transactionalPayload.settings.language = 'zh-TW';
   transactionalPayload.run.currentBattleIndex = 2;
   transactionalPayload.loadouts[2] = [];

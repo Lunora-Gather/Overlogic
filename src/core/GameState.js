@@ -1141,7 +1141,7 @@ class GameStateClass {
         if (raw) loadouts[slot] = JSON.parse(raw);
       } catch (error) { recordStorageError(error, `loadout-${slot}-export`); }
     }
-    return JSON.stringify({
+    const payload = {
       product: 'overlogic',
       exportVersion: 1,
       exportedAt: new Date().toISOString(),
@@ -1152,7 +1152,12 @@ class GameStateClass {
       profile: profileSnapshot(),
       challenges: challengeSnapshot(),
       runArchive: runArchiveSnapshot(),
-    }, null, 2);
+    };
+    payload.integrity = {
+      algorithm: 'fnv1a32',
+      digest: portableSaveIntegrity(payload),
+    };
+    return JSON.stringify(payload, null, 2);
   }
 
   exportSupportBundle() {
@@ -1203,6 +1208,11 @@ class GameStateClass {
     try {
       const payload = JSON.parse(raw);
       if (payload?.product !== 'overlogic' || payload?.exportVersion !== 1) return false;
+      if (payload.integrity !== undefined && (
+        payload.integrity?.algorithm !== 'fnv1a32' ||
+        !/^SAV1-[0-9A-F]{8}$/.test(String(payload.integrity?.digest || '')) ||
+        payload.integrity.digest !== portableSaveIntegrity(payload)
+      )) return false;
       if (!payload.run || typeof payload.run !== 'object' || Array.isArray(payload.run)) return false;
       if (!Array.isArray(payload.run.rules) || payload.run.rules.length > MAX_RULES) return false;
       if (payload.battleHistory !== undefined &&
@@ -1613,6 +1623,12 @@ function hashString(value) {
     hash = Math.imul(hash, 16777619);
   }
   return hash >>> 0;
+}
+
+function portableSaveIntegrity(payload) {
+  const unsigned = { ...payload };
+  delete unsigned.integrity;
+  return `SAV1-${hashString(JSON.stringify(unsigned)).toString(16).padStart(8, '0').toUpperCase()}`;
 }
 
 function createRunSeed() {
