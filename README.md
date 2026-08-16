@@ -39,6 +39,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子与多种难度。
 - **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP 并累积连续完成天数；进度可随完整备份迁移。
+- **每日战术协议**：每日种子同时决定一条公开的战斗变体（信号涌动、玻璃回路或强化中继），在敌方节奏、机体速度与能量恢复之间制造可解释的策略取舍；标准模式不受影响。
 - **可验证的个人纪录**：每次完整通关只结算一次，保存模式、难度、种子、总时间、伤害、规则数与个人最佳，为未来排行榜提供规范数据。
 - **随时验证逻辑**：混合、弹幕、虫群和 Boss 四种沙盒场景，不消耗正式流程进度。
 - **跨设备体验**：支持桌面与移动布局、触控排序、键盘操作、减少动态效果及镜头震动设置。
@@ -71,6 +72,8 @@ Program the brain. Observe the battle. Debug the logic.
 每局都会生成可复现的运行种子。主菜单支持输入数字种子或 `OLR1-STANDARD-VETERAN-…` 挑战码；战斗结束后，最近战斗、完整通关纪录、个人最佳、操作员等级、XP 与成就进度会保存在本地。设置中的存档工具可以导出包含规则、设置、配置栏、战斗记录、通关档案和操作员档案的完整 JSON 备份；导入过程按事务回滚，不会留下半套数据。
 
 胜利结果会先写入存档，再进入奖励页；如果在奖励选择前刷新页面，主菜单会显示“继续领取奖励”，只结算一次，不会重打已胜战斗或重复累计进度。
+
+支援包仅在玩家主动下载时生成，包含当前版本、存档状态、启动耗时、长帧统计和最近的受限错误摘要；诊断信息只驻留内存，不写入存档，也不会自动上传。
 
 ---
 
@@ -112,9 +115,11 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.
 - Reproduce a run with a numeric seed or an `OLR1-…` challenge code, then review recent battle history and operator progression locally.
 - Complete three deterministic daily objectives for bonus XP and build a completion streak; sandbox runs never advance formal progression.
+- Daily runs also reveal one deterministic tactical protocol for the seed, creating a shared, explainable trade-off without changing standard runs.
 - Keep a deduplicated local archive of completed campaigns and personal-best times, ready for a future opt-in leaderboard.
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 - Resume a persisted win safely after a refresh: pending rewards are settled once instead of replaying the cleared battle.
+- Download a privacy-safe support bundle with bounded runtime diagnostics; diagnostics stay in memory and are never uploaded automatically.
 
 **[▶ Play the live demo](https://lunora-gather.github.io/Overlogic/)**
 
@@ -154,7 +159,7 @@ Overlogic/
 │  ├─ logic/             # 条件评估、规则选择与动作执行
 │  ├─ robot/             # 机器人属性与战斗行为
 │  ├─ enemies/           # 敌人与 Boss 行为
-│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标、通关纪录与运行记录
+│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标、通关纪录、运行记录与诊断
 │  ├─ ui/                # 编辑器、HUD、奖励、报告与胜利界面
 │  ├─ render/            # 竞技场与镜头渲染
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
@@ -182,7 +187,7 @@ Overlogic/
 6. 发布产物审计（版本占位符、必需文件、JSON 数据与根目录清洁度）。
 7. GitHub Pages 部署。
 
-部署只上传生成的 `dist/` 内容；构建脚本会为模块与数据地址注入提交版本，并给 Service Worker 写入发布缓存版本，避免浏览器混用不同版本的缓存资源。首次成功加载后，浏览器可安装 Overlogic；弱网或短暂断网时会优先恢复最近一次可用的应用壳层。
+部署只上传生成的 `dist/` 内容；构建脚本会为模块与数据地址注入提交版本，自动把全部运行时模块和数据表写入 Service Worker 预缓存，并给缓存写入加配额失败保护，避免浏览器混用不同版本的资源。查询参数不影响离线命中，因此首次成功安装后即使立即断网也能恢复完整运行时，而不只是应用壳层。
 
 ## 开发状态 / Project status
 

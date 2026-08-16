@@ -7,6 +7,7 @@ import { allBattles, clearHistory, replaceHistory } from '../systems/RunHistory.
 import { profileSnapshot, replaceProfile, resetProfile } from '../systems/ProfileProgression.js?v=20260725-4';
 import { challengeSnapshot, clearChallenges, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
 import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
+import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -17,6 +18,7 @@ const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
 const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
 const MAX_RULES = 40;
+const LOADOUT_SLOTS = 3;
 const RUN_CODE_PREFIX = 'OLR1';
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
@@ -29,6 +31,10 @@ const STAT_LIMITS = Object.freeze({
   nanite_repair: [0, 1_000], superconductors: [0, 1], emergency_recall: [0, 1],
   heavy_impact: [0, 1], thermal_recycle: [0, 1], armor_piercing: [0, 1_000],
 });
+
+function validLoadoutSlot(slotIndex) {
+  return Number.isInteger(slotIndex) && slotIndex >= 1 && slotIndex <= LOADOUT_SLOTS;
+}
 const MAP_NODE_IDS = [
   ['0_start'],
   ['1_a', '1_b'],
@@ -129,6 +135,7 @@ class GameStateClass {
       AudioManager.volumeVal = this.settings.volume;
       AudioManager.muted = this.settings.mute;
     } catch (e) {
+      recordStorageError(e, 'settings');
       console.error('Failed to load settings', e);
     }
   }
@@ -148,6 +155,7 @@ class GameStateClass {
       AudioManager.setVolume(this.settings.volume);
       AudioManager.setMute(this.settings.mute);
     } catch (e) {
+      recordStorageError(e, 'settings');
       console.error('Failed to save settings', e);
     }
   }
@@ -852,6 +860,7 @@ class GameStateClass {
       this._setStorageStatus({ available: true, lastError: null });
       return true;
     } catch (e) {
+      recordStorageError(e, 'run-save');
       try { localStorage.removeItem(RUN_TEMP_KEY); } catch {}
       this._setStorageStatus({ available: false, lastError: String(e?.message || e) });
       console.error('Failed to save to localStorage', e);
@@ -908,6 +917,7 @@ class GameStateClass {
       });
       return true;
     } catch (e) {
+      recordStorageError(e, 'run-load');
       this._setStorageStatus({ available: true, restoredFromBackup: false, lastError: String(e?.message || e) });
       console.error('Failed to load from localStorage', e);
       return false;
@@ -915,17 +925,23 @@ class GameStateClass {
   }
 
   clearStorage() {
-    try {
-      localStorage.removeItem(RUN_SAVE_KEY);
-      localStorage.removeItem(RUN_BACKUP_KEY);
-      localStorage.removeItem(RUN_TEMP_KEY);
-      for (let slot = 1; slot <= 3; slot += 1) localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
-    } catch (e) {}
-    clearHistory();
-    resetProfile();
-    clearChallenges();
-    clearRunArchive();
+    let cleared = true;
+    const keys = [RUN_SAVE_KEY, RUN_BACKUP_KEY, RUN_TEMP_KEY];
+    for (let slot = 1; slot <= LOADOUT_SLOTS; slot += 1) keys.push(`overlogic_loadout_slot_${slot}`);
+    for (const key of keys) {
+      try {
+        localStorage.removeItem(key);
+      } catch (error) {
+        cleared = false;
+        recordStorageError(error, `reset:${key}`);
+      }
+    }
+    cleared = clearHistory() && cleared;
+    cleared = resetProfile() && cleared;
+    cleared = clearChallenges() && cleared;
+    cleared = clearRunArchive() && cleared;
     this.resetRun();
+    return cleared && this.storageStatus.available !== false;
   }
 
   restoreBackup() {
@@ -940,13 +956,17 @@ class GameStateClass {
       }
       return restored;
     } catch (error) {
+      recordStorageError(error, 'backup-restore');
       this._setStorageStatus({ lastError: String(error?.message || error) });
       return false;
     }
   }
 
   hasBackup() {
-    try { return Boolean(localStorage.getItem(RUN_BACKUP_KEY)); } catch { return false; }
+    try { return Boolean(localStorage.getItem(RUN_BACKUP_KEY)); } catch (error) {
+      recordStorageError(error, 'backup-read');
+      return false;
+    }
   }
 
   exportSaveData() {
@@ -955,7 +975,7 @@ class GameStateClass {
       try {
         const raw = localStorage.getItem(`overlogic_loadout_slot_${slot}`);
         if (raw) loadouts[slot] = JSON.parse(raw);
-      } catch {}
+      } catch (error) { recordStorageError(error, `loadout-${slot}-export`); }
     }
     return JSON.stringify({
       product: 'overlogic',
@@ -997,6 +1017,7 @@ class GameStateClass {
       profile: profileSnapshot(),
       challenges: challengeSnapshot(),
       runArchive: runArchiveSnapshot(),
+      runtimeDiagnostics: runtimeDiagnosticsSnapshot(),
     }, null, 2);
   }
 
@@ -1105,16 +1126,19 @@ class GameStateClass {
   }
 
   saveLoadout(slotIndex) {
+    if (!validLoadoutSlot(slotIndex)) return false;
     try {
       localStorage.setItem(`overlogic_loadout_slot_${slotIndex}`, JSON.stringify(this.rules));
       return true;
     } catch (e) {
+      recordStorageError(e, `loadout-${slotIndex}`);
       console.error(`Failed to save loadout for slot ${slotIndex}`, e);
       return false;
     }
   }
 
   loadLoadout(slotIndex) {
+    if (!validLoadoutSlot(slotIndex)) return false;
     try {
       const raw = localStorage.getItem(`overlogic_loadout_slot_${slotIndex}`);
       if (!raw) return false;
@@ -1164,15 +1188,18 @@ class GameStateClass {
       this._emit('rules');
       return { ok: true, filtered: this.rules.length < prevLength };
     } catch (e) {
+      recordStorageError(e, `loadout-${slotIndex}`);
       console.error(`Failed to load loadout for slot ${slotIndex}`, e);
       return false;
     }
   }
 
   hasLoadout(slotIndex) {
+    if (!validLoadoutSlot(slotIndex)) return false;
     try {
       return localStorage.getItem(`overlogic_loadout_slot_${slotIndex}`) !== null;
     } catch (e) {
+      recordStorageError(e, `loadout-${slotIndex}`);
       return false;
     }
   }

@@ -24,12 +24,20 @@ const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
-const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
+const { difficultyModifiers, dailyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 const { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
+const {
+  recordRuntimeError,
+  recordRuntimeEvent,
+  recordFrame,
+  markBootComplete,
+  runtimeDiagnosticsSnapshot,
+  resetRuntimeDiagnostics,
+} = await import('../src/systems/RuntimeDiagnostics.js?v=20260725-4');
 
 function collectJsFiles(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -96,6 +104,15 @@ async function verifyGameplayContracts() {
   assert.deepEqual(seqA, [dailyB(), dailyB(), dailyB()], 'daily seed random streams must be reproducible');
   assert.equal(difficultyModifiers('casual').enemyHp < 1, true);
   assert.equal(difficultyModifiers('veteran').enemyDamage > 1, true);
+  const protocolA = dailyProtocol(GameState.dailySeed());
+  const protocolB = dailyProtocol(GameState.dailySeed());
+  assert(protocolA && protocolA.id === protocolB.id, 'daily protocol must be deterministic for the UTC seed');
+  assert.equal(dailyProtocol(0), null, 'invalid daily seeds must not select a protocol');
+  const standardModifiers = runModifiers({ mode: 'standard', difficulty: 'standard', seed: 20260816 });
+  assert.equal(standardModifiers.protocol, null, 'standard runs must not inherit daily mutators');
+  const dailyModifiers = runModifiers({ mode: 'daily', difficulty: 'standard', seed: 20260816 });
+  assert(dailyModifiers.protocol && dailyModifiers.enemySpeed !== 1 || dailyModifiers.enemyDamage !== 1,
+    'daily runs must apply a visible protocol modifier');
   GameState.configureRun('standard', 'standard');
   assert.equal(Number.isSafeInteger(GameState.runConfig.seed), true, 'standard runs must receive a shareable seed');
   GameState.configureRun('standard', 'veteran', 20260816);
@@ -405,6 +422,18 @@ function verifySaveMigration() {
   assert.equal(GameState.rules[0].targetPriority, 'nearest', 'invalid target priorities must migrate safely');
 
   const rulesBeforeInvalidLoadout = JSON.stringify(GameState.rules);
+  assert.equal(GameState.saveLoadout(0), false, 'loadout writes must reject invalid slots');
+  assert.equal(GameState.loadLoadout(4), false, 'loadout reads must reject invalid slots');
+  assert.equal(GameState.hasLoadout('1'), false, 'loadout slot keys must be strict integers');
+  const loadoutGetItem = localStorage.getItem;
+  localStorage.getItem = function getItemWithLoadoutFailure(key) {
+    if (key === 'overlogic_loadout_slot_1') throw new Error('loadout read denied');
+    return loadoutGetItem.call(localStorage, key);
+  };
+  assert.equal(GameState.hasLoadout(1), false, 'loadout read failures must be contained');
+  localStorage.getItem = loadoutGetItem;
+  assert(runtimeDiagnosticsSnapshot().errors.some((entry) => entry.context === 'storage:loadout-1'),
+    'loadout read failures should enter bounded support diagnostics');
   localStorage.setItem('overlogic_loadout_slot_1', JSON.stringify([
     { id: 'bad', conditionId: 'missing_condition', actionId: 'missing_action' },
   ]));
@@ -441,6 +470,10 @@ function verifySaveMigration() {
   assert.equal(GameState.importSaveData(portableSave), true, 'portable saves must round-trip through validation');
   assert.equal(GameState.rules[0].priority, 91);
   assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
+  const supportBundle = JSON.parse(GameState.exportSupportBundle());
+  assert.equal(supportBundle.product, 'overlogic');
+  assert(supportBundle.runtimeDiagnostics && supportBundle.runtimeDiagnostics.version === 1,
+    'support bundle must include bounded runtime diagnostics');
 }
 
 function verifyTranslationContracts() {
@@ -449,7 +482,27 @@ function verifyTranslationContracts() {
     assert.deepEqual(result.missing, [], `${locale} must translate every canonical key`);
     assert.deepEqual(result.extra, [], `${locale} must not accumulate orphaned translation keys`);
     assert.deepEqual(result.placeholderMismatch, [], `${locale} placeholders must match English`);
+    assert.deepEqual(result.simplifiedLeaks, [], `${locale} must not leak simplified-only characters into Traditional Chinese`);
   }
+}
+
+function verifyRuntimeDiagnosticsContracts() {
+  resetRuntimeDiagnostics();
+  markBootComplete(123.456);
+  recordFrame(16.7);
+  recordFrame(72.5);
+  recordRuntimeEvent('external-save-updated');
+  recordRuntimeError(new Error('fetch https://example.test/private C:\\Users\\player\\save.json'), 'test');
+  for (let index = 0; index < 30; index += 1) recordRuntimeError(`error-${index}`, 'flood');
+  const snapshot = runtimeDiagnosticsSnapshot();
+  assert.equal(snapshot.bootDurationMs, 123, 'boot duration should be rounded and bounded');
+  assert.equal(snapshot.frames.count, 2);
+  assert.equal(snapshot.frames.longFrameCount, 1);
+  assert.equal(snapshot.events.length, 1);
+  assert.equal(snapshot.errors.length, 20, 'runtime errors must use a bounded ring buffer');
+  assert(!snapshot.errors.some((entry) => entry.message.includes('https://') || entry.message.includes('C:\\Users')),
+    'support diagnostics must redact URLs and local paths');
+  resetRuntimeDiagnostics();
 }
 
 function verifyUiSafetyContracts() {
@@ -467,6 +520,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
+  assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes('name="referrer" content="no-referrer"'), 'release shell must declare browser-enforced security and referrer policies');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
   assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
   assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
@@ -501,6 +555,8 @@ function verifyUiSafetyContracts() {
   assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
+  assert(mainUi.includes('overlogic_run_archive') && mainUi.includes('event.key !== null'), 'external tabs must surface changes across all persistent data stores');
+  assert(menuUi.includes('dailyProtocol') && menuUi.includes('menu.dailyProtocolLabel'), 'daily mode must disclose its deterministic protocol before launch');
   assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'), 'background animation must pause with hidden combat and resume on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
@@ -513,12 +569,17 @@ function verifyUiSafetyContracts() {
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
-  assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('networkFirst'), 'service worker must use versioned cache and offline navigation fallback');
+  assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst'), 'service worker must use versioned precache and offline navigation fallback');
+  assert(buildScript.includes('collectPrecacheUrls') && buildScript.includes('PRECACHE_URLS'), 'build must inject the complete runtime precache manifest');
+  assert(buildScript.includes('requestedRelease') && buildScript.includes('A-Za-z0-9'), 'build must sanitize release identifiers before injecting cache/query versions');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
   assert(reportUi.includes("import { GameDatabase } from '../core/GameDatabase.js") && reportUi.includes('GameDatabase.getEnemy'), 'failure report must resolve enemy telemetry through the database');
   assert(historyUi.includes("import { escapeHtml } from './safeHtml.js") && historyUi.includes('escapeHtml(battle)'), 'history cards must escape imported identifiers');
   assert(arenaUi.includes('if (!report._sandbox)') && arenaUi.includes('recordBattle(GameState.lastReport)'), 'sandbox runs must not enter progression history');
   assert(arenaUi.includes("overlogic:challenge-complete"), 'completed daily objectives must provide player feedback');
+  assert(arenaUi.includes('runModifiers') && arenaUi.includes('log.dailyProtocol'), 'combat must apply and announce daily protocol modifiers');
+  assert(arenaUi.indexOf('this.hud.onBattleStart(battle)') < arenaUi.indexOf("t('log.dailyProtocol'"),
+    'battle HUD must initialize before protocol and hazard notices are written');
   assert(gameManager.includes('GameState.recordRunCompletion()'), 'completed campaigns must enter the run archive');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
@@ -642,6 +703,8 @@ function verifyRunHistoryContracts() {
   localStorage.setItem = originalSetItem;
   assert.equal(failedPersistence.persisted, false, 'storage failures must be observable');
   assert.equal(failedPersistence.bonusXp, 0, 'storage failures must not award daily XP');
+  assert(runtimeDiagnosticsSnapshot().errors.some((entry) => entry.context === 'storage:daily-challenges'),
+    'storage failures should be captured in the bounded support diagnostics');
   clearChallenges();
   assert.equal(GameState.importSaveData(challengeBackup), true, 'full backups must include daily challenge state');
   assert.equal(challengeSnapshot().objectives.daily_boss.completed, true);
@@ -725,7 +788,16 @@ function verifyRunHistoryContracts() {
   assert.equal(localStorage.getItem('overlogic_run_save'), baselinePrimary, 'failed imports must restore the prior run');
   assert.equal(localStorage.getItem('overlogic_run_save_backup'), baselineBackup, 'failed imports must restore the prior recovery point');
   localStorage.setItem('overlogic_loadout_slot_1', JSON.stringify(GameState.rules));
-  GameState.clearStorage();
+  const transactionalRemoveItem = localStorage.removeItem;
+  localStorage.removeItem = function removeItemWithOneFailure(key) {
+    if (key === 'overlogic_run_save_backup') throw new Error('backup clear denied');
+    return transactionalRemoveItem.call(localStorage, key);
+  };
+  assert.equal(GameState.clearStorage(), false, 'partial reset failures must be reported to the UI');
+  localStorage.removeItem = transactionalRemoveItem;
+  assert.equal(localStorage.getItem('overlogic_loadout_slot_1'), null,
+    'a failed key must not prevent independent reset targets from clearing');
+  assert.equal(GameState.clearStorage(), true, 'reset should report success once all stores are writable');
   assert.equal(recentBattles().length, 0, 'reset progress should clear battle history');
   assert.equal(profileSnapshot().totalBattles, 0, 'reset progress should clear profile progression');
   assert.equal(runArchiveSnapshot().entries.length, 0, 'reset progress should clear completed run records');
@@ -772,6 +844,7 @@ await verifyGameplayContracts();
 verifyReportContracts();
 verifySaveMigration();
 verifyTranslationContracts();
+verifyRuntimeDiagnosticsContracts();
 verifyUiSafetyContracts();
 verifyRuleTelemetryContracts();
 verifySynergyContracts();

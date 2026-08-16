@@ -5,6 +5,7 @@
 
 import { recordProfileBattle } from './ProfileProgression.js?v=20260725-4';
 import { recordChallengeBattle } from './LiveChallenges.js?v=20260725-4';
+import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 
 const HISTORY_KEY = 'overlogic_run_history';
 const MAX_ENTRIES = 60;
@@ -23,7 +24,8 @@ function readHistory() {
       .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
       .slice(0, MAX_ENTRIES)
       .map(normalizeHistoryEntry);
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-history-read');
     return [];
   }
 }
@@ -32,7 +34,8 @@ function writeHistory(entries) {
   try {
     localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)));
     return true;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-history');
     return false;
   }
 }
@@ -116,7 +119,8 @@ export function clearHistory() {
   try {
     localStorage.removeItem(HISTORY_KEY);
     return true;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-history');
     return false;
   }
 }

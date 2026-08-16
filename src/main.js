@@ -16,6 +16,7 @@ import { BackgroundAnim } from './systems/BackgroundAnim.js?v=20260725-4';
 import { escapeHtml } from './ui/safeHtml.js?v=20260725-4';
 import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
+import { markBootComplete, recordRuntimeError, recordRuntimeEvent } from './systems/RuntimeDiagnostics.js?v=20260725-4';
 
 const bootStatus = document.getElementById('boot-status');
 const appNotice = document.getElementById('app-notice');
@@ -40,6 +41,7 @@ function hideBootStatus() {
 }
 
 function showBootFailure(error) {
+  recordRuntimeError(error, 'boot');
   if (!bootStatus) return;
   bootStatus.classList.remove('hidden');
   bootStatus.classList.add('error');
@@ -81,12 +83,19 @@ function showAppNotice(messageKey, { actionKey = null, onAction = null, autoHide
 
 function setupRuntimeSafety() {
   appNoticeClose?.addEventListener('click', () => appNotice?.classList.add('hidden'));
-  window.addEventListener('online', () => showAppNotice('notice.online', { autoHide: 3000 }));
-  window.addEventListener('offline', () => showAppNotice('notice.offline'));
+  window.addEventListener('online', () => {
+    recordRuntimeEvent('online');
+    showAppNotice('notice.online', { autoHide: 3000 });
+  });
+  window.addEventListener('offline', () => {
+    recordRuntimeEvent('offline');
+    showAppNotice('notice.offline');
+  });
   if (navigator.onLine === false) showAppNotice('notice.offline');
 
   let runtimeNoticeShown = false;
-  const reportContainedError = () => {
+  const reportContainedError = (event) => {
+    recordRuntimeError(event, event?.type || 'runtime');
     if (runtimeNoticeShown) return;
     runtimeNoticeShown = true;
     showAppNotice('notice.runtimeError');
@@ -94,6 +103,7 @@ function setupRuntimeSafety() {
   window.addEventListener('error', reportContainedError);
   window.addEventListener('unhandledrejection', reportContainedError);
   window.addEventListener('overlogic:update-ready', () => {
+    recordRuntimeEvent('update-ready');
     showAppNotice('notice.updateReady', {
       actionKey: 'notice.updateNow',
       onAction: () => window.location.reload(),
@@ -102,8 +112,24 @@ function setupRuntimeSafety() {
   window.addEventListener('overlogic:challenge-complete', () => {
     showAppNotice('notice.challengeComplete', { autoHide: 4200 });
   });
+  const externalDataKeys = new Set([
+    'overlogic_run_save',
+    'overlogic_run_save_backup',
+    'overlogic_settings',
+    'overlogic_run_history',
+    'overlogic_profile',
+    'overlogic_live_challenges',
+    'overlogic_run_archive',
+    'overlogic_loadout_slot_1',
+    'overlogic_loadout_slot_2',
+    'overlogic_loadout_slot_3',
+  ]);
   window.addEventListener('storage', (event) => {
-    if (event.key !== 'overlogic_run_save' || !event.newValue) return;
+    // `key === null` is emitted by localStorage.clear(); treat it as a
+    // complete external data change so another tab cannot silently continue
+    // on stale in-memory state.
+    if (event.key !== null && !externalDataKeys.has(event.key)) return;
+    recordRuntimeEvent(event.newValue ? 'external-data-updated' : 'external-data-cleared');
     showAppNotice('notice.externalSave', {
       actionKey: 'notice.reloadSave',
       onAction: () => window.location.reload(),
@@ -165,6 +191,7 @@ function setupInstallPrompt() {
 }
 
 async function main() {
+  const bootStartedAt = Date.now();
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
   setLocale(GameState.settings.language, { notify: false });
@@ -574,6 +601,7 @@ async function main() {
   // Start at main menu
   document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
   GameManager.goMainMenu();
+  markBootComplete(Date.now() - bootStartedAt);
   hideBootStatus();
 }
 

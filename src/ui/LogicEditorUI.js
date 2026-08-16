@@ -9,6 +9,7 @@ import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
 import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
+import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -279,6 +280,7 @@ export class LogicEditorUI {
       ['shield', 'dash_away', 'repair', 'emp_burst'].includes(rule.actionId)
     );
     const advice = this._battleAdvice(battle);
+    const dailyProtocol = runModifiers(GameState.runConfig || {}).protocol;
     const hasCounter = this._hasEquivalentRule(advice);
     const currentHp = GameState.persistentHp ?? GameState.stats.max_hp;
     const hpRatio = currentHp / Math.max(1, GameState.stats.max_hp);
@@ -309,6 +311,10 @@ export class LogicEditorUI {
         <span class="${healthy ? 'ok' : 'bad'}">${healthy ? `✓ ${escapeHtml(t('brief.hullStable'))}` : `! ${escapeHtml(t('brief.lowHp'))}`}</span>
         <span class="${hasCounter ? 'ok' : 'bad'}">${hasCounter ? '✓' : '!'} ${escapeHtml(t('brief.countermeasure'))}</span>
       </div>
+      ${dailyProtocol ? `<div class="brief-protocol">${escapeHtml(t('brief.dailyProtocol', {
+        name: t(dailyProtocol.titleKey),
+        description: t(dailyProtocol.descriptionKey),
+      }))}</div>` : ''}
       <div class="brief-actions">
         ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : `<span class="counter-ready">✓ ${escapeHtml(t('brief.counterLoaded'))}</span>`}
         ${warnings.size > 0 ? `<button type="button" id="btn-fix-priorities" class="btn small ghost">${escapeHtml(t('brief.spacePriorities'))}</button>` : ''}

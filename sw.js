@@ -2,11 +2,18 @@
 // gets a fresh cache while an already-open tab can finish on its old assets.
 const CACHE_NAME = 'overlogic-__RELEASE__';
 const APP_SHELL = ['./', './index.html', './style.css', './manifest.webmanifest', './icon.svg'];
+// The build injects every runtime module/data URL here. The source fallback
+// keeps the unbuilt development service worker valid.
+const PRECACHE_URLS = /*__PRECACHE_URLS__*/APP_SHELL;
+
+async function putCacheSafe(cache, request, response) {
+  try { await cache.put(request, response); } catch { /* quota/private mode */ }
+}
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(APP_SHELL))
+      .then((cache) => cache.addAll(PRECACHE_URLS).catch(() => cache.addAll(APP_SHELL)))
       .then(() => self.skipWaiting()),
   );
 });
@@ -26,18 +33,21 @@ async function networkFirst(request) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
+      await putCacheSafe(cache, request, response.clone());
     }
     return response;
   } catch {
-    return (await caches.match(request)) || caches.match('./index.html');
+    return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
   }
 }
 
 async function staleWhileRevalidate(request) {
-  const cached = await caches.match(request);
+  // Runtime imports carry the release query string while precache URLs do
+  // not; ignoreSearch lets the complete build-time manifest serve them
+  // offline without duplicating every query variant.
+  const cached = await caches.match(request, { ignoreSearch: true });
   const refresh = fetch(request).then((response) => {
-    if (response.ok) caches.open(CACHE_NAME).then((cache) => cache.put(request, response.clone()));
+    if (response.ok) caches.open(CACHE_NAME).then((cache) => putCacheSafe(cache, request, response.clone()));
     return response;
   }).catch(() => cached);
   return cached || refresh;

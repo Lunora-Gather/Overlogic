@@ -18,7 +18,7 @@ const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725
 const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js?v=20260725-4');
 const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js?v=20260725-4');
 const { HazardTile } = await import('../src/vfx/HazardTile.js?v=20260725-4');
-const { difficultyModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
+const { runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
@@ -48,7 +48,7 @@ function addHazards(ctx, battle) {
 }
 
 function spawnWave(ctx, spawns, random = Math.random) {
-  const modifiers = difficultyModifiers(GameState.runConfig?.difficulty);
+  const modifiers = runModifiers(GameState.runConfig || {});
   for (const spawn of spawns) {
     const data = GameDatabase.getEnemy(spawn.enemyId);
     if (!data) throw new Error(`Missing enemy ${spawn.enemyId}`);
@@ -59,6 +59,7 @@ function spawnWave(ctx, spawns, random = Math.random) {
       enemy.maxHp *= modifiers.enemyHp;
       enemy.hp = enemy.maxHp;
       enemy.damage *= modifiers.enemyDamage;
+      enemy.moveSpeed *= modifiers.enemySpeed;
       const angle = (i / Math.max(1, spawn.count)) * Math.PI * 2 + random() * 0.4;
       const radius = 8 + random();
       const pos = ctx.clampToArena({ x: Math.cos(angle) * radius, y: Math.sin(angle) * radius });
@@ -77,8 +78,13 @@ export function simulateBattle(battle, options = {}) {
   ctx.hud = { logConsole() {} };
   const stats = new RobotStats();
   stats.loadFromGameState();
+  const modifiers = runModifiers(GameState.runConfig || {});
+  if (modifiers.robotEnergyRegen !== 1) {
+    stats.base.energy_regen = Math.max(0, stats.stat('energy_regen', 8) * modifiers.robotEnergyRegen);
+  }
   const robot = new RobotController();
   robot.initFromStats(stats, ctx);
+  robot.moveSpeed *= modifiers.robotMoveSpeed;
   ctx.robot = robot;
   const executor = new ActionExecutor();
   executor.setup(robot, ctx, stats, ctx.tracker);

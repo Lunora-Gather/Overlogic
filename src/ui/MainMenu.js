@@ -10,6 +10,7 @@ import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfilePr
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
+import { dailyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -106,9 +107,9 @@ export class MainMenu {
       AudioManager.play('button_click');
       this._requestConfirm('reset.confirm').then((confirmed) => {
         if (!confirmed) return;
-        GameState.clearStorage();
+        const cleared = GameState.clearStorage();
         this.render();
-        this.btnReset.textContent = t('reset.done');
+        this.btnReset.textContent = t(cleared ? 'reset.done' : 'reset.failed');
         setTimeout(() => { this.btnReset.textContent = t('menu.reset'); }, 1500);
       });
     });
@@ -321,10 +322,13 @@ export class MainMenu {
         return;
       }
       const difficulty = this.runDifficulty.value;
-      this.runConfigHint.textContent = [
+      const hints = [
         t(`menu.config.${difficulty}`),
         daily ? t('menu.config.daily') : t('menu.config.modeStandard'),
-      ].join(' · ');
+      ];
+      const protocol = daily ? dailyProtocol(GameState.dailySeed()) : null;
+      if (protocol) hints.push(`${t('menu.dailyProtocolLabel')}: ${t(protocol.titleKey)}`);
+      this.runConfigHint.textContent = hints.join(' · ');
     }
   }
 

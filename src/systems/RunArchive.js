@@ -4,6 +4,8 @@
 // facts. A future opt-in leaderboard can reuse this shape without exposing
 // rules, free-form text, or device identifiers.
 
+import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
 const MAX_ENTRIES = 40;
@@ -52,7 +54,8 @@ function readEntries() {
       seen.add(entry.id);
       return true;
     }).sort((a, b) => Date.parse(b.completedAt) - Date.parse(a.completedAt)).slice(0, MAX_ENTRIES);
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-archive-read');
     return [];
   }
 }
@@ -64,7 +67,8 @@ function writeEntries(entries) {
       entries: entries.slice(0, MAX_ENTRIES),
     }));
     return true;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-archive');
     return false;
   }
 }
@@ -122,7 +126,8 @@ export function clearRunArchive() {
   try {
     localStorage.removeItem(ARCHIVE_KEY);
     return true;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'run-archive');
     return false;
   }
 }

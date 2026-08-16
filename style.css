@@ -548,6 +548,19 @@ input:focus-visible {
   color: #7fffc1;
 }
 
+.brief-protocol {
+  grid-column: 1 / -1;
+  margin-top: 8px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 185, 56, 0.22);
+  border-radius: 6px;
+  background: rgba(255, 185, 56, 0.06);
+  color: #ffd98b;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .run-history {
   width: min(520px, calc(100vw - 32px));
   margin-top: -8px;

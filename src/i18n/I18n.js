@@ -1,4 +1,5 @@
 const SUPPORTED = new Set(['en', 'zh-CN', 'zh-TW']);
+const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继胁脉脱范装触记释阶项预号涌]/;
 
 const EN = {
   'menu.subtitle': '// design the brain, not the hands',
@@ -16,6 +17,13 @@ const EN = {
   'menu.exit': 'Exit',
   'menu.closeTab': 'Close tab manually',
   'menu.dailySeed': 'TODAY · SEED {seed}',
+  'menu.dailyProtocolLabel': 'PROTOCOL',
+  'dailyProtocol.signalSurge.title': 'Signal Surge',
+  'dailyProtocol.signalSurge.description': 'Enemies move and hit harder; energy regeneration is boosted.',
+  'dailyProtocol.glassCircuit.title': 'Glass Circuit',
+  'dailyProtocol.glassCircuit.description': 'Enemies are fragile but deal heavy damage; your chassis moves faster.',
+  'dailyProtocol.fortifiedRelay.title': 'Fortified Relay',
+  'dailyProtocol.fortifiedRelay.description': 'Enemies are tougher but slower and less damaging; energy regenerates faster.',
   'menu.runSeed': 'RUN · SEED {seed}',
   'menu.seed': 'Challenge Seed', 'menu.seedPlaceholder': 'Seed or OLR1 challenge code',
   'menu.copySeed': 'Copy code', 'menu.copiedSeed': 'Copied', 'menu.copySeedManual': 'Select to copy',
@@ -154,6 +162,7 @@ const EN = {
   'brief.spacePriorities': 'Space priorities',
   'brief.routeReady': 'Route event ready.',
   'brief.selectNode': 'Select the active node to continue.',
+  'brief.dailyProtocol': 'DAILY PROTOCOL · {name} — {description}',
   'brief.goals': 'CALIBRATION GOALS',
   'brief.goalEdit': 'Edit one rule',
   'brief.goalSandbox': 'Run a sandbox test',
@@ -205,6 +214,7 @@ const EN = {
   'log.criticalHazards': 'CRITICAL: {count} high-output plasma hazards active.',
   'log.damage': 'System Alert: Took {amount} DMG from {source}', 'log.terminated': 'Unit Terminated: {name}',
   'log.wave': 'Wave {current}/{total} deployed', 'log.bossDetected': 'CRITICAL: {name} detected!',
+  'log.dailyProtocol': 'DAILY PROTOCOL: {name} — {description}',
   'log.phase': '{name}: PHASE {phase}', 'log.bossPhase': '{name} entered Phase {phase}!',
   'log.failed': 'SIMULATION FAILED: Chassis destroyed. Core dump captured.',
   'log.success': 'SIMULATION SUCCESS: Threat neutralized.', 'log.meltdown': 'CRITICAL: CPU meltdown initiated!',
@@ -315,6 +325,7 @@ const EN = {
   'map.upgradeDesc': 'Choose a powerful passive protocol upgrade.',
   'reset.confirm': 'Reset all progress, rules, and upgrades?',
   'reset.done': 'Reset Successful',
+  'reset.failed': 'Reset incomplete — storage is unavailable',
 };
 
 const ZH_CN = {
@@ -413,6 +424,7 @@ const ZH_CN = {
   'brief.counterLoaded': '反制协议已加载', 'brief.spacePriorities': '整理优先级',
   'brief.launchChecks': '启动检查',
   'brief.routeReady': '路线事件已就绪。', 'brief.selectNode': '选择当前可用节点以继续。',
+  'brief.dailyProtocol': '每日协议 · {name} — {description}',
   'brief.goals': '校准目标', 'brief.goalEdit': '修改一条规则', 'brief.goalSandbox': '运行一次沙盒测试',
   'preview.waves': '{count} 波', 'preview.hazards': '{count} 个危险区', 'preview.boss': '首领',
   'advice.hazard.label': '离开危险区域', 'advice.hazard.reason': '此竞技场存在持续伤害区域。',
@@ -445,6 +457,7 @@ const ZH_CN = {
   'log.criticalHazards': '严重警告：{count} 个高能等离子危险区已启用。',
   'log.damage': '系统警报：受到 {source} 的 {amount} 点伤害', 'log.terminated': '敌方单位已终止：{name}',
   'log.wave': '第 {current}/{total} 波已部署', 'log.bossDetected': '严重警告：检测到 {name}！',
+  'log.dailyProtocol': '每日协议：{name} — {description}',
   'log.phase': '{name}：阶段 {phase}', 'log.bossPhase': '{name} 进入阶段 {phase}！',
   'log.failed': '模拟失败：机体已摧毁，核心转储已记录。', 'log.success': '模拟成功：威胁已清除。',
   'log.meltdown': '严重警告：CPU 核心过热！', 'log.recovered': '系统恢复：核心已稳定。',
@@ -514,7 +527,12 @@ const ZH_CN = {
   'settings.data': '存档数据', 'settings.support': '支援诊断包', 'settings.version': '构建版本', 'settings.dataHelp': '更换设备或清理浏览器数据前，请先导出便携备份。',
   'settings.export': '导出', 'settings.import': '导入', 'settings.restore': '恢复备份',
   'reset.confirm': '确定重置全部进度、规则和升级吗？', 'reset.done': '重置成功',
+  'reset.failed': '重置未完成——浏览器存储不可用',
   'menu.closeTab': '请手动关闭标签页', 'menu.dailySeed': '今日 · 种子 {seed}', 'menu.runSeed': '本局 · 种子 {seed}',
+  'menu.dailyProtocolLabel': '每日协议',
+  'dailyProtocol.signalSurge.title': '信号涌动', 'dailyProtocol.signalSurge.description': '敌人移动与攻击更强，但能量恢复更快。',
+  'dailyProtocol.glassCircuit.title': '玻璃回路', 'dailyProtocol.glassCircuit.description': '敌人更脆但伤害更高，机体移动速度提升。',
+  'dailyProtocol.fortifiedRelay.title': '强化中继', 'dailyProtocol.fortifiedRelay.description': '敌人更坚韧但更慢、伤害更低，能量恢复更快。',
   'menu.historyTitle': '最近战斗记录', 'menu.historyEmpty': '完成第一场模拟后，最近战斗会显示在这里。',
   'menu.historySummary': '{wins} 胜 · {losses} 负', 'menu.historyWin': '胜利', 'menu.historyLoss': '失败', 'menu.historySeed': '种子 {seed}',
   'menu.profileTitle': '操作员档案', 'menu.profileRank': '等级 {level}', 'menu.profileXp': '{current} / {required} XP',
@@ -576,6 +594,10 @@ function toTraditional(value) {
     虫: '蟲', 统: '統', 测: '測', 钢: '鋼', 铁: '鐵', 巅: '巔', 议: '議',
     斗: '鬥', 飞: '飛', 断: '斷', 敌: '敵', 径: '徑', 竞: '競', 环: '環',
     内: '內', 数: '數', 并: '並', 横: '橫',
+    严: '嚴', 侦: '偵', 储: '儲', 属: '屬', 录: '錄', 态: '態', 拟: '擬',
+    检: '檢', 毁: '毀', 没: '沒', 热: '熱', 状: '狀', 盖: '蓋', 紧: '緊',
+    终: '終', 继: '繼', 胁: '脅', 脉: '脈', 脱: '脫', 范: '範', 装: '裝',
+    触: '觸', 记: '記', 释: '釋', 阶: '階', 项: '項', 预: '預', 号: '號', 涌: '湧',
   };
   return [...output].map(char => chars[char] || char).join('');
 }
@@ -645,6 +667,7 @@ const ZH_TW = {
   'brief.counterLoaded': '反制協議已載入', 'brief.spacePriorities': '整理優先級',
   'brief.launchChecks': '啟動檢查',
   'brief.routeReady': '路線事件已就緒。', 'brief.selectNode': '選擇目前可用節點以繼續。',
+  'brief.dailyProtocol': '每日協議 · {name} — {description}',
   'brief.goals': '校準目標', 'brief.goalEdit': '修改一條規則', 'brief.goalSandbox': '執行一次沙盒測試',
   'preview.waves': '{count} 波', 'preview.hazards': '{count} 個危險區', 'preview.boss': '首領',
   'combat.hitPoints': '生命值', 'combat.energyBar': '能量', 'combat.temperature': '核心溫度', 'combat.bossHealth': '首領生命',
@@ -711,6 +734,10 @@ const ZH_TW = {
   'settings.export': '匯出', 'settings.import': '匯入', 'settings.restore': '還原備份',
   'reset.confirm': '確定重設全部進度、規則和升級嗎？', 'reset.done': '重設成功',
   'menu.closeTab': '請手動關閉分頁', 'menu.dailySeed': '今日 · 種子 {seed}', 'menu.runSeed': '本局 · 種子 {seed}',
+  'menu.dailyProtocolLabel': '每日協議',
+  'dailyProtocol.signalSurge.title': '信號湧動', 'dailyProtocol.signalSurge.description': '敵人移動與攻擊更強，但能量恢復更快。',
+  'dailyProtocol.glassCircuit.title': '玻璃回路', 'dailyProtocol.glassCircuit.description': '敵人更脆但傷害更高，機體移動速度提升。',
+  'dailyProtocol.fortifiedRelay.title': '強化中繼', 'dailyProtocol.fortifiedRelay.description': '敵人更堅韌但更慢、傷害更低，能量恢復更快。',
   'menu.historyTitle': '最近戰鬥紀錄', 'menu.historyEmpty': '完成第一場模擬後，最近戰鬥會顯示在這裡。',
   'menu.historySummary': '{wins} 勝 · {losses} 敗', 'menu.historyWin': '勝利', 'menu.historyLoss': '失敗', 'menu.historySeed': '種子 {seed}',
   'menu.profileTitle': '操作員檔案', 'menu.profileRank': '等級 {level}', 'menu.profileXp': '{current} / {required} XP',
@@ -828,7 +855,15 @@ export function translationDiagnostics() {
       const actual = placeholdersIn(dictionary[key]);
       return expected.join('|') !== actual.join('|');
     });
-    diagnostics[language] = { missing, extra, placeholderMismatch };
+    const simplifiedLeaks = language === 'zh-TW'
+      ? Object.entries(dictionary)
+        .filter(([, value]) => TRADITIONAL_LEAK_RE.test(String(value)))
+        .map(([key]) => key)
+      : [];
+    if (language === 'zh-TW' && TRADITIONAL_LEAK_RE.test(JSON.stringify(ENTITIES['zh-TW']))) {
+      simplifiedLeaks.push('entities');
+    }
+    diagnostics[language] = { missing, extra, placeholderMismatch, simplifiedLeaks };
   }
   return diagnostics;
 }

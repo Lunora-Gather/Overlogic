@@ -19,8 +19,9 @@ import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js?v=20260725-4';
 import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
 import { HazardTile } from '../vfx/HazardTile.js?v=20260725-4';
 import { recordBattle } from '../systems/RunHistory.js?v=20260725-4';
-import { difficultyModifiers } from '../systems/RunModifiers.js?v=20260725-4';
+import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
+import { recordFrame } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 
 const WAVE_CLEAR_DELAY = 1.15;
 const ENEMY_CLASSES = {
@@ -87,9 +88,22 @@ export class CombatArena {
     this.ctx.random = this.random;
     this.stats = new RobotStats();
     this.stats.loadFromGameState();
+    const modifiers = runModifiers(GameState.runConfig || {});
+    if (modifiers.robotEnergyRegen !== 1) {
+      this.stats.base.energy_regen = Math.max(0, this.stats.stat('energy_regen', 8) * modifiers.robotEnergyRegen);
+    }
     this.robot = new RobotController();
     this.robot.initFromStats(this.stats, this.ctx);
+    this.robot.moveSpeed *= modifiers.robotMoveSpeed;
     this.ctx.robot = this.robot;
+    AudioManager.play('battle_start');
+    this.hud.onBattleStart(battle);
+    if (modifiers.protocol) {
+      this.hud.logConsole(t('log.dailyProtocol', {
+        name: t(modifiers.protocol.titleKey),
+        description: t(modifiers.protocol.descriptionKey),
+      }), 'info');
+    }
 
     // Spawn environmental hazards depending on battle
     this.ctx.hazards = [];
@@ -170,8 +184,6 @@ export class CombatArena {
     }
 
     // Boss wiring
-    AudioManager.play('battle_start');
-    this.hud.onBattleStart(battle);
     this.lastTs = performance.now();
     this._loop(this.lastTs);
   }
@@ -179,7 +191,9 @@ export class CombatArena {
   _loop(ts) {
     if (this._finished) return;
     this._rafId = requestAnimationFrame((t) => this._loop(t));
-    const realDt = Math.min(0.05, (ts - this.lastTs) / 1000); // cap to avoid huge jumps
+    const rawDt = Math.max(0, (ts - this.lastTs) / 1000);
+    recordFrame(rawDt * 1000);
+    const realDt = Math.min(0.05, rawDt); // cap to avoid huge jumps
     this.lastTs = ts;
     if (this.paused) { this._render(); return; }
     const dt = realDt * this.speed;
@@ -268,7 +282,7 @@ export class CombatArena {
   }
 
   _spawnWave(spawns) {
-    const modifiers = difficultyModifiers(GameState.runConfig?.difficulty);
+    const modifiers = runModifiers(GameState.runConfig || {});
     for (const s of spawns) {
       const data = GameDatabase.getEnemy(s.enemyId);
       if (!data) continue;
@@ -279,6 +293,7 @@ export class CombatArena {
         e.maxHp *= modifiers.enemyHp;
         e.hp = e.maxHp;
         e.damage *= modifiers.enemyDamage;
+        e.moveSpeed *= modifiers.enemySpeed;
         // spawn at arena edge, distributed around ring
         const ang = (i / Math.max(1, s.count)) * Math.PI * 2 + this.random() * 0.4;
         const r = 8 + this.random() * 1;

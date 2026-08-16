@@ -2,6 +2,8 @@
 // It is deliberately deterministic and privacy-preserving. Online identity,
 // seasons, and entitlements can later map onto this versioned shape.
 
+import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+
 const PROFILE_KEY = 'overlogic_profile';
 const PROFILE_VERSION = 1;
 
@@ -43,7 +45,8 @@ function readProfile() {
     profile.achievements = profile.achievements && typeof profile.achievements === 'object'
       ? profile.achievements : {};
     return profile;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'profile-read');
     return defaultProfile();
   }
 }
@@ -52,7 +55,8 @@ function writeProfile(profile) {
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     return true;
-  } catch {
+  } catch (error) {
+    recordStorageError(error, 'profile');
     return false;
   }
 }
