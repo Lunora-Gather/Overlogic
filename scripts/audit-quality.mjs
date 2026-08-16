@@ -60,6 +60,13 @@ for (const match of html.matchAll(/<button\b([^>]*)>/gi)) {
   check(/\btype\s*=\s*"(?:button|submit|reset)"/i.test(match[1]), 'every static button must declare an explicit type');
 }
 
+for (const id of ['cond-search', 'rules-search', 'act-search', 'data-import-file']) {
+  const tag = html.match(new RegExp(`<[^>]+\\bid="${id}"[^>]*>`, 'i'))?.[0] || '';
+  check(/(?:aria-label|data-i18n-aria-label)=/.test(tag), `${id} must expose a localized accessible name`);
+}
+check((i18n.match(/settings\.importFile/g) || []).length >= 3,
+  'save-data file input label must exist in every locale dictionary');
+
 const dialogRefs = [...html.matchAll(/role="dialog"[^>]*aria-labelledby="([^"]+)"/gi)].map((match) => match[1]);
 check(dialogRefs.length >= 4, 'all product dialogs should expose labelled titles');
 for (const ref of dialogRefs) check(idSet.has(ref), `dialog title target is missing: ${ref}`);

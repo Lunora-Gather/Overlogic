@@ -175,7 +175,7 @@
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions" role="tabpanel" aria-labelledby="editor-tab-conditions">
         <h3 data-i18n="editor.conditions">Available Conditions</h3>
-        <input type="text" id="cond-search" class="search-input" data-i18n-placeholder="editor.searchConditions" placeholder="Search conditions...">
+        <input type="text" id="cond-search" class="search-input" data-i18n-placeholder="editor.searchConditions" aria-label="Search conditions" data-i18n-aria-label="editor.searchConditions" placeholder="Search conditions...">
         <ul id="cond-list" class="module-list"></ul>
       </aside>
 
@@ -184,7 +184,7 @@
           <button type="button" id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
           <button type="button" id="btn-undo" class="btn small ghost" style="padding:2px 8px;" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
           <button type="button" id="btn-redo" class="btn small ghost" style="padding:2px 8px;" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
-          <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" placeholder="Filter rules...">
+          <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
         </h3>
         
         <!-- Slots Bar -->
@@ -249,7 +249,7 @@
 
       <aside class="panel" id="panel-actions" role="tabpanel" aria-labelledby="editor-tab-actions">
         <h3 data-i18n="editor.actions">Available Actions</h3>
-        <input type="text" id="act-search" class="search-input" data-i18n-placeholder="editor.searchActions" placeholder="Search actions...">
+        <input type="text" id="act-search" class="search-input" data-i18n-placeholder="editor.searchActions" aria-label="Search actions" data-i18n-aria-label="editor.searchActions" placeholder="Search actions...">
         <ul id="act-list" class="module-list"></ul>
       </aside>
     </div>
@@ -441,7 +441,7 @@
             <button id="btn-data-restore" type="button" class="btn ghost small" data-i18n="settings.restore">Restore backup</button>
             <button id="btn-data-support" type="button" class="btn ghost small" data-i18n="settings.support">Support bundle</button>
           </div>
-          <input id="data-import-file" class="hidden" type="file" accept="application/json,.json">
+          <input id="data-import-file" class="hidden" type="file" accept="application/json,.json" aria-label="Import save data" data-i18n-aria-label="settings.importFile">
         </div>
         <div class="settings-version" aria-label="Build version" data-i18n-aria-label="settings.version">
           <span data-i18n="settings.version">Build version</span>
