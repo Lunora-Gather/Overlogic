@@ -16,6 +16,7 @@ import { ShooterEnemy } from '../enemies/ShooterEnemy.js?v=20260725-4';
 import { ChargerEnemy } from '../enemies/ChargerEnemy.js?v=20260725-4';
 import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js?v=20260725-4';
 import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js?v=20260725-4';
+import { RepairDroneEnemy } from '../enemies/RepairDroneEnemy.js?v=20260725-4';
 import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
 import { HazardTile } from '../vfx/HazardTile.js?v=20260725-4';
 import { recordBattle } from '../systems/RunHistory.js?v=20260725-4';
@@ -29,6 +30,7 @@ const ENEMY_CLASSES = {
   shooter: ShooterEnemy,
   charger: ChargerEnemy,
   emp_drone: EmpDroneEnemy,
+  repair_drone: RepairDroneEnemy,
   boss_warden: BossProtocolWarden,
   apex_warden: BossProtocolWarden,   // reuse boss class; stats differ via data JSON
 };

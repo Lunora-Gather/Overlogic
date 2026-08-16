@@ -260,6 +260,11 @@ async function main() {
         { enemyId: 'charger', count: 2, wave: 2 },
       ],
       boss: [{ enemyId: 'boss_warden', count: 1, wave: 1 }],
+      support: [
+        { enemyId: 'crawler', count: 3, wave: 1 },
+        { enemyId: 'repair_drone', count: 1, wave: 1 },
+        { enemyId: 'charger', count: 1, wave: 2 },
+      ],
     };
     const sandboxBattle = {
       id: `sandbox_${preset}`,

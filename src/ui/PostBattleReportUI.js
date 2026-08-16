@@ -92,6 +92,17 @@ export class PostBattleReportUI {
         logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #ff9d6c; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
       }
     }
+    const repairEntries = Object.entries(report.enemy_repairs || {})
+      .filter(([, amount]) => Number(amount) > 0)
+      .sort((a, b) => Number(b[1]) - Number(a[1]));
+    if (repairEntries.length > 0) {
+      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.enemyRepairs'))}</li>`;
+      for (const [enemyId, amount] of repairEntries) {
+        const enemy = GameDatabase.getEnemy(enemyId);
+        const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #55ffb0; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyRepairLine', { value: Math.round(amount) }))}</li>`;
+      }
+    }
     if (unusedActions.length > 0) {
       logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">${escapeHtml(t('report.neverTriggered', { actions: unusedActions.map(a => entity('action', a, a)).join(', ') }))}</li>`;
     }
@@ -184,6 +195,11 @@ export class PostBattleReportUI {
         text.textContent = t('report.timelineInterrupt');
       } else if (event.kind === 'recall') {
         text.textContent = t('report.timelineRecall');
+      } else if (event.kind === 'enemy_repair') {
+        text.textContent = t('report.timelineRepair', {
+          value: Math.round(event.value || 0),
+          source: entity('enemy', event.source, event.source),
+        });
       } else {
         text.textContent = t('report.timelineWave', { wave: event.wave, total: event.total });
       }

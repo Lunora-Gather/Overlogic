@@ -22,6 +22,7 @@ const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?
 const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-4');
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
+const { RepairDroneEnemy } = await import('../src/enemies/RepairDroneEnemy.js?v=20260725-4');
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers, dailyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
@@ -85,6 +86,40 @@ function verifyDataContracts() {
     }
   }
   assert.deepEqual(errors, []);
+  assert(GameDatabase.getEnemy('repair_drone'), 'content tables must include the repair support enemy');
+  assert(GameDatabase.getBattle(4).enemySpawns.some((spawn) => spawn.enemyId === 'repair_drone'),
+    'a mid-game battle must exercise the repair support enemy');
+}
+
+function verifyRepairDroneContracts() {
+  const ctx = new BattleContext();
+  ctx.hud = { logConsole() {} };
+  ctx.robot = { x: -8, y: 0, bodyRadius: 0.4, dead: false };
+  const target = new CrawlerEnemy();
+  target.init(GameDatabase.getEnemy('crawler'), ctx);
+  target.x = 0; target.y = 0; target.hp = 4;
+  const drone = new RepairDroneEnemy();
+  drone.init(GameDatabase.getEnemy('repair_drone'), ctx);
+  drone.x = 2; drone.y = 0;
+  ctx.enemies = [drone, target];
+  const before = target.hp;
+  for (let i = 0; i < 24; i += 1) drone.tick(0.1);
+  assert(target.hp > before, 'repair drone must restore a damaged ally after its telegraph');
+  assert((ctx.tracker.toReport().enemy_repairs?.repair_drone || 0) > 0,
+    'repair drone healing must be exposed in combat telemetry');
+
+  const interruptedTarget = new CrawlerEnemy();
+  interruptedTarget.init(GameDatabase.getEnemy('crawler'), ctx);
+  interruptedTarget.x = 0; interruptedTarget.y = 0; interruptedTarget.hp = 4;
+  const interruptedDrone = new RepairDroneEnemy();
+  interruptedDrone.init(GameDatabase.getEnemy('repair_drone'), ctx);
+  interruptedDrone.x = 2; interruptedDrone.y = 0;
+  ctx.enemies = [interruptedDrone, interruptedTarget];
+  interruptedDrone.tick(0.1);
+  assert.equal(interruptedDrone.isCasting(), true, 'repair drone must expose a casting window');
+  interruptedDrone.interrupt();
+  assert.equal(interruptedDrone.isCasting(), false, 'repair drone casting must be interruptible');
+  assert.equal(interruptedTarget.hp, 4, 'interrupted repair must not restore hull');
 }
 
 async function verifyGameplayContracts() {
@@ -541,6 +576,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
   assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
   assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
+  assert(html.includes('value="support"') && mainUi.includes("repair_drone"), 'sandbox must expose the support enemy for safe practice');
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
@@ -568,6 +604,8 @@ function verifyUiSafetyContracts() {
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
+  const editorUiSource = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
+  const reportUiSource = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst'), 'service worker must use versioned precache and offline navigation fallback');
   assert(buildScript.includes('collectPrecacheUrls') && buildScript.includes('PRECACHE_URLS'), 'build must inject the complete runtime precache manifest');
@@ -580,6 +618,10 @@ function verifyUiSafetyContracts() {
   assert(arenaUi.includes('runModifiers') && arenaUi.includes('log.dailyProtocol'), 'combat must apply and announce daily protocol modifiers');
   assert(arenaUi.indexOf('this.hud.onBattleStart(battle)') < arenaUi.indexOf("t('log.dailyProtocol'"),
     'battle HUD must initialize before protocol and hazard notices are written');
+  assert(editorUiSource.includes("enemyIds.has('repair_drone')") && editorUiSource.includes("advice.support.label"),
+    'battle briefing must recommend interrupting repair support');
+  assert(reportUiSource.includes('enemy_repairs') && reportUiSource.includes("report.timelineRepair"),
+    'post-battle report must explain enemy repair telemetry');
   assert(gameManager.includes('GameState.recordRunCompletion()'), 'completed campaigns must enter the run archive');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
@@ -840,6 +882,7 @@ function verifySimulation() {
 verifySyntax();
 await verifyImportGraph();
 verifyDataContracts();
+verifyRepairDroneContracts();
 await verifyGameplayContracts();
 verifyReportContracts();
 verifySaveMigration();

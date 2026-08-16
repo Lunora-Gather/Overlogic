@@ -16,6 +16,7 @@ const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725
 const { ShooterEnemy } = await import('../src/enemies/ShooterEnemy.js?v=20260725-4');
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js?v=20260725-4');
+const { RepairDroneEnemy } = await import('../src/enemies/RepairDroneEnemy.js?v=20260725-4');
 const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js?v=20260725-4');
 const { HazardTile } = await import('../src/vfx/HazardTile.js?v=20260725-4');
 const { runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
@@ -25,6 +26,7 @@ const ENEMY_CLASSES = {
   shooter: ShooterEnemy,
   charger: ChargerEnemy,
   emp_drone: EmpDroneEnemy,
+  repair_drone: RepairDroneEnemy,
   boss_warden: BossProtocolWarden,
   apex_warden: BossProtocolWarden,
 };
@@ -160,6 +162,7 @@ export function simulateBattle(battle, options = {}) {
     energy: Number(robot.energy.toFixed(1)),
     damageTaken: Math.round(Object.values(report.damage_by_source).reduce((sum, value) => sum + value, 0)),
     damageDealt: Math.round(report.total_damage_dealt || 0),
+    enemyRepairs: Object.fromEntries(Object.entries(report.enemy_repairs || {}).map(([id, value]) => [id, Math.round(value)])),
     actions: report.action_usage,
     timelineEvents: report.timeline.length,
     wavesRecorded: report.timeline.filter((event) => event.kind === 'wave').length,

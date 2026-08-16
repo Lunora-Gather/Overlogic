@@ -22,6 +22,7 @@ export class CombatStatsTracker {
     this.deathNearbyEnemyCount = 0;
     this.lowHpKills = 0;
     this.enemyKills = new Map();
+    this.enemyRepairs = new Map();
     this.timeline = [];
     this._lastDamageEventAt = -Infinity;
   }
@@ -72,6 +73,11 @@ export class CombatStatsTracker {
     if (!enemyId) return;
     this.enemyKills.set(enemyId, (this.enemyKills.get(enemyId) || 0) + 1);
   }
+  recordEnemyRepair(enemyId, amount) {
+    if (!enemyId || !Number.isFinite(amount) || amount <= 0) return;
+    this.enemyRepairs.set(enemyId, (this.enemyRepairs.get(enemyId) || 0) + amount);
+    this._pushTimeline({ kind: 'enemy_repair', source: enemyId, value: amount });
+  }
   recordWave(wave, total) { this._pushTimeline({ kind: 'wave', wave, total }); }
   recordRecall() { this._pushTimeline({ kind: 'recall' }); }
   _pushTimeline(event) {
@@ -103,6 +109,7 @@ export class CombatStatsTracker {
       death_nearby_enemy_count: this.deathNearbyEnemyCount,
       low_hp_kills: this.lowHpKills,
       enemy_kills: Object.fromEntries(this.enemyKills),
+      enemy_repairs: Object.fromEntries(this.enemyRepairs),
       timeline: this.timeline,
     };
   }

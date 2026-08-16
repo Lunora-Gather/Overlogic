@@ -199,6 +199,7 @@ export class LogicEditorUI {
     if (['battle_5', 'battle_7'].includes(battle.id)) tags.push(t('preview.hazards', { count: 3 }));
     if (['battle_8', 'battle_9', 'battle_10'].includes(battle.id)) tags.push(t('preview.hazards', { count: 4 }));
     if ((battle.enemySpawns || []).some(s => s.enemyId.includes('warden'))) tags.push(t('preview.boss'));
+    if ((battle.enemySpawns || []).some(s => s.enemyId === 'repair_drone')) tags.push(t('preview.support'));
     return [...enemies, ...tags].join(' · ');
   }
 
@@ -222,6 +223,13 @@ export class LogicEditorUI {
         conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
         priority: 90, targetPriority: 'caster',
         label: t('advice.interrupt.label'), reason: t('advice.interrupt.reason'),
+      });
+    }
+    if (enemyIds.has('repair_drone')) {
+      options.push({
+        conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
+        priority: 92, targetPriority: 'caster',
+        label: t('advice.support.label'), reason: t('advice.support.reason'),
       });
     }
     if (enemyIds.has('shooter') || enemyIds.has('emp_drone')) {
