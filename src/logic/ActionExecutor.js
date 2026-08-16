@@ -100,7 +100,7 @@ export class ActionExecutor {
       case 'dash_away':       return this._dash(false, rule);
       case 'sidestep':        return this._sidestep();
       case 'shield':          return this._shield();
-      case 'interrupt_shot':  return this._interruptShot();
+      case 'interrupt_shot':  return this._interruptShot(rule);
       case 'overdrive':       return this._overdrive();
       case 'repair':          return this._repair();
       case 'drop_mine':       this._dropMine(); return true;
@@ -111,9 +111,22 @@ export class ActionExecutor {
     }
   }
 
-  _resolveTarget(priority) {
-    const enemies = this.ctx.enemies.filter(e => !e.dead);
+  _resolveTarget(priority, candidates = null) {
+    const enemies = (Array.isArray(candidates) ? candidates : this.ctx.enemies).filter(e => !e.dead);
     if (enemies.length === 0) return null;
+
+    const nearest = (pool) => {
+      let best = null;
+      let minDistance = Infinity;
+      for (const enemy of pool) {
+        const distance = Math.hypot(enemy.x - this.robot.x, enemy.y - this.robot.y);
+        if (distance < minDistance) {
+          minDistance = distance;
+          best = enemy;
+        }
+      }
+      return best;
+    };
 
     switch (priority) {
       case 'lowest_hp': {
@@ -124,25 +137,20 @@ export class ActionExecutor {
         return best;
       }
       case 'caster': {
-        const casters = this.ctx.castingEnemies();
-        if (casters.length > 0) {
-          let best = null, minDist = Infinity;
-          for (const c of casters) {
-            const d = Math.hypot(c.x - this.robot.x, c.y - this.robot.y);
-            if (d < minDist) { minDist = d; best = c; }
-          }
-          if (best) return best;
-        }
-        return this.ctx.nearestEnemyTo({ x: this.robot.x, y: this.robot.y });
+        const casters = enemies.filter(enemy => typeof enemy.isCasting === 'function' && enemy.isCasting());
+        return nearest(casters.length > 0 ? casters : enemies);
+      }
+      case 'support': {
+        const supports = enemies.filter(enemy => this.ctx.isSupportEnemy(enemy));
+        return nearest(supports.length > 0 ? supports : enemies);
       }
       case 'boss': {
-        const boss = this.ctx.boss;
-        if (boss && !boss.dead) return boss;
-        return this.ctx.nearestEnemyTo({ x: this.robot.x, y: this.robot.y });
+        const boss = enemies.find(enemy => enemy === this.ctx.boss);
+        return boss || nearest(enemies);
       }
       case 'nearest':
       default:
-        return this.ctx.nearestEnemyTo({ x: this.robot.x, y: this.robot.y });
+        return nearest(enemies);
     }
   }
 
@@ -225,15 +233,12 @@ export class ActionExecutor {
     return true;
   }
 
-  _interruptShot() {
+  _interruptShot(rule) {
     const casters = this.ctx.castingEnemies();
     if (casters.length === 0) return false;
-    let target = null, best = Infinity;
-    for (const c of casters) {
-      const d = Math.hypot(c.x - this.robot.x, c.y - this.robot.y);
-      if (d < best) { best = d; target = c; }
-    }
+    const target = this._resolveTarget(rule?.targetPriority || 'caster', casters);
     if (!target) return false;
+    const best = Math.hypot(target.x - this.robot.x, target.y - this.robot.y);
     const a = GameDatabase.getAction('interrupt_shot');
     const ev = a.effectValue;
     if (best > this.stats.actionRange('interrupt_shot')) {

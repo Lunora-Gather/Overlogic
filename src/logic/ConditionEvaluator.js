@@ -56,6 +56,8 @@ export class ConditionEvaluator {
         return ctx.liveEnemies() >= (val | 0);
       case 'enemy_casting':
         return ctx.anyEnemyCasting();
+      case 'support_present':
+        return ctx.supportEnemies().length > 0;
       case 'surrounded': {
         if (!Array.isArray(val) || val.length < 2) return false;
         const radius = +val[0], count = val[1] | 0;

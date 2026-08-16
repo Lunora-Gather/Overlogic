@@ -231,6 +231,7 @@
             <option value="nearest" data-i18n="target.nearest">Nearest</option>
             <option value="lowest_hp" data-i18n="target.lowest_hp">Lowest HP</option>
             <option value="caster" data-i18n="target.caster">Caster</option>
+            <option value="support" data-i18n="target.support">Support</option>
             <option value="boss" data-i18n="target.boss">Boss</option>
           </select>
           <input id="f-prio" type="number" min="0" max="100" value="50" title="priority" data-i18n-title="editor.priorityHint" aria-label="Priority for new rule" data-i18n-aria-label="editor.formPriority">
@@ -318,6 +319,12 @@
   <section id="screen-report" class="screen hidden">
     <h2 class="fail-title" data-i18n="report.failed">Simulation Failed</h2>
     <p class="muted" data-i18n="report.subtitle">Your logic failed. Debug and retry.</p>
+    <div class="run-integrity report-integrity" aria-live="polite">
+      <div class="integrity-copy"><strong data-i18n="report.integrityTitle">Replay integrity</strong><small data-i18n="report.integrityHelp">A bounded client-side integrity hint for this battle.</small></div>
+      <code id="rep-replay-digest">—</code>
+      <span id="rep-simulation-facts" class="integrity-facts">—</span>
+      <button type="button" id="btn-copy-report-replay" class="btn ghost small" data-i18n="report.replayCopy">Copy digest</button>
+    </div>
     <div class="report-grid">
       <div class="report-card"><h3 data-i18n="report.damage">Damage Report</h3><ul id="rep-damage"></ul></div>
       <div class="report-card"><h3 data-i18n="report.logic">Logic Report</h3><ul id="rep-logic"></ul></div>
@@ -351,6 +358,12 @@
       </div>
       <code id="victory-receipt">—</code>
       <button type="button" id="btn-copy-victory-receipt" class="btn ghost small" data-i18n="victory.receiptCopy">Copy</button>
+    </div>
+    <div class="run-integrity victory-integrity" aria-live="polite">
+      <div class="integrity-copy"><strong data-i18n="victory.replayTitle">Replay integrity</strong><small data-i18n="victory.replayHelp">A bounded client-side integrity hint, not a server anti-cheat proof.</small></div>
+      <code id="victory-replay-digest">—</code>
+      <span id="victory-simulation-facts" class="integrity-facts">—</span>
+      <button type="button" id="btn-copy-victory-replay" class="btn ghost small" data-i18n="victory.replayCopy">Copy digest</button>
     </div>
     <div class="report-card" style="max-width: 680px; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px;">
       <h3 data-i18n="victory.performance">Final Battle Performance</h3>

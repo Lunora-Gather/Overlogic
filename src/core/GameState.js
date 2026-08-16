@@ -20,7 +20,7 @@ const RUN_TEMP_KEY = 'overlogic_run_save_pending';
 const RUN_MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
-const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
+const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'support', 'boss']);
 const MAX_RULES = 40;
 const LOADOUT_SLOTS = 3;
 const RUN_CODE_PREFIX = 'OLR1';
@@ -817,7 +817,7 @@ class GameStateClass {
           (!operator || validConditions.has(rule.conditionId2));
       }).slice(0, 40).map(rule => {
         const operator = rule.operator === 'and' || rule.operator === 'or' ? rule.operator : null;
-        const target = ['nearest', 'lowest_hp', 'caster', 'boss'].includes(rule.targetPriority)
+        const target = TARGET_PRIORITIES.has(rule.targetPriority)
           ? rule.targetPriority
           : 'nearest';
         return this._newRule(

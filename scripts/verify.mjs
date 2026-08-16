@@ -19,6 +19,7 @@ const { RobotController } = await import('../src/robot/RobotController.js?v=2026
 const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-4');
 const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-4');
 const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-4');
+const { ruleTemplateById } = await import('../src/logic/RuleTemplates.js?v=20260725-4');
 const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-4');
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
@@ -106,6 +107,8 @@ function verifyDataContracts() {
   assert(GameDatabase.getEnemy('shield_drone'), 'content tables must include the shield relay enemy');
   assert(GameDatabase.getBattle(5).enemySpawns.some((spawn) => spawn.enemyId === 'shield_drone'),
     'a mid-game battle must exercise the shield relay enemy');
+  assert.equal(GameDatabase.getCondition('support_present')?.parameterType, 'none',
+    'support targeting must be backed by an explicit data-authored condition');
 }
 
 function verifyOperationsContracts() {
@@ -252,6 +255,15 @@ function verifyRuleTemplateContracts() {
   assert.equal(first.added, 3, 'defensive template must add its complete starter pattern');
   const duplicate = GameState.applyRuleTemplate('defensive_core');
   assert.equal(duplicate.added, 0, 'reapplying a template must not duplicate rules');
+  GameState.advanceTeachNode();
+  GameState.advanceTeachNode();
+  GameState.rules = [];
+  assert.equal(ruleTemplateById('support_focus')?.rules.some((rule) => rule.targetPriority === 'support'), true,
+    'support template must contain an explicit support target');
+  const supportTemplate = GameState.applyRuleTemplate('support_focus');
+  assert.equal(supportTemplate.added, 4, 'support template must add its complete mid-game pattern');
+  assert(GameState.rules.some((rule) => rule.conditionId === 'support_present' && rule.targetPriority === 'support'),
+    'support template must persist its support targeting rule');
   assert.equal(GameState.applyRuleTemplate('missing_template').added, 0, 'unknown templates must be harmless');
   GameState.resetRun();
 }
@@ -341,6 +353,7 @@ async function verifyGameplayContracts() {
   GameState.advanceTeachNode();
   assert(GameState.availableConditionIds().includes('battle_time_above'));
   assert(GameState.availableConditionIds().includes('enemy_count_high'));
+  assert(GameState.availableConditionIds().includes('support_present'));
   GameState.advanceTeachNode();
   assert(GameState.availableConditionIds().includes('energy_low'));
 
@@ -383,11 +396,32 @@ async function verifyGameplayContracts() {
   assert.equal(tacticalExecutor.execute('sidestep'), true);
   assert(tacticalRobot.dashTimer > 0, 'sidestep should create a real evasive dash');
 
+  const supportTarget = new RepairDroneEnemy();
+  supportTarget.init(GameDatabase.getEnemy('repair_drone'), tacticalCtx);
+  supportTarget.x = 4;
+  supportTarget.y = 0;
+  const frontlineTarget = new CrawlerEnemy();
+  frontlineTarget.init(GameDatabase.getEnemy('crawler'), tacticalCtx);
+  frontlineTarget.x = 1;
+  frontlineTarget.y = 0;
+  tacticalCtx.enemies = [frontlineTarget, supportTarget];
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'support_present', null), true,
+    'support-present condition must detect live repair and shield behaviors');
+  assert.equal(tacticalExecutor._resolveTarget('support'), supportTarget,
+    'support priority must override a closer frontline enemy');
+  supportTarget.dead = true;
+  assert.equal(evaluator.evaluateSingle(tacticalRobot, tacticalCtx, 'support_present', null), false,
+    'support-present condition must clear when all support units are dead');
+  supportTarget.dead = false;
+  assert.equal(GameState.addRule('support_present', null, 'basic_attack', 94, null, null, null, 'support'), true);
+
   const exportedRules = GameState.exportRulesCode();
   assert(exportedRules.startsWith('OL1-'), 'shared builds should have a recognizable version prefix');
   GameState.rules = [];
   assert.equal(GameState.importRulesCode(exportedRules), true, 'shared builds should round-trip');
   assert(GameState.rules.length >= 3, 'shared builds should preserve the active rule stack');
+  assert(GameState.rules.some(rule => rule.conditionId === 'support_present' && rule.targetPriority === 'support'),
+    'shared builds must preserve support targeting');
 
   const charger = new ChargerEnemy();
   charger.init(GameDatabase.getEnemy('charger'), tacticalCtx);
@@ -747,14 +781,25 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
+  assert(editorUi.includes('panel.inert') && editorUi.includes("aria-hidden"),
+    'mobile editor tabs should remove inactive panel controls from the accessibility tree');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
   assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
+  assert(/id="f-target"[\s\S]*?value="support"/.test(html) && editorUi.includes("val: 'support'"),
+    'rule builder and existing rows must expose support targeting');
   assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
   assert(html.includes('id="rule-template"') && html.includes('id="btn-apply-template"'), 'editor should expose safe rule templates');
   assert(html.includes('value="support"') && mainUi.includes("repair_drone"), 'sandbox must expose the support enemy for safe practice');
   assert(mainUi.includes("shield_drone"), 'sandbox must expose the shield relay enemy for safe practice');
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
+  assert(html.includes('id="rep-replay-digest"'),
+    'failure report should expose the per-battle replay digest and simulation facts');
+  assert(html.includes('id="victory-replay-digest"') && victoryUi.includes('combineReplayDigests'),
+    'victory screen should expose the combined replay digest');
+  const clipboardUiSource = fs.readFileSync('src/ui/Clipboard.js', 'utf8');
+  assert(clipboardUiSource.includes('navigator.clipboard') && clipboardUiSource.includes("execCommand?.('copy')"),
+    'share code copy should have a browser-compatible fallback');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
@@ -786,6 +831,8 @@ function verifyUiSafetyContracts() {
   const trackerSource = fs.readFileSync('src/systems/CombatStatsTracker.js', 'utf8');
   const editorUiSource = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
   const reportUiSource = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
+  assert(reportUiSource.includes('_renderIntegrity') && reportUiSource.includes('btnCopyReplay'),
+    'failure report should render and copy the per-battle replay digest');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst') && serviceWorker.includes('versionedNetworkFirst'), 'service worker must use versioned precache, online-fresh modules, and offline navigation fallback');
   assert(mainUi.includes("updateViaCache: 'none'") && mainUi.includes('sw.js?v='), 'service worker registration must be release-versioned and bypass stale HTTP cache');
@@ -825,6 +872,8 @@ function verifyUiSafetyContracts() {
   assert.equal(t('report.unavailable'), '当前不可用');
   assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));
   assert.equal(entity('condition', 'hp_low', 'HP Low'), '生命值较低');
+  assert.equal(entity('condition', 'support_present', 'Support Unit Present'), '存在支援单位');
+  assert.equal(t('target.support'), '支援单位');
   setLocale('zh-TW', { notify: false });
   assert.equal(t('menu.start'), '開始模擬');
   assert.equal(t('combat.temperature'), '核心溫度');
@@ -840,6 +889,8 @@ function verifyUiSafetyContracts() {
   assert.equal(entity('battle', 'battle_1', 'System Calibration'), '系統校準');
   assert.equal(entity('battle', 'battle_6', 'Iron Tide'), '鋼鐵浪潮');
   assert.equal(entity('condition', 'battle_time_above', 'Battle Time Above'), '戰鬥時間已達');
+  assert.equal(entity('condition', 'support_present', 'Support Unit Present'), '存在支援單位');
+  assert.equal(t('target.support'), '支援單位');
   assert.equal(entity('action', 'interrupt_shot', 'Interrupt Shot'), '打斷射擊');
   assert.equal(t('editor.duplicate'), '複製規則');
   assert.equal(t('menu.config.modeStandard'), '自由路線與隨機獎勵');

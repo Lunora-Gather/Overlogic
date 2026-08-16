@@ -18,8 +18,11 @@ const history = await fs.readFile(path.join(root, 'src/systems/RunHistory.js'), 
 const archive = await fs.readFile(path.join(root, 'src/systems/RunArchive.js'), 'utf8');
 const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
 const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf8');
+const battleContext = await fs.readFile(path.join(root, 'src/core/BattleContext.js'), 'utf8');
+const actionExecutor = await fs.readFile(path.join(root, 'src/logic/ActionExecutor.js'), 'utf8');
 const reportUi = await fs.readFile(path.join(root, 'src/ui/PostBattleReportUI.js'), 'utf8');
 const victoryUi = await fs.readFile(path.join(root, 'src/ui/VictoryUI.js'), 'utf8');
+const clipboardUi = await fs.readFile(path.join(root, 'src/ui/Clipboard.js'), 'utf8');
 const runVerification = await fs.readFile(path.join(root, 'src/systems/RunVerification.js'), 'utf8');
 const runReplay = await fs.readFile(path.join(root, 'src/systems/RunReplay.js'), 'utf8');
 const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
@@ -78,7 +81,8 @@ for (const tag of tabButtons) {
     'editor tab is missing id, controlled panel, or selected state');
 }
 check(/role="tablist"/.test(html) && /role="tabpanel"/.test(html), 'editor tablist and panels must use ARIA roles');
-check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor), 'editor tabs must support keyboard navigation and state updates');
+check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor) && /aria-hidden/.test(editor) && /\.inert/.test(editor),
+  'editor tabs must support keyboard navigation and keep inactive mobile panels inaccessible');
 check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) && /trapDialogFocus\(this\.profileOverlay\)/.test(menuUi),
   'operator dossier must use an accessible localized dialog');
 check(/leaderboardRuns/.test(menuUi) && /dossier-leaderboard-title/.test(menuUi),
@@ -89,6 +93,12 @@ check(/id="victory-receipt"/.test(html) && /runReceipt/.test(victoryUi) && !runV
   'victory screen must expose a deterministic run receipt without hardcoding a receipt value');
 check(/combineReplayDigests/.test(victoryUi) && /simulationVersion/.test(victoryUi),
   'victory receipts must include archived replay facts');
+check(/id="rep-replay-digest"/.test(html) && /id="btn-copy-report-replay"/.test(html) && /_renderIntegrity/.test(reportUi),
+  'failure reports must expose the bounded replay digest and fixed-step facts');
+check(/id="victory-replay-digest"/.test(html) && /btn-copy-victory-replay/.test(victoryUi),
+  'victory reports must expose and copy the combined replay digest');
+check(/navigator\.clipboard/.test(clipboardUi) && /execCommand/.test(clipboardUi),
+  'shareable integrity codes must retain a manual-copy fallback when clipboard permissions are unavailable');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
@@ -138,6 +148,12 @@ check(/boss_laser/.test(arena) && /case ['"]boss_laser['"]/.test(await fs.readFi
   'boss laser feedback must have a dedicated audio cue');
 check(/MAX_REPLAY_EVENTS/.test(runReplay) && /replayDigest/.test(runVerification) && /_replayDigest/.test(arena),
   'combat records must expose a bounded deterministic replay digest');
+check(contentTables[0].conditions.some((condition) => condition.id === 'support_present' && condition.parameterType === 'none'),
+  'support counterplay must be authored as a validated condition module');
+check(/supportEnemies/.test(battleContext) && /case ['"]support['"]/.test(actionExecutor) && /support_present/.test(editor),
+  'support detection, targeting, and editor advice must share one runtime contract');
+check(/id="f-target"[\s\S]*?value="support"/.test(html) && /target\.support/.test(i18n),
+  'support targeting must be exposed and localized in the rule editor');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');

@@ -121,7 +121,10 @@ export class LogicBrain {
     // Store target for laser aiming visual pointer (Task 4)
     const priority = chosen.targetPriority || 'nearest';
     if (['basic_attack', 'interrupt_shot'].includes(chosen.actionId)) {
-      this.robot.aimTarget = this.executor._resolveTarget(priority);
+      this.robot.aimTarget = this.executor._resolveTarget(
+        priority,
+        chosen.actionId === 'interrupt_shot' ? this.ctx.castingEnemies() : null,
+      );
     } else {
       this.robot.aimTarget = null;
     }

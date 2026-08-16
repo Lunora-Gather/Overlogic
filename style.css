@@ -3098,6 +3098,71 @@ input[type="number"] {
   margin-top: 16px;
 }
 
+.run-integrity {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+  align-items: center;
+  gap: 12px;
+  width: min(960px, 100%);
+  padding: 11px 14px;
+  border: 1px solid rgba(75, 225, 255, 0.22);
+  border-radius: 8px;
+  background: linear-gradient(135deg, rgba(75, 225, 255, 0.055), rgba(7, 17, 31, 0.72));
+}
+
+.integrity-copy {
+  display: grid;
+  min-width: 0;
+  gap: 3px;
+}
+
+.integrity-copy strong {
+  color: var(--accent);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.integrity-copy small,
+.integrity-facts {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+
+.run-integrity code {
+  padding: 6px 8px;
+  border: 1px solid rgba(75, 225, 255, 0.16);
+  border-radius: 5px;
+  color: #d8f8ff;
+  background: rgba(2, 8, 14, 0.7);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.victory-integrity {
+  width: min(680px, 100%);
+  margin: 0 0 16px;
+  border-color: rgba(62, 255, 157, 0.22);
+}
+
+@media (max-width: 620px) {
+  .run-integrity {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .run-integrity .integrity-copy {
+    grid-column: 1 / -1;
+  }
+
+  .run-integrity .integrity-facts {
+    justify-self: end;
+    text-align: right;
+  }
+}
+
 /* ===== Victory Screen ===== */
 #screen-victory .logo {
   font-size: clamp(32px, 5vw, 64px);

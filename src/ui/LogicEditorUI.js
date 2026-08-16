@@ -55,6 +55,15 @@ export class LogicEditorUI {
     this.templateTools = document.querySelector('.template-tools');
     this.sandboxPreset = document.getElementById('sandbox-preset');
     this.el.dataset.mobilePanel = 'rules';
+    this.mobilePanels = [...document.querySelectorAll('#panel-rules, #panel-conditions, #panel-actions')];
+    const syncMobilePanels = () => {
+      const isMobile = window.matchMedia?.('(max-width: 760px)').matches === true;
+      this.mobilePanels.forEach((panel) => {
+        const active = panel.id === `panel-${this.el.dataset.mobilePanel}`;
+        panel.setAttribute('aria-hidden', isMobile && !active ? 'true' : 'false');
+        panel.inert = isMobile && !active;
+      });
+    };
     const activateMobileTab = (button, moveFocus = false) => {
       this.el.dataset.mobilePanel = button.dataset.editorPanel;
       this.mobileTabs.forEach(item => {
@@ -63,6 +72,7 @@ export class LogicEditorUI {
         item.setAttribute('aria-selected', active ? 'true' : 'false');
         item.tabIndex = active ? 0 : -1;
       });
+      syncMobilePanels();
       if (moveFocus) button.focus();
     };
     this.mobileTabs.forEach(button => {
@@ -78,6 +88,8 @@ export class LogicEditorUI {
       });
     });
     this.mobileTabs.forEach(item => item.setAttribute('aria-selected', item.dataset.editorPanel === 'rules' ? 'true' : 'false'));
+    window.addEventListener('resize', syncMobilePanels, { passive: true });
+    syncMobilePanels();
 
     if (this.condSearch) {
       this.condSearch.addEventListener('input', () => this.renderModules());
@@ -239,9 +251,9 @@ export class LogicEditorUI {
     });
     const tags = [];
     if (maxWave > 1) tags.push(t('preview.waves', { count: maxWave }));
-    if (['battle_4', 'battle_6'].includes(battle.id)) tags.push(t('preview.hazards', { count: 2 }));
-    if (['battle_5', 'battle_7'].includes(battle.id)) tags.push(t('preview.hazards', { count: 3 }));
-    if (['battle_8', 'battle_9', 'battle_10'].includes(battle.id)) tags.push(t('preview.hazards', { count: 4 }));
+    if (Array.isArray(battle.hazards) && battle.hazards.length > 0) {
+      tags.push(t('preview.hazards', { count: battle.hazards.length }));
+    }
     if ((battle.enemySpawns || []).some(s => s.enemyId.includes('warden'))) tags.push(t('preview.boss'));
     if ((battle.enemySpawns || []).some(s => s.enemyId === 'repair_drone')) tags.push(t('preview.support'));
     if ((battle.enemySpawns || []).some(s => s.enemyId === 'shield_drone')) tags.push(t('preview.shield'));
@@ -253,7 +265,7 @@ export class LogicEditorUI {
     const enemyIds = new Set((battle.enemySpawns || []).map(spawn => spawn.enemyId));
     const availableConditions = new Set(GameState.availableConditionIds());
     const availableActions = new Set(GameState.availableActionIds());
-    const hasHazards = ['battle_4', 'battle_5', 'battle_6', 'battle_7', 'battle_8', 'battle_9', 'battle_10'].includes(battle.id);
+    const hasHazards = Array.isArray(battle.hazards) && battle.hazards.length > 0;
 
     const options = [];
     if (hasHazards) {
@@ -268,6 +280,13 @@ export class LogicEditorUI {
         conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
         priority: 90, targetPriority: 'caster',
         label: t('advice.interrupt.label'), reason: t('advice.interrupt.reason'),
+      });
+    }
+    if (enemyIds.has('repair_drone') || enemyIds.has('shield_drone')) {
+      options.push({
+        conditionId: 'support_present', conditionValue: null, actionId: 'basic_attack',
+        priority: 94, targetPriority: 'support',
+        label: t('advice.supportTarget.label'), reason: t('advice.supportTarget.reason'),
       });
     }
     if (enemyIds.has('repair_drone')) {
@@ -319,7 +338,8 @@ export class LogicEditorUI {
     return !!advice && GameState.rules.some(rule =>
       rule.enabled !== false &&
       rule.conditionId === advice.conditionId &&
-      rule.actionId === advice.actionId
+      rule.actionId === advice.actionId &&
+      rule.targetPriority === advice.targetPriority
     );
   }
 
@@ -872,6 +892,7 @@ export class LogicEditorUI {
       { val: 'nearest', label: t('target.nearest') },
       { val: 'lowest_hp', label: t('target.lowest_hp') },
       { val: 'caster', label: t('target.caster') },
+      { val: 'support', label: t('target.support') },
       { val: 'boss', label: t('target.boss') }
     ];
     for (const t of targets) {

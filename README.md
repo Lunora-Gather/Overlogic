@@ -35,9 +35,10 @@ Program the brain. Observe the battle. Debug the logic.
 
 - **真正影响战斗的逻辑编程**：组合 `AND`、`OR`、`NOT`、优先级与目标选择。
 - **可解释的自动战斗**：实时高亮执行规则，并显示冷却、能量不足、条件不成立等诊断状态。
-- **会反制构筑的敌人**：维修无人机会公开蓄力、恢复受损单位；护盾中继会公开蓄力并为目标提供短时减伤；失败报告会显示敌方维修与护盾遥测，帮助你判断该优先输出还是打断支援。
+- **会反制构筑的敌人**：维修无人机会公开蓄力、恢复受损单位；护盾中继会公开蓄力并为目标提供短时减伤；玩家可以编写“存在支援单位 → 优先锁定支援”的规则，或在蓄力窗口打断它们；失败报告会显示敌方维修与护盾遥测。
 - **以失败推动学习**：伤害分析、动作频率、规则使用率、关键事件时间轴和自动修复建议共同解释失败原因。
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
+- **可复用的构筑模板**：包含支援集火模板，自动组合支援锁定、蓄力打断、防御和基础攻击，锁定模块会安全跳过。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子、每周挑战与多种难度。
 - **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP 并累积连续完成天数；进度可随完整备份迁移。
 - **操作员档案与本地榜单**：查看等级、胜率、每日/每周战绩、全部成就，并在分模式、分难度筛选后比较本设备上的前五名运行收据。
@@ -53,6 +54,7 @@ Program the brain. Observe the battle. Debug the logic.
 
 ```text
 优先级 90：如果 敌人正在蓄力 → 打断射击（目标：施法单位）
+优先级 85：如果 存在支援单位 → 基础攻击（目标：支援单位）
 优先级 80：如果 来袭弹体接近 → 规避侧闪
 优先级 70：如果 敌人在附近 AND 生命值较低 → 后撤冲刺
 优先级 10：如果 敌人在攻击范围 → 基础攻击
@@ -113,8 +115,9 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Compose combat logic with `AND`, `OR`, `NOT`, priorities, and target selection.
 - See the active rule and every blocked state in real time.
 - Debug defeats through damage analysis, rule usage, action frequency, a critical-event timeline, and contextual fixes.
-- Read and interrupt Repair Drones and Shield Relays before they restore or protect enemy hull; failed-run reports expose both support telemetry.
+- Detect and explicitly prioritize Repair Drones and Shield Relays, or interrupt their casting windows before they restore or protect enemy hull; failed-run reports expose both support telemetry.
 - Build around actions, conditions, passive upgrades, and four mechanic-changing protocol synergies.
+- Start from curated build templates, including a support-focus protocol that safely skips modules you have not unlocked yet.
 - Explore branching routes, persistent hull damage, hazards, daily seeds, weekly gauntlets, multiple difficulties, and two boss paths.
 - Test logic safely in mixed, projectile, swarm, support, and boss sandbox scenarios.
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.

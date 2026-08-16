@@ -90,6 +90,28 @@ export class BattleContext {
     return out;
   }
 
+  isSupportEnemy(enemy) {
+    const behavior = enemy?.data?.behaviorType;
+    return behavior === 'repair_support' || behavior === 'shield_support';
+  }
+
+  supportEnemies() {
+    return this.enemies.filter((enemy) => !enemy.dead && this.isSupportEnemy(enemy));
+  }
+
+  nearestSupportEnemyTo(pos) {
+    let best = null;
+    let bestDistance = Infinity;
+    for (const enemy of this.supportEnemies()) {
+      const distance = Math.hypot(enemy.x - pos.x, enemy.y - pos.y);
+      if (distance < bestDistance) {
+        best = enemy;
+        bestDistance = distance;
+      }
+    }
+    return best;
+  }
+
   liveEnemies() {
     let n = 0;
     for (const e of this.enemies) if (!e.dead) n += 1;

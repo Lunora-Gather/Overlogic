@@ -11,6 +11,7 @@ import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { runReceipt } from '../systems/RunVerification.js?v=20260725-4';
 import { combineReplayDigests } from '../systems/RunReplay.js?v=20260725-4';
+import { copyText } from './Clipboard.js?v=20260725-4';
 
 export class VictoryUI {
   constructor() {
@@ -22,6 +23,9 @@ export class VictoryUI {
     this.rulesEl = document.getElementById('victory-rules-summary');
     this.receiptEl = document.getElementById('victory-receipt');
     this.copyReceiptBtn = document.getElementById('btn-copy-victory-receipt');
+    this.replayDigestEl = document.getElementById('victory-replay-digest');
+    this.simulationFactsEl = document.getElementById('victory-simulation-facts');
+    this.copyReplayBtn = document.getElementById('btn-copy-victory-replay');
 
     this.btn.addEventListener('click', () => {
       AudioManager.play('button_click');
@@ -36,14 +40,20 @@ export class VictoryUI {
       const receipt = this.receiptEl?.textContent?.trim() || '';
       if (!receipt) return;
       try {
-        if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
-        await navigator.clipboard.writeText(receipt);
+        if (!await copyText(receipt)) throw new Error('clipboard unavailable');
         const original = this.copyReceiptBtn.textContent;
         this.copyReceiptBtn.textContent = t('victory.receiptCopied');
         setTimeout(() => { this.copyReceiptBtn.textContent = original; }, 1400);
       } catch {
         this.copyReceiptBtn.textContent = t('victory.receiptManual');
       }
+    });
+    this.copyReplayBtn?.addEventListener('click', async () => {
+      const digest = this.replayDigestEl?.textContent?.trim() || '';
+      const copied = await copyText(digest === '—' ? '' : digest);
+      const original = this.copyReplayBtn.textContent;
+      this.copyReplayBtn.textContent = t(copied ? 'victory.replayCopied' : 'victory.replayManual');
+      if (copied) setTimeout(() => { this.copyReplayBtn.textContent = original; }, 1400);
     });
 
     // Redraw on resize
@@ -76,6 +86,7 @@ export class VictoryUI {
     const replayDigests = Array.isArray(runStats.replayDigests)
       ? runStats.replayDigests
       : (report._replayDigest ? [report._replayDigest] : []);
+    const replayDigest = combineReplayDigests(replayDigests);
     const records = runRecords();
     const receipt = runReceipt({
       mode: GameState.runConfig?.mode,
@@ -89,9 +100,17 @@ export class VictoryUI {
       upgrades,
       simulationVersion: report._simulationVersion,
       simulationStep: report._simulationStep,
-      replayDigest: combineReplayDigests(replayDigests),
+      replayDigest,
     });
     if (this.receiptEl) this.receiptEl.textContent = receipt;
+    if (this.replayDigestEl) this.replayDigestEl.textContent = replayDigest;
+    if (this.simulationFactsEl) {
+      this.simulationFactsEl.textContent = t('victory.simulationFacts', {
+        version: Number(report._simulationVersion) || 1,
+        step: ((Number(report._simulationStep) || 1 / 60) * 1000).toFixed(1),
+      });
+    }
+    if (this.copyReplayBtn) this.copyReplayBtn.disabled = !/^RPL\d+-[0-9A-F]{8}$/.test(replayDigest);
 
     this.statsEl.innerHTML = `
       <div class="victory-stat"><span class="stat-label">${t('victory.battles')}</span><span class="stat-value">${battlesWon}</span></div>

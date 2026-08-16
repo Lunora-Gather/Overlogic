@@ -166,6 +166,7 @@ function TickLogicBrain(robot, ctx, rules):
 | `hp_low` | HP Low | percent(0–1) | 0.30 | 0.05 | 0.95 | ✅ |
 | `energy_high` | Energy High | percent(0–1) | 0.80 | 0.05 | 0.99 | ✅ |
 | `enemy_casting` | Enemy Casting | none | — | — | — | ✅ |
+| `support_present` | Support Unit Present | none | — | — | — | ✅ |
 | `surrounded` | Surrounded | {radius(m), count} | {4, 3} | — | — | [扩展] |
 | `skill_ready` | Skill Ready | actionId | `basic_attack` | — | — | [扩展] |
 | `boss_phase` | Boss Phase | phase(int) | 2 | 1 | 4 | ✅ |
@@ -179,6 +180,7 @@ function TickLogicBrain(robot, ctx, rules):
 - `hp_low`：`robot.hp / robot.maxHp ≤ percent`。
 - `energy_high`：`robot.energy / robot.maxEnergy ≥ percent`。
 - `enemy_casting`：场上任一敌人处于 `Casting`/`Charging` 状态即成立。
+- `support_present`：场上存在存活的 `repair_support` 或 `shield_support` 单位即成立；支援单位死亡后立即失效。
 - `projectile_nearby`：仅检测正在接近且飞行路径会进入机体附近的敌方弹体。
 
 ### 6.2 动作模块（Demo 至少 6 个）
@@ -328,7 +330,7 @@ function TickLogicBrain(robot, ctx, rules):
 
 **行为**：寻找生命比例低于 98% 的友军，在维修距离内进入 `Casting`，通过绿色连线和扩散环显示目标；蓄力完成后恢复 10 点生命。机器人靠近时无人机会后撤。`interrupt_shot` 命中 `Casting` 状态会取消本次维修并进入短暂冷却。
 
-**设计目的**：让 `enemy_casting → interrupt_shot (目标：施法单位)` 在中后期持续有价值，同时通过失败报告的敌方维修遥测解释“为什么敌人比预期更耐打”。维修无人机不会维修同类单位，避免支援链无限增长。
+**设计目的**：让 `enemy_casting → interrupt_shot (目标：施法单位)` 在中后期持续有价值，也允许 `support_present → basic_attack (目标：支援单位)` 主动拆除支援链；失败报告的敌方维修遥测解释“为什么敌人比预期更耐打”。维修无人机不会维修同类单位，避免支援链无限增长。
 
 ### 8.5 Shield Relay（护盾中继）
 
@@ -712,11 +714,21 @@ Your Logic Survived
   "id": "rule_1",
   "conditionId": "hp_low",
   "conditionValue": 0.30,
+  "conditionId2": null,
+  "conditionValue2": null,
+  "operator": null,
   "actionId": "shield",
   "priority": 100,
+  "targetPriority": "nearest",
+  "negateCondition1": false,
+  "negateCondition2": false,
   "enabled": true
 }
 ```
+
+`targetPriority` ∈ `{nearest, lowest_hp, caster, support, boss}`。其中 `support` 优先选择行为类型为 `repair_support` 或 `shield_support` 的最近单位；目标类型不存在时退回当前候选集合中的最近敌人。`interrupt_shot` 会先把候选集合限制为正在蓄力的单位，再在其中应用目标优先级，避免向不可打断目标浪费动作。
+
+规则模板 `support_focus` 将支援锁定、蓄力打断、护盾和基础攻击组合成一个可增量应用的构筑；模板只追加当前已解锁且尚不存在的规则，不会覆盖玩家正在调试的逻辑。
 
 ### 17.4 EnemyData
 

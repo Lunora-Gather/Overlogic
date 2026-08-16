@@ -42,6 +42,17 @@ export const RULE_TEMPLATES = Object.freeze([
       Object.freeze({ conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 }),
     ]),
   }),
+  Object.freeze({
+    id: 'support_focus',
+    nameKey: 'template.support.name',
+    descriptionKey: 'template.support.description',
+    rules: Object.freeze([
+      Object.freeze({ conditionId: 'hp_low', conditionValue: 0.35, actionId: 'shield', priority: 100 }),
+      Object.freeze({ conditionId: 'support_present', conditionValue: null, actionId: 'basic_attack', priority: 94, targetPriority: 'support' }),
+      Object.freeze({ conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot', priority: 90, targetPriority: 'caster' }),
+      Object.freeze({ conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 }),
+    ]),
+  }),
 ]);
 
 export function ruleTemplateById(id) {

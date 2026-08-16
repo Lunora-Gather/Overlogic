@@ -8,6 +8,7 @@ import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { drawStatsChart } from './StatsChart.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
+import { copyText } from './Clipboard.js?v=20260725-4';
 
 export class PostBattleReportUI {
   constructor() {
@@ -16,6 +17,9 @@ export class PostBattleReportUI {
     this.repLogic  = document.getElementById('rep-logic');
     this.repSuggest = document.getElementById('rep-suggest');
     this.repTimeline = document.getElementById('rep-timeline');
+    this.repReplayDigest = document.getElementById('rep-replay-digest');
+    this.repSimulationFacts = document.getElementById('rep-simulation-facts');
+    this.btnCopyReplay = document.getElementById('btn-copy-report-replay');
     this.btnTimelineToggle = document.getElementById('btn-report-timeline-toggle');
     this.canvas = document.getElementById('chart-report');
     this.btnRetry  = document.getElementById('btn-retry');
@@ -51,6 +55,13 @@ export class PostBattleReportUI {
       this._showAllTimeline = !this._showAllTimeline;
       this._renderTimeline(this._timelineEvents);
     });
+    this.btnCopyReplay?.addEventListener('click', async () => {
+      const digest = this.repReplayDigest?.textContent?.trim() || '';
+      const copied = await copyText(digest === '—' ? '' : digest);
+      const original = this.btnCopyReplay.textContent;
+      this.btnCopyReplay.textContent = t(copied ? 'report.replayCopied' : 'report.replayManual');
+      if (copied) window.setTimeout(() => { this.btnCopyReplay.textContent = original; }, 1400);
+    });
   }
 
   show() {
@@ -59,6 +70,7 @@ export class PostBattleReportUI {
     const availableActions = GameState.availableActionIds();
     const availableConditions = GameState.availableConditionIds();
     const built = buildReport(report, availableActions, availableConditions);
+    this._renderIntegrity(report);
     
     this.repDamage.innerHTML = built.damage_lines.map(s => `<li>${escapeHtml(s)}</li>`).join('');
     
@@ -168,6 +180,21 @@ export class PostBattleReportUI {
     // Draw performance charts
     drawStatsChart(this.canvas, report);
     this.btnRetry?.focus();
+  }
+
+  _renderIntegrity(report) {
+    const digest = /^RPL\d+-[0-9A-F]{8}$/.test(String(report?._replayDigest || ''))
+      ? String(report._replayDigest) : '—';
+    const version = Number.isFinite(Number(report?._simulationVersion)) ? Number(report._simulationVersion) : 1;
+    const step = Number.isFinite(Number(report?._simulationStep)) ? Number(report._simulationStep) : 1 / 60;
+    if (this.repReplayDigest) this.repReplayDigest.textContent = digest;
+    if (this.repSimulationFacts) {
+      this.repSimulationFacts.textContent = t('report.simulationFacts', {
+        version,
+        step: (step * 1000).toFixed(1),
+      });
+    }
+    if (this.btnCopyReplay) this.btnCopyReplay.disabled = digest === '—';
   }
 
   _renderTimeline(events) {
