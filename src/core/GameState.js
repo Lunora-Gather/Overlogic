@@ -1098,6 +1098,7 @@ class GameStateClass {
       settings: {
         language: this.settings.language,
         reduceMotion: this.settings.reduceMotion,
+        highContrast: this.settings.highContrast,
         screenShake: this.settings.screenShake,
       },
       run: {

@@ -576,6 +576,8 @@ function verifySaveMigration() {
   assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
   const supportBundle = JSON.parse(GameState.exportSupportBundle());
   assert.equal(supportBundle.product, 'overlogic');
+  assert.equal(typeof supportBundle.settings.highContrast, 'boolean',
+    'support bundle must preserve the contrast preference for visual diagnostics');
   assert(supportBundle.runtimeDiagnostics && supportBundle.runtimeDiagnostics.version === 1,
     'support bundle must include bounded runtime diagnostics');
 }
