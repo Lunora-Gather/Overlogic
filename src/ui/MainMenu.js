@@ -37,17 +37,22 @@ export class MainMenu {
     this.runHistory = document.getElementById('run-history');
     this.runChallenges = document.getElementById('run-challenges');
     this.runProfile = document.getElementById('run-profile');
+    this.profileOverlay = document.getElementById('profile-overlay');
+    this.profileDialogBody = document.getElementById('profile-dialog-body');
+    this.btnProfileClose = document.getElementById('btn-profile-close');
     this.howBody = document.getElementById('how-body');
     this._challengeRefreshTimer = null;
     this._howReturnFocus = null;
     this._confirmReturnFocus = null;
     this._confirmKey = null;
     this._confirmResolver = null;
+    this._profileReturnFocus = null;
     const standalone = window.matchMedia?.('(display-mode: standalone)').matches === true ||
       window.navigator?.standalone === true;
     this.btnExit?.classList.toggle('hidden', !standalone);
     trapDialogFocus(this.overlay);
     trapDialogFocus(this.confirmOverlay);
+    trapDialogFocus(this.profileOverlay);
     this._bind();
     this.render();
   }
@@ -118,6 +123,13 @@ export class MainMenu {
     this.btnHowClose.addEventListener('click', () => {
       this._closeHow();
     });
+    this.runProfile?.addEventListener('click', (event) => {
+      if (event.target.closest('#btn-profile-open')) this._openProfile();
+    });
+    this.btnProfileClose?.addEventListener('click', () => this._closeProfile());
+    this.profileOverlay?.addEventListener('click', (event) => {
+      if (event.target === this.profileOverlay) this._closeProfile();
+    });
     this.overlay.addEventListener('click', (event) => {
       if (event.target === this.overlay) this._closeHow();
     });
@@ -134,6 +146,10 @@ export class MainMenu {
       if (event.key === 'Escape' && this.confirmOverlay && !this.confirmOverlay.classList.contains('hidden')) {
         event.preventDefault();
         this._closeConfirm(false);
+      }
+      if (event.key === 'Escape' && this.profileOverlay && !this.profileOverlay.classList.contains('hidden')) {
+        event.preventDefault();
+        this._closeProfile();
       }
     });
     this.btnReset.addEventListener('click', () => {
@@ -219,6 +235,7 @@ export class MainMenu {
     }
     this.renderRunConfig();
     this.renderProfile();
+    if (this.profileOverlay && !this.profileOverlay.classList.contains('hidden')) this.renderProfileDialog();
     this.renderChallenges();
     this.renderHistory();
   }
@@ -239,7 +256,75 @@ export class MainMenu {
         <span style="width:${progress}%"></span>
       </div>
       <div class="profile-meta"><span>${t('menu.profileBattles', { count: profile.totalBattles })}</span><span>${t('menu.profileWins', { count: profile.wins })}</span><span>${t('menu.profileAchievements', { unlocked, total: ACHIEVEMENTS.length })}</span></div>
-      <div class="profile-records"><span>${t('menu.profileClears', { count: records.completions })}</span><span>${bestRun}</span></div>`;
+      <div class="profile-records"><span>${t('menu.profileClears', { count: records.completions })}</span><span>${bestRun}</span></div>
+      <div class="profile-actions"><button type="button" id="btn-profile-open" class="btn ghost small">${t('menu.profileOpen')}</button></div>`;
+  }
+
+  renderProfileDialog() {
+    if (!this.profileDialogBody) return;
+    const profile = profileSnapshot();
+    const rank = profileRank(profile.xp);
+    const records = runRecords();
+    const progress = Math.max(0, Math.min(100, Math.round((rank.current / rank.required) * 100)));
+    const winRate = profile.totalBattles > 0 ? Math.round((profile.wins / profile.totalBattles) * 100) : 0;
+    const unlockedCount = ACHIEVEMENTS.filter((achievement) => profile.achievements[achievement.id]).length;
+    const bestBattle = profile.bestBattleTime === null
+      ? t('menu.profileNoTime') : `${profile.bestBattleTime.toFixed(1)}s`;
+    const achievements = ACHIEVEMENTS.map((achievement) => {
+      const unlockedAt = profile.achievements[achievement.id];
+      let date = '';
+      if (unlockedAt) {
+        const parsed = new Date(unlockedAt);
+        if (Number.isFinite(parsed.getTime())) {
+          date = new Intl.DateTimeFormat(getLocale(), { year: 'numeric', month: 'short', day: 'numeric' }).format(parsed);
+        }
+      }
+      return `<article class="achievement-card ${unlockedAt ? 'unlocked' : 'locked'}">
+        <span class="achievement-mark" aria-hidden="true">${unlockedAt ? '✓' : '◇'}</span>
+        <div class="achievement-copy">
+          <strong>${escapeHtml(t(achievement.titleKey))}</strong>
+          <p>${escapeHtml(t(achievement.descriptionKey))}</p>
+          <small>${escapeHtml(unlockedAt ? t('menu.profileUnlockedOn', { date }) : t('menu.profileLocked'))}</small>
+        </div>
+        <span class="achievement-xp">+${achievement.xp} XP</span>
+      </article>`;
+    }).join('');
+    this.profileDialogBody.innerHTML = `
+      <section class="dossier-rank" aria-label="${escapeHtml(t('menu.profileXp', { current: rank.current, required: rank.required }))}">
+        <div><span>${escapeHtml(t('menu.profileRank', { level: rank.level }))}</span><strong>${escapeHtml(t('menu.profileXp', { current: rank.current, required: rank.required }))}</strong></div>
+        <div class="profile-progress"><span style="width:${progress}%"></span></div>
+      </section>
+      <section class="dossier-stats" aria-label="${escapeHtml(t('menu.profileStatsTitle'))}">
+        <div><span>${escapeHtml(t('menu.profileBattlesLabel'))}</span><strong>${profile.totalBattles}</strong></div>
+        <div><span>${escapeHtml(t('menu.profileWinRate'))}</span><strong>${winRate}%</strong></div>
+        <div><span>${escapeHtml(t('menu.profileDailyWins'))}</span><strong>${profile.dailyWins}</strong></div>
+        <div><span>${escapeHtml(t('menu.profileWeeklyWins'))}</span><strong>${profile.weeklyWins}</strong></div>
+        <div><span>${escapeHtml(t('menu.profileClearsLabel'))}</span><strong>${records.completions}</strong></div>
+        <div><span>${escapeHtml(t('menu.profileBestBattle'))}</span><strong>${escapeHtml(bestBattle)}</strong></div>
+      </section>
+      <section class="dossier-achievements" aria-labelledby="dossier-achievements-title">
+        <div class="dossier-section-heading"><h3 id="dossier-achievements-title">${escapeHtml(t('menu.profileAchievementsTitle'))}</h3><span>${unlockedCount}/${ACHIEVEMENTS.length}</span></div>
+        <div class="achievement-grid">${achievements}</div>
+      </section>`;
+  }
+
+  _openProfile() {
+    if (!this.profileOverlay || !this.btnProfileClose) return;
+    this._profileReturnFocus = document.activeElement;
+    this.renderProfileDialog();
+    this.profileOverlay.classList.remove('hidden');
+    this.profileOverlay.setAttribute('aria-hidden', 'false');
+    this.btnProfileClose.focus();
+    AudioManager.play('button_click');
+  }
+
+  _closeProfile() {
+    if (!this.profileOverlay || this.profileOverlay.classList.contains('hidden')) return;
+    this.profileOverlay.classList.add('hidden');
+    this.profileOverlay.setAttribute('aria-hidden', 'true');
+    if (this._profileReturnFocus instanceof HTMLElement) this._profileReturnFocus.focus();
+    this._profileReturnFocus = null;
+    AudioManager.play('button_click');
   }
 
   renderHistory() {

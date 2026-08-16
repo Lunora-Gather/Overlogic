@@ -702,6 +702,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"') && html.includes('value="weekly"'), 'menu should expose standard, daily, and weekly run modes');
   assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
+  assert(html.includes('id="profile-overlay"') && menuUi.includes('renderProfileDialog') && menuUi.includes('this._profileReturnFocus'),
+    'operator progression must expose an accessible detailed dossier');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');

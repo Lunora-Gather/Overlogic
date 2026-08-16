@@ -8,13 +8,13 @@ const PROFILE_KEY = 'overlogic_profile';
 const PROFILE_VERSION = 1;
 
 export const ACHIEVEMENTS = Object.freeze([
-  { id: 'first_battle', titleKey: 'achievement.firstBattle', xp: 25 },
-  { id: 'first_win', titleKey: 'achievement.firstWin', xp: 50 },
-  { id: 'debugger', titleKey: 'achievement.debugger', xp: 75 },
-  { id: 'daily_protocol', titleKey: 'achievement.dailyProtocol', xp: 100 },
-  { id: 'weekly_protocol', titleKey: 'achievement.weeklyProtocol', xp: 150 },
-  { id: 'boss_breaker', titleKey: 'achievement.bossBreaker', xp: 150 },
-  { id: 'speedrun', titleKey: 'achievement.speedrun', xp: 100 },
+  { id: 'first_battle', titleKey: 'achievement.firstBattle', descriptionKey: 'achievement.firstBattleDesc', xp: 25 },
+  { id: 'first_win', titleKey: 'achievement.firstWin', descriptionKey: 'achievement.firstWinDesc', xp: 50 },
+  { id: 'debugger', titleKey: 'achievement.debugger', descriptionKey: 'achievement.debuggerDesc', xp: 75 },
+  { id: 'daily_protocol', titleKey: 'achievement.dailyProtocol', descriptionKey: 'achievement.dailyProtocolDesc', xp: 100 },
+  { id: 'weekly_protocol', titleKey: 'achievement.weeklyProtocol', descriptionKey: 'achievement.weeklyProtocolDesc', xp: 150 },
+  { id: 'boss_breaker', titleKey: 'achievement.bossBreaker', descriptionKey: 'achievement.bossBreakerDesc', xp: 150 },
+  { id: 'speedrun', titleKey: 'achievement.speedrun', descriptionKey: 'achievement.speedrunDesc', xp: 100 },
 ]);
 
 function defaultProfile() {

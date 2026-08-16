@@ -727,6 +727,189 @@ input:focus-visible {
   letter-spacing: 0.04em;
 }
 
+.profile-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.profile-actions .btn {
+  min-height: 32px;
+  padding: 5px 10px;
+  border-color: rgba(181, 92, 255, 0.32);
+  color: #dfc9ff;
+}
+
+.profile-card {
+  width: min(760px, calc(100vw - 40px));
+  max-width: 760px;
+}
+
+.profile-dialog-body {
+  display: grid;
+  gap: 18px;
+  color: var(--txt);
+  text-align: left;
+}
+
+.dossier-rank {
+  padding: 14px 16px;
+  border: 1px solid rgba(181, 92, 255, 0.3);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(181, 92, 255, 0.12), rgba(7, 17, 31, 0.7));
+}
+
+.dossier-rank > div:first-child,
+.dossier-section-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dossier-rank span,
+.dossier-section-heading span {
+  color: #d7b7ff;
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.dossier-rank strong {
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.dossier-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.dossier-stats > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 11px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 10px;
+  background: rgba(4, 10, 21, 0.68);
+}
+
+.dossier-stats span {
+  color: var(--muted);
+  font-size: 10px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.dossier-stats strong {
+  color: #f1fbff;
+  font-family: var(--font-display);
+  font-size: 19px;
+}
+
+.dossier-section-heading {
+  margin-bottom: 10px;
+}
+
+.dossier-section-heading h3 {
+  margin: 0;
+  color: #f1fbff;
+  font-family: var(--font-display);
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.achievement-card {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 11px;
+  background: rgba(4, 10, 21, 0.68);
+}
+
+.achievement-card.unlocked {
+  border-color: rgba(62, 255, 157, 0.34);
+  background: linear-gradient(145deg, rgba(62, 255, 157, 0.09), rgba(4, 10, 21, 0.78));
+}
+
+.achievement-card.locked {
+  opacity: 0.7;
+}
+
+.achievement-mark {
+  display: grid;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border: 1px solid rgba(181, 92, 255, 0.36);
+  border-radius: 50%;
+  color: #d7b7ff;
+  font-weight: 800;
+}
+
+.achievement-card.unlocked .achievement-mark {
+  border-color: rgba(62, 255, 157, 0.48);
+  color: var(--accent2);
+}
+
+.achievement-copy {
+  min-width: 0;
+}
+
+.achievement-copy strong {
+  color: #eefaff;
+  font-size: 12px;
+}
+
+.achievement-copy p {
+  margin: 4px 0 5px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.achievement-copy small {
+  color: #9fbed6;
+  font-family: var(--font-mono);
+  font-size: 9px;
+}
+
+.achievement-xp {
+  color: #ffd98b;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  white-space: nowrap;
+}
+
+@media (max-width: 760px) {
+  .profile-card {
+    width: 100%;
+  }
+
+  .dossier-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .achievement-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .run-seed-row {
   grid-column: 1 / -1;
   display: flex;

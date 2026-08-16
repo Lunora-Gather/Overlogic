@@ -11,6 +11,7 @@ const css = await fs.readFile(path.join(root, 'style.css'), 'utf8');
 const main = await fs.readFile(path.join(root, 'src/main.js'), 'utf8');
 const serviceWorker = await fs.readFile(path.join(root, 'sw.js'), 'utf8');
 const editor = await fs.readFile(path.join(root, 'src/ui/LogicEditorUI.js'), 'utf8');
+const menuUi = await fs.readFile(path.join(root, 'src/ui/MainMenu.js'), 'utf8');
 const gameState = await fs.readFile(path.join(root, 'src/core/GameState.js'), 'utf8');
 const modifiers = await fs.readFile(path.join(root, 'src/systems/RunModifiers.js'), 'utf8');
 const history = await fs.readFile(path.join(root, 'src/systems/RunHistory.js'), 'utf8');
@@ -75,6 +76,8 @@ for (const tag of tabButtons) {
 }
 check(/role="tablist"/.test(html) && /role="tabpanel"/.test(html), 'editor tablist and panels must use ARIA roles');
 check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor), 'editor tabs must support keyboard navigation and state updates');
+check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) && /trapDialogFocus\(this\.profileOverlay\)/.test(menuUi),
+  'operator dossier must use an accessible localized dialog');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
