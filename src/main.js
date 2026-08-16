@@ -17,6 +17,7 @@ import { escapeHtml } from './ui/safeHtml.js?v=20260725-4';
 import { entity, setLocale, t } from './i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './ui/focusTrap.js?v=20260725-4';
 import { markBootComplete, recordRuntimeError, recordRuntimeEvent } from './systems/RuntimeDiagnostics.js?v=20260725-4';
+import { featureEnabled, loadOperationsConfig } from './systems/OperationsConfig.js?v=20260725-4';
 
 const bootStatus = document.getElementById('boot-status');
 const appNotice = document.getElementById('app-notice');
@@ -205,10 +206,12 @@ function setupInstallPrompt() {
 
 async function main() {
   const bootStartedAt = Date.now();
+  const operations = await loadOperationsConfig();
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
   setLocale(GameState.settings.language, { notify: false });
   document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
+  if (operations.maintenance.enabled) showAppNotice('ops.maintenance');
 
   // Initialize and run the cyber background animation
   const bgCanvas = document.getElementById('bg-canvas');
@@ -256,6 +259,10 @@ async function main() {
     arena.start(battle);
   };
   GameManager.goSandbox = () => {
+    if (!featureEnabled('sandbox')) {
+      showAppNotice('ops.featureUnavailable', { autoHide: 3500 });
+      return;
+    }
     bgAnim?.stop();
     origGoSandbox();
     const preset = document.getElementById('sandbox-preset')?.value || 'mixed';

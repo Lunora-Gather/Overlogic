@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const root = process.cwd();
 const dist = path.join(root, 'dist');
-const required = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', 'release.json', '.nojekyll', 'LICENSE', 'README.md', 'data', 'src'];
+const required = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', 'release.json', '.nojekyll', 'LICENSE', 'README.md', 'OPERATIONS.md', 'data', 'src'];
 
 async function exists(target) {
   try { await fs.access(target); return true; } catch { return false; }

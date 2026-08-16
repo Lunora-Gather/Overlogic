@@ -7,7 +7,7 @@ const requestedRelease = String(process.env.GITHUB_SHA || process.env.OVERLOGIC_
 const release = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(requestedRelease)
   ? requestedRelease
   : String(Date.now());
-const include = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', '.nojekyll', 'LICENSE', 'README.md', 'data', 'src'];
+const include = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', '.nojekyll', 'LICENSE', 'README.md', 'OPERATIONS.md', 'data', 'src'];
 
 await fs.rm(output, { recursive: true, force: true });
 await fs.mkdir(output, { recursive: true });

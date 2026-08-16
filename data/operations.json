@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "season": {
+    "id": "foundry_protocol",
+    "labelKey": "ops.seasonFoundry"
+  },
+  "features": {
+    "dailyChallenges": true,
+    "weeklyGauntlet": true,
+    "sandbox": true,
+    "ruleTemplates": true,
+    "shieldRelay": true
+  },
+  "maintenance": {
+    "enabled": false
+  },
+  "limits": {
+    "recentBattles": 4,
+    "archiveEntries": 60,
+    "supportErrors": 20
+  }
+}

@@ -28,6 +28,7 @@ const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers, dailyProtocol, weeklyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
+const { normalizeOperationsConfig, featureEnabled, operationsConfig } = await import('../src/systems/OperationsConfig.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
@@ -93,6 +94,25 @@ function verifyDataContracts() {
   assert(GameDatabase.getEnemy('shield_drone'), 'content tables must include the shield relay enemy');
   assert(GameDatabase.getBattle(5).enemySpawns.some((spawn) => spawn.enemyId === 'shield_drone'),
     'a mid-game battle must exercise the shield relay enemy');
+}
+
+function verifyOperationsContracts() {
+  const normalized = normalizeOperationsConfig({
+    schemaVersion: 999,
+    season: { id: 'INVALID!', labelKey: 'ops.unknown' },
+    features: { weeklyGauntlet: false, unknownFlag: true },
+    maintenance: { enabled: true },
+    limits: { recentBattles: 999, archiveEntries: 1, supportErrors: -4 },
+  });
+  assert.equal(normalized.schemaVersion, 1, 'operations schema must be pinned to the supported version');
+  assert.equal(normalized.season.id, 'foundry_protocol', 'invalid season ids must fall back safely');
+  assert.equal(normalized.season.labelKey, 'ops.seasonFoundry', 'unknown season labels must fall back safely');
+  assert.equal(normalized.features.weeklyGauntlet, false, 'explicitly disabled operations flags must remain disabled');
+  assert.equal(normalized.features.unknownFlag, undefined, 'unknown operations flags must not leak into runtime state');
+  assert.equal(normalized.maintenance.enabled, true);
+  assert.deepEqual(normalized.limits, { recentBattles: 12, archiveEntries: 12, supportErrors: 5 });
+  assert.equal(featureEnabled('weeklyGauntlet'), true, 'default operations should keep the current weekly mode enabled');
+  assert.equal(operationsConfig().schemaVersion, 1, 'runtime operations snapshot must be versioned');
 }
 
 function verifyRepairDroneContracts() {
@@ -576,6 +596,8 @@ function verifySaveMigration() {
   assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
   const supportBundle = JSON.parse(GameState.exportSupportBundle());
   assert.equal(supportBundle.product, 'overlogic');
+  assert.equal(supportBundle.operations?.schemaVersion, 1,
+    'support bundle must include the active operations manifest snapshot');
   assert.equal(typeof supportBundle.settings.highContrast, 'boolean',
     'support bundle must preserve the contrast preference for visual diagnostics');
   assert(supportBundle.runtimeDiagnostics && supportBundle.runtimeDiagnostics.version === 1,
@@ -974,6 +996,7 @@ function verifySimulation() {
 verifySyntax();
 await verifyImportGraph();
 verifyDataContracts();
+verifyOperationsContracts();
 verifyRepairDroneContracts();
 verifyShieldRelayContracts();
 verifyRuleTemplateContracts();

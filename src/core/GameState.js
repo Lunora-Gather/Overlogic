@@ -9,6 +9,7 @@ import { challengeSnapshot, clearChallenges, replaceChallenges } from '../system
 import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
 import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
+import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -507,7 +508,11 @@ class GameStateClass {
 
   configureRun(mode, difficulty, requestedSeed = null) {
     const previousMode = this.runConfig?.mode;
-    this.settings.runMode = RUN_MODES.has(mode) ? mode : 'standard';
+    const requestedMode = RUN_MODES.has(mode) ? mode : 'standard';
+    const allowedMode = (requestedMode === 'daily' && !featureEnabled('dailyChallenges')) ||
+      (requestedMode === 'weekly' && !featureEnabled('weeklyGauntlet'))
+      ? 'standard' : requestedMode;
+    this.settings.runMode = allowedMode;
     this.settings.difficulty = DIFFICULTIES.has(difficulty) ? difficulty : 'standard';
     const parsedSeed = normalizeRunSeed(requestedSeed);
     this.saveSettings();
@@ -593,6 +598,7 @@ class GameStateClass {
     return true;
   }
   applyRuleTemplate(templateId) {
+    if (!featureEnabled('ruleTemplates')) return { added: 0, skipped: 0, locked: 0, unavailable: true };
     const template = ruleTemplateById(templateId);
     if (!template) return { added: 0, skipped: 0, locked: 0 };
     const availableConditions = new Set(this.availableConditionIds());
@@ -1094,6 +1100,7 @@ class GameStateClass {
       supportVersion: 1,
       exportedAt: new Date().toISOString(),
       release,
+      operations: operationsSnapshot(),
       storageStatus: this.storageStatus,
       settings: {
         language: this.settings.language,
@@ -1396,7 +1403,10 @@ class GameStateClass {
       this.lastReport = { ...this.lastReport, timeline: this.lastReport.timeline.slice(-100) };
       changed = true;
     }
-    const normalizedMode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';
+    const requestedMode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';
+    const normalizedMode = (requestedMode === 'daily' && !featureEnabled('dailyChallenges')) ||
+      (requestedMode === 'weekly' && !featureEnabled('weeklyGauntlet'))
+      ? 'standard' : requestedMode;
     const normalizedDifficulty = DIFFICULTIES.has(this.runConfig?.difficulty)
       ? this.runConfig.difficulty
       : 'standard';

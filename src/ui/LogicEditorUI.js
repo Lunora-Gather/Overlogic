@@ -11,6 +11,7 @@ import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
 import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
 import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
+import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -50,6 +51,8 @@ export class LogicEditorUI {
     this.btnExportRules = document.getElementById('btn-export-rules');
     this.ruleTemplate = document.getElementById('rule-template');
     this.btnApplyTemplate = document.getElementById('btn-apply-template');
+    this.templateTools = document.querySelector('.template-tools');
+    this.sandboxPreset = document.getElementById('sandbox-preset');
     this.el.dataset.mobilePanel = 'rules';
     const activateMobileTab = (button, moveFocus = false) => {
       this.el.dataset.mobilePanel = button.dataset.editorPanel;
@@ -125,6 +128,7 @@ export class LogicEditorUI {
   }
 
   _renderTemplateOptions() {
+    this.templateTools?.classList.toggle('hidden', !featureEnabled('ruleTemplates'));
     if (!this.ruleTemplate) return;
     const selected = this.ruleTemplate.value;
     this.ruleTemplate.replaceChildren();
@@ -143,6 +147,8 @@ export class LogicEditorUI {
   }
 
   renderAll() {
+    this.btnSandbox?.classList.toggle('hidden', !featureEnabled('sandbox'));
+    this.sandboxPreset?.classList.toggle('hidden', !featureEnabled('sandbox'));
     this._renderTemplateOptions();
     this.renderHeader();
     this.renderBriefing();

@@ -13,7 +13,7 @@ Program the brain. Observe the battle. Debug the logic.
 
 **[▶ 立即游玩 / Play Online](https://lunora-gather.github.io/Overlogic/)**
 
-[简体中文](#简体中文) · [繁體中文](#繁體中文) · [English](#english) · [设计文档](DESIGN.md)
+[简体中文](#简体中文) · [繁體中文](#繁體中文) · [English](#english) · [设计文档](DESIGN.md) · [运营手册](OPERATIONS.md)
 
 </div>
 
@@ -157,7 +157,7 @@ npm run serve
 
 ```text
 Overlogic/
-├─ data/                  # 动作、条件、敌人、战斗与奖励内容
+├─ data/                  # 动作、条件、敌人、战斗、奖励与运营清单
 ├─ src/
 │  ├─ core/              # 游戏状态、存档、地图与战斗生命周期
 │  ├─ logic/             # 条件评估、规则选择与动作执行
@@ -169,6 +169,7 @@ Overlogic/
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
 │  └─ i18n/              # 简中、繁中与英文文本
 ├─ scripts/              # 本地服务、构建、验证与平衡模拟
+├─ OPERATIONS.md         # 运营清单、功能开关与后端接入边界
 ├─ index.html            # 应用结构
 ├─ style.css             # 响应式视觉系统
 ├─ manifest.webmanifest  # 可安装 Web App 元数据
@@ -177,7 +178,7 @@ Overlogic/
 └─ DESIGN.md             # 完整设计与维护约束
 ```
 
-玩法内容优先放在 `data/*.json` 中；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。
+玩法内容优先放在 `data/*.json` 中；运营开关和容量边界统一维护在 `data/operations.json` 与 `src/systems/OperationsConfig.js`；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。
 
 ## 质量与发布 / Quality and deployment
 
@@ -190,7 +191,8 @@ Overlogic/
 5. 版本化构建。
 6. 发布产物审计（版本占位符、必需文件、JSON 数据与根目录清洁度）。
 7. 产品质量审计（显式按钮类型、ARIA 对话框/Tab/进度条、PWA 元数据、离线与运行时安全钩子）。
-8. GitHub Pages 部署。
+8. 运营清单 schema 与安全默认值检查。
+9. GitHub Pages 部署。
 
 部署只上传生成的 `dist/` 内容；构建脚本会为模块、数据与 Service Worker 注册地址注入提交版本，自动把全部运行时模块和数据表写入预缓存，并给缓存写入加配额失败保护。带版本的运行时资源在线时优先取得最新发布，离线时忽略查询参数命中完整预缓存，既避免新 HTML 与旧模块混载，也保证首次成功安装后断网仍能恢复完整运行时，而不只是应用壳层。
 

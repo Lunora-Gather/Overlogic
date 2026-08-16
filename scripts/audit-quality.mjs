@@ -19,8 +19,10 @@ const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
 const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf8');
 const reportUi = await fs.readFile(path.join(root, 'src/ui/PostBattleReportUI.js'), 'utf8');
 const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
+const operationsConfig = await fs.readFile(path.join(root, 'src/systems/OperationsConfig.js'), 'utf8');
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
+const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
@@ -79,6 +81,10 @@ check(/refreshAppNoticeCopy/.test(main) && /overlogic:localechange/.test(main), 
 check(/high-contrast/.test(main) && /high-contrast/.test(css), 'accessibility contrast preference must reach the visual system');
 check(/\.overlay\s*\{[\s\S]*?z-index:\s*13000/.test(css) && /\.app-notice\s*\{[\s\S]*?z-index:\s*12000/.test(css),
   'modal overlays must remain clickable above transient app notices');
+check(operationsTable.schemaVersion === 1 && operationsTable.features && operationsTable.limits,
+  'operations manifest must declare a versioned feature and limit contract');
+check(/normalizeOperationsConfig/.test(operationsConfig) && /loadOperationsConfig/.test(main) && /operationsSnapshot/.test(gameState),
+  'operations manifest must be normalized at boot and included in support diagnostics');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
 check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
 

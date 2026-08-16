@@ -11,6 +11,7 @@ import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
+import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -48,6 +49,30 @@ export class MainMenu {
     trapDialogFocus(this.confirmOverlay);
     this._bind();
     this.render();
+  }
+
+  _applyOperationsGates(activeRun = GameState.hasRunProgress() && !GameState.isDemoCleared()) {
+    if (!this.runMode) return;
+    this.runChallenges?.classList.toggle('hidden', !featureEnabled('dailyChallenges'));
+    const modeOptions = [
+      ['daily', 'dailyChallenges'],
+      ['weekly', 'weeklyGauntlet'],
+    ];
+    for (const [mode, feature] of modeOptions) {
+      const option = this.runMode.querySelector(`option[value="${mode}"]`);
+      if (!option) continue;
+      const enabled = featureEnabled(feature);
+      // Never strand an in-progress run when a live flag is changed. Existing
+      // runs remain resumable; only new runs lose the unavailable option.
+      option.hidden = !enabled && !(activeRun && this.runMode.value === mode);
+      option.disabled = !enabled && !(activeRun && this.runMode.value === mode);
+    }
+    if (!activeRun && !featureEnabled('dailyChallenges') && this.runMode.value === 'daily') {
+      this.runMode.value = 'standard';
+    }
+    if (!activeRun && !featureEnabled('weeklyGauntlet') && this.runMode.value === 'weekly') {
+      this.runMode.value = 'standard';
+    }
   }
 
   _bind() {
@@ -161,6 +186,7 @@ export class MainMenu {
   render() {
     const activeRun = GameState.hasRunProgress() && !GameState.isDemoCleared();
     if (this.runMode) this.runMode.value = activeRun ? GameState.runConfig.mode : GameState.settings.runMode;
+    this._applyOperationsGates(activeRun);
     if (this.runDifficulty) this.runDifficulty.value = activeRun ? GameState.runConfig.difficulty : GameState.settings.difficulty;
     for (const button of document.querySelectorAll('#locale-switcher [data-locale]')) {
       button.classList.toggle('active', button.dataset.locale === getLocale());

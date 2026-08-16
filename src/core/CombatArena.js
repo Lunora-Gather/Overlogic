@@ -24,6 +24,7 @@ import { recordBattle } from '../systems/RunHistory.js?v=20260725-4';
 import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { recordFrame } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
+import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 
 const WAVE_CLEAR_DELAY = 1.15;
 const ENEMY_CLASSES = {
@@ -288,6 +289,10 @@ export class CombatArena {
   _spawnWave(spawns) {
     const modifiers = runModifiers(GameState.runConfig || {});
     for (const s of spawns) {
+      if (s.enemyId === 'shield_drone' && !featureEnabled('shieldRelay')) {
+        this.hud.logConsole(t('ops.featureUnavailable'), 'warn');
+        continue;
+      }
       const data = GameDatabase.getEnemy(s.enemyId);
       if (!data) continue;
       for (let i = 0; i < s.count; i++) {
