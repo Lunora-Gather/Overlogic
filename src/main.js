@@ -208,6 +208,7 @@ async function main() {
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
   setLocale(GameState.settings.language, { notify: false });
+  document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
 
   // Initialize and run the cyber background animation
   const bgCanvas = document.getElementById('bg-canvas');
@@ -276,6 +277,7 @@ async function main() {
       support: [
         { enemyId: 'crawler', count: 3, wave: 1 },
         { enemyId: 'repair_drone', count: 1, wave: 1 },
+        { enemyId: 'shield_drone', count: 1, wave: 1 },
         { enemyId: 'charger', count: 1, wave: 2 },
       ],
     };
@@ -346,6 +348,7 @@ async function main() {
   const settingMute = document.getElementById('setting-mute');
   const settingShake = document.getElementById('setting-shake');
   const settingReduceMotion = document.getElementById('setting-reduce-motion');
+  const settingHighContrast = document.getElementById('setting-high-contrast');
   const settingLanguage = document.getElementById('setting-language');
   const btnDataExport = document.getElementById('btn-data-export');
   const btnDataImport = document.getElementById('btn-data-import');
@@ -365,6 +368,7 @@ async function main() {
     settingMute.checked = GameState.settings.mute;
     settingShake.checked = GameState.settings.screenShake;
     settingReduceMotion.checked = GameState.settings.reduceMotion;
+    if (settingHighContrast) settingHighContrast.checked = GameState.settings.highContrast;
     settingLanguage.value = GameState.settings.language;
     if (btnDataRestore) btnDataRestore.disabled = !GameState.hasBackup();
 
@@ -429,11 +433,13 @@ async function main() {
       GameState.settings.mute = settingMute.checked;
       GameState.settings.screenShake = settingShake.checked;
       GameState.settings.reduceMotion = settingReduceMotion.checked;
+      GameState.settings.highContrast = settingHighContrast?.checked === true;
       GameState.settings.language = settingLanguage.value;
       GameState.saveSettings();
       settingsOriginalVolume = null;
       setLocale(GameState.settings.language);
       document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
+      document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
       if (bgAnim) bgAnim.setReducedMotion(GameState.settings.reduceMotion);
       
       closeSettings();

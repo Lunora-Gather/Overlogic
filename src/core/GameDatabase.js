@@ -110,7 +110,7 @@ class GameDatabaseClass {
 }
 
 const CONDITION_TYPES = new Set(['none', 'float', 'int', 'percent', 'actionId', 'vec2']);
-const ENEMY_BEHAVIORS = new Set(['melee_chase', 'ranged_keep_distance', 'charge_caster', 'emp_drone', 'repair_support', 'boss_warden']);
+const ENEMY_BEHAVIORS = new Set(['melee_chase', 'ranged_keep_distance', 'charge_caster', 'emp_drone', 'repair_support', 'shield_support', 'boss_warden']);
 const REWARD_TYPES = new Set(['passive', 'new_action', 'new_condition']);
 const PASSIVE_TARGETS = new Set([
   'max_hp', 'max_energy', 'energy_regen', 'basic_dmg', 'move_speed', 'dash_cd', 'shield_cd',
@@ -188,6 +188,12 @@ function validateDataTables({ conditions, actions, enemies, battles, rewards }) 
       for (const field of ['repairRange', 'repairAmount', 'repairTelegraph', 'retreatDistance']) {
         if (!finite(enemy[field]) || enemy[field] <= 0) errors.push(`enemy ${enemy.id}: invalid ${field}`);
       }
+    }
+    if (enemy.behaviorType === 'shield_support') {
+      for (const field of ['shieldRange', 'shieldReduction', 'shieldDuration', 'shieldTelegraph', 'retreatDistance']) {
+        if (!finite(enemy[field]) || enemy[field] <= 0) errors.push(`enemy ${enemy.id}: invalid ${field}`);
+      }
+      if (enemy.shieldReduction >= 1) errors.push(`enemy ${enemy.id}: shieldReduction must stay below 1`);
     }
   }
 

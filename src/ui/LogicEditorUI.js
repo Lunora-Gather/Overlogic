@@ -10,6 +10,7 @@ import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, localizedSearchText, t } from '../i18n/I18n.js?v=20260725-4';
 import { synergyState } from '../systems/ProtocolSynergies.js?v=20260725-4';
 import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
+import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -47,6 +48,8 @@ export class LogicEditorUI {
     this.mobileTabs = [...document.querySelectorAll('[data-editor-panel]')];
     this.btnImportRules = document.getElementById('btn-import-rules');
     this.btnExportRules = document.getElementById('btn-export-rules');
+    this.ruleTemplate = document.getElementById('rule-template');
+    this.btnApplyTemplate = document.getElementById('btn-apply-template');
     this.el.dataset.mobilePanel = 'rules';
     const activateMobileTab = (button, moveFocus = false) => {
       this.el.dataset.mobilePanel = button.dataset.editorPanel;
@@ -104,6 +107,7 @@ export class LogicEditorUI {
         this._flashButton(this.btnImportRules, ok ? t('editor.imported') : t('editor.invalidCode'));
       });
     });
+    this._renderTemplateOptions();
   }
 
   show() {
@@ -120,7 +124,26 @@ export class LogicEditorUI {
     window.setTimeout(() => { button.textContent = original; }, 1400);
   }
 
+  _renderTemplateOptions() {
+    if (!this.ruleTemplate) return;
+    const selected = this.ruleTemplate.value;
+    this.ruleTemplate.replaceChildren();
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = t('editor.templatePlaceholder');
+    this.ruleTemplate.appendChild(placeholder);
+    for (const template of RULE_TEMPLATES) {
+      const option = document.createElement('option');
+      option.value = template.id;
+      option.textContent = t(template.nameKey);
+      option.title = t(template.descriptionKey);
+      this.ruleTemplate.appendChild(option);
+    }
+    if (RULE_TEMPLATES.some((template) => template.id === selected)) this.ruleTemplate.value = selected;
+  }
+
   renderAll() {
+    this._renderTemplateOptions();
     this.renderHeader();
     this.renderBriefing();
     this.renderModules();
@@ -214,6 +237,7 @@ export class LogicEditorUI {
     if (['battle_8', 'battle_9', 'battle_10'].includes(battle.id)) tags.push(t('preview.hazards', { count: 4 }));
     if ((battle.enemySpawns || []).some(s => s.enemyId.includes('warden'))) tags.push(t('preview.boss'));
     if ((battle.enemySpawns || []).some(s => s.enemyId === 'repair_drone')) tags.push(t('preview.support'));
+    if ((battle.enemySpawns || []).some(s => s.enemyId === 'shield_drone')) tags.push(t('preview.shield'));
     return [...enemies, ...tags].join(' · ');
   }
 
@@ -244,6 +268,13 @@ export class LogicEditorUI {
         conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
         priority: 92, targetPriority: 'caster',
         label: t('advice.support.label'), reason: t('advice.support.reason'),
+      });
+    }
+    if (enemyIds.has('shield_drone')) {
+      options.push({
+        conditionId: 'enemy_casting', conditionValue: null, actionId: 'interrupt_shot',
+        priority: 93, targetPriority: 'caster',
+        label: t('advice.shield.label'), reason: t('advice.shield.reason'),
       });
     }
     if (enemyIds.has('shooter') || enemyIds.has('emp_drone')) {
@@ -1243,6 +1274,18 @@ export class LogicEditorUI {
         GameManager.goSandbox();
       });
     }
+
+    this.btnApplyTemplate?.addEventListener('click', () => {
+      const templateId = this.ruleTemplate?.value;
+      if (!templateId) return;
+      const result = GameState.applyRuleTemplate(templateId);
+      AudioManager.play(result.added > 0 ? 'rule_add' : 'button_click');
+      this._flashButton(
+        this.btnApplyTemplate,
+        result.added > 0 ? t('editor.templateApplied', { added: result.added }) : t('editor.templateNoNewRules'),
+      );
+      if (this.ruleTemplate) this.ruleTemplate.value = '';
+    });
 
     // Bind Slots Load/Save
     for (let slot = 1; slot <= 3; slot++) {

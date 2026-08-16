@@ -436,7 +436,10 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 100;
+  /* Modal surfaces must sit above transient app notices.  A notice can be
+     present during boot/update checks; leaving it above the modal makes the
+     bottom action row look enabled while intercepting pointer input. */
+  z-index: 13000;
   opacity: 1;
   transition: all 0.3s;
 }
@@ -3144,6 +3147,62 @@ select:focus-visible,
   animation-duration: 0.001ms !important;
   animation-iteration-count: 1 !important;
   transition-duration: 0.001ms !important;
+}
+
+/* User-selectable accessibility contrast preset. Keep the cyberpunk palette,
+   but remove translucency ambiguity and lift secondary copy to readable
+   contrast for low-vision and bright-room play. */
+html.high-contrast {
+  --bg: #000208;
+  --bg-gradient: linear-gradient(135deg, #000208 0%, #071321 100%);
+  --panel: rgba(7, 16, 29, 0.98);
+  --panel-solid: #07101d;
+  --line: rgba(154, 226, 255, 0.52);
+  --line-active: rgba(154, 226, 255, 0.9);
+  --txt: #ffffff;
+  --muted: #c6e4f7;
+  --accent: #62e4ff;
+  --accent2: #7dffbd;
+  --warn: #ff7777;
+  --warn2: #ffd07d;
+}
+
+html.high-contrast body {
+  background: #000208;
+}
+
+html.high-contrast .panel,
+html.high-contrast .run-config-panel,
+html.high-contrast .run-profile,
+html.high-contrast .run-challenges,
+html.high-contrast .run-history,
+html.high-contrast .mission-briefing,
+html.high-contrast .synergy-panel,
+html.high-contrast .app-notice {
+  background: var(--panel-solid);
+  border-color: var(--line);
+}
+
+html.high-contrast .muted,
+html.high-contrast .mod-desc,
+html.high-contrast .settings-help,
+html.high-contrast .history-meta {
+  color: var(--muted);
+}
+
+.template-tools .template-select {
+  flex: 1 1 180px;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .template-tools {
+    flex-wrap: wrap;
+  }
+
+  .template-tools .template-select {
+    flex: 1 1 150px;
+  }
 }
 
 /* ===== Responsive polish pass ===== */

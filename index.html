@@ -175,6 +175,17 @@
         <!-- Slots Bar -->
         <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
           <span data-i18n="editor.loadouts" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
+          <div class="template-tools" style="display: flex; align-items: center; gap: 6px; flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 8px;">
+            <label for="rule-template" data-i18n="editor.templates" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Templates</label>
+            <select id="rule-template" class="template-select" aria-label="Rule template" data-i18n-aria-label="editor.templateSelect">
+              <option value="" data-i18n="editor.templatePlaceholder">Choose a template…</option>
+              <option value="defensive_core" data-i18n="template.defensive.name">Defensive Core</option>
+              <option value="ranged_control" data-i18n="template.ranged.name">Ranged Control</option>
+              <option value="interrupt_protocol" data-i18n="template.interrupt.name">Interrupt Protocol</option>
+              <option value="overdrive_burst" data-i18n="template.burst.name">Overdrive Burst</option>
+            </select>
+            <button type="button" id="btn-apply-template" class="btn small" data-i18n="editor.applyTemplate">Add Template</button>
+          </div>
           <div class="slot-item" style="display: flex; align-items: center; gap: 6px;">
             <span id="slot-led-1" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
             <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot1">Slot 1</span>
@@ -361,6 +372,10 @@
         <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
           <label for="setting-reduce-motion" data-i18n="settings.motion" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Reduce Motion</label>
           <input type="checkbox" id="setting-reduce-motion" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
+        </div>
+        <div class="settings-group" style="display: flex; justify-content: space-between; align-items: center;">
+          <label for="setting-high-contrast" data-i18n="settings.contrast" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">High Contrast</label>
+          <input type="checkbox" id="setting-high-contrast" style="-webkit-appearance: none; appearance: none; width: 16px; height: 16px; border: 1px solid var(--line); background: #020408; border-radius: 3px; cursor: pointer; position: relative;">
         </div>
         <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
           <label for="setting-language" data-i18n="settings.language" style="font-size:12px;text-transform:uppercase;color:var(--accent);letter-spacing:1px;">Interface Language</label>

@@ -8,6 +8,7 @@ import { profileSnapshot, replaceProfile, resetProfile } from '../systems/Profil
 import { challengeSnapshot, clearChallenges, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
 import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
 import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
+import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
 
 const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -116,6 +117,7 @@ class GameStateClass {
       mute: false,
       screenShake: true,
       reduceMotion: window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false,
+      highContrast: false,
       language: 'en',
       runMode: 'standard',
       difficulty: 'standard',
@@ -144,6 +146,7 @@ class GameStateClass {
         this.settings.reduceMotion = typeof parsed.reduceMotion === 'boolean'
           ? parsed.reduceMotion
           : (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches ?? false);
+        this.settings.highContrast = parsed.highContrast === true;
         this.settings.language = LANGUAGES.has(parsed.language) ? parsed.language : 'en';
         this.settings.runMode = RUN_MODES.has(parsed.runMode) ? parsed.runMode : 'standard';
         this.settings.difficulty = DIFFICULTIES.has(parsed.difficulty) ? parsed.difficulty : 'standard';
@@ -164,6 +167,7 @@ class GameStateClass {
       this.settings.mute = this.settings.mute === true;
       this.settings.screenShake = this.settings.screenShake !== false;
       this.settings.reduceMotion = this.settings.reduceMotion === true;
+      this.settings.highContrast = this.settings.highContrast === true;
       if (!LANGUAGES.has(this.settings.language)) this.settings.language = 'en';
       if (!RUN_MODES.has(this.settings.runMode)) this.settings.runMode = 'standard';
       if (!DIFFICULTIES.has(this.settings.difficulty)) this.settings.difficulty = 'standard';
@@ -587,6 +591,44 @@ class GameStateClass {
     this.saveToStorage();
     this._emit('rules');
     return true;
+  }
+  applyRuleTemplate(templateId) {
+    const template = ruleTemplateById(templateId);
+    if (!template) return { added: 0, skipped: 0, locked: 0 };
+    const availableConditions = new Set(this.availableConditionIds());
+    const availableActions = new Set(this.availableActionIds());
+    const candidates = template.rules.filter((rule) => {
+      const valid = availableConditions.has(rule.conditionId) && availableActions.has(rule.actionId);
+      if (!valid) return false;
+      return !this.rules.some((existing) => existing.conditionId === rule.conditionId &&
+        existing.actionId === rule.actionId &&
+        existing.operator === (rule.operator || null) &&
+        existing.targetPriority === (rule.targetPriority || 'nearest') &&
+        JSON.stringify(existing.conditionValue) === JSON.stringify(rule.conditionValue));
+    });
+    const locked = template.rules.length - template.rules.filter((rule) =>
+      availableConditions.has(rule.conditionId) && availableActions.has(rule.actionId)).length;
+    const capacity = Math.max(0, MAX_RULES - this.rules.length);
+    const additions = candidates.slice(0, capacity);
+    if (additions.length === 0) {
+      return { added: 0, skipped: candidates.length, locked };
+    }
+    this._pushState();
+    this.rules.push(...additions.map((rule) => this._newRule(
+      rule.conditionId,
+      rule.conditionValue,
+      rule.actionId,
+      rule.priority,
+      rule.conditionId2 || null,
+      rule.conditionValue2 ?? null,
+      rule.operator || null,
+      rule.targetPriority || 'nearest',
+      rule.negateCondition1 === true,
+      rule.negateCondition2 === true,
+    )));
+    this.saveToStorage();
+    this._emit('rules');
+    return { added: additions.length, skipped: candidates.length - additions.length, locked };
   }
   setRuleTargetPriority(ruleId, priority) {
     const r = this.rules.find(r => r.id === ruleId);

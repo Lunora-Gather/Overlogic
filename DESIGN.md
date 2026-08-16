@@ -330,6 +330,22 @@ function TickLogicBrain(robot, ctx, rules):
 
 **设计目的**：让 `enemy_casting → interrupt_shot (目标：施法单位)` 在中后期持续有价值，同时通过失败报告的敌方维修遥测解释“为什么敌人比预期更耐打”。维修无人机不会维修同类单位，避免支援链无限增长。
 
+### 8.5 Shield Relay（护盾中继）
+
+| 参数 | 值 |
+|---|---:|
+| Max HP | 16 |
+| Move Speed | 2.1 m/s |
+| Shield Range | 5.5 m |
+| Damage Reduction | 45% |
+| Shield Duration | 4.5 s |
+| Shield Telegraph | 1.2 s |
+| Cooldown | 7.0 s |
+
+**行为**：寻找非支援敌人，在护盾距离内进入 `Casting`，通过蓝色连接线、目标护盾环和扩散环显示施法对象；蓄力完成后让目标在短时间内受到的伤害降低 45%。机器人靠近时无人机会后撤。`interrupt_shot` 命中 `Casting` 状态会取消本次护盾并进入短暂冷却；目标死亡或护盾结束后中继自动清理绑定关系。
+
+**设计目的**：把“打断支援”从单纯的维修优先级扩展为输出窗口管理：玩家可以选择先击杀中继、先打断蓄力，或接受短暂减伤换取更安全的站位。失败报告记录护盾施放次数、阻止的伤害和关键时间轴事件。
+
 ### 8.5 Boss：Protocol Warden（协议看守者）
 
 | 属性 | 值 |
@@ -377,9 +393,9 @@ function TickLogicBrain(robot, ctx, rules):
 | 3 | Charge Warning | 2 × Charger + 2 × Crawler | 打断 | 胜利后奖励 3 选 1 |
 | 4 | Swarm | 8 × Crawler + 1 × Shooter | 包围逃脱 | 胜利后奖励 3 选 1 |
 | 5 | Shadow Grid | 5 × Shooter + 2 × EMP Drone + 1 × Repair Drone | 弹幕、EMP 与支援打断 | 胜利后奖励 3 选 1 |
-| 6 | Iron Tide | 5 × Charger + 3 × Crawler | 多波冲锋 | 胜利后奖励 3 选 1 |
+| 6 | Iron Tide | 5 × Charger + 3 × Crawler + 1 × Shield Relay | 多波冲锋与护盾打断 | 胜利后奖励 3 选 1 |
 | 7 | Mixed Protocol | 3 × Crawler + 2 × Shooter + 2 × Charger | 综合 | 胜利后奖励 3 选 1 |
-| 8 | Crucible | 6 × Crawler + 3 × EMP Drone + 2 × Charger + 3 × Shooter + 1 × Repair Drone | 全敌人混合与维修优先级 | 胜利后奖励 3 选 1 |
+| 8 | Crucible | 6 × Crawler + 3 × EMP Drone + 2 × Charger + 3 × Shooter + 1 × Repair Drone + 1 × Shield Relay | 全敌人混合、维修与护盾优先级 | 胜利后奖励 3 选 1 |
 | 9 | Protocol Warden | Boss | 终局标准路线 | 通关 |
 | 10 | Apex Protocol Warden | Apex Boss + 2 × EMP Drone | 终局挑战路线 | 通关 |
 
@@ -717,7 +733,7 @@ Your Logic Survived
 }
 ```
 
-`behaviorType` ∈ `{melee_chase, ranged_keep_distance, charge_caster, emp_drone, repair_support, boss_warden}`。
+`behaviorType` ∈ `{melee_chase, ranged_keep_distance, charge_caster, emp_drone, repair_support, shield_support, boss_warden}`。
 
 ### 17.5 BattleData
 
@@ -764,12 +780,12 @@ Your Logic Survived
 | `RobotController` | 玩家机器人：移动、攻击、受伤、能量、冷却、状态机 |
 | `RobotStats` | 机器人属性（含被动强化累积） |
 | `EnemyBase` | 敌人基类：状态机、HP、移动、受伤 |
-| `CrawlerEnemy` / `ShooterEnemy` / `ChargerEnemy` / `EmpDroneEnemy` / `RepairDroneEnemy` | 五种普通敌人行为 |
+| `CrawlerEnemy` / `ShooterEnemy` / `ChargerEnemy` / `EmpDroneEnemy` / `RepairDroneEnemy` / `ShieldRelayEnemy` | 六种普通敌人行为 |
 | `BossProtocolWarden` | Protocol Warden 四阶段与阶段技能 |
 | `Projectile` | 子弹：移动、命中、销毁 |
 | `CombatArena` | 生成敌人、竞技场边界、波次、碰撞与战斗循环 |
 | `RewardManager` | 奖励生成、解锁分段、应用 |
-| `CombatStatsTracker` | 战斗统计记录（供复盘，含敌方维修量与时间轴） |
+| `CombatStatsTracker` | 战斗统计记录（供复盘，含敌方维修、护盾遥测与时间轴） |
 | `PostBattleReportBuilder` | 复盘报告生成（确定性） |
 | `LogicEditorUI` | 逻辑编辑界面 |
 | `BattleHUD` | 战斗界面 |
@@ -954,7 +970,7 @@ Overlogic/
 3. **凤凰网络：**紧急召回 + 纳米修复。召回恢复 45 生命，低血量纳米修复翻倍。
 4. **热能电网：**超导体 + 热能回收。熔毁期间回收热量时额外恢复 4 点能量。
 
-失败报告保存有上限且经过合并的关键事件时间轴，包含波次、打断、紧急召回和 `enemy_repair` 维修事件。时间轴仅用于诊断，不得影响确定性战斗模拟。
+失败报告保存有上限且经过合并的关键事件时间轴，包含波次、打断、紧急召回、`enemy_repair` 维修事件和 `enemy_shield` 护盾事件；同时记录敌方护盾阻止的伤害。时间轴仅用于诊断，不得影响确定性战斗模拟。
 
 ## 28. 每日目标与运营边界
 
@@ -1025,7 +1041,7 @@ Overlogic/
 - 所有对话框必须有标题引用，遮罩必须暴露 `aria-hidden` 状态。
 - 进度条必须有完整的数值 ARIA 属性，Canvas 图表必须有可访问名称。
 - 编辑器移动端面板必须使用 `tablist` / `tab` / `tabpanel` 语义，并支持方向键切换。
-- PWA manifest、安装元数据、减少动态效果、在线/离线提示与运行时错误捕获不能被删除。
+- PWA manifest、安装元数据、减少动态效果、高对比度预设、在线/离线提示与运行时错误捕获不能被删除。
 - Pages 部署必须依赖验证，并在构建前后执行产品质量审计。
 
 这项审计不替代真实浏览器、屏幕阅读器和设备测试；它的作用是让这些基础契约在每次提交时先被自动阻断。

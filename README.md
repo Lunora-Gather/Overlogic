@@ -35,7 +35,7 @@ Program the brain. Observe the battle. Debug the logic.
 
 - **真正影响战斗的逻辑编程**：组合 `AND`、`OR`、`NOT`、优先级与目标选择。
 - **可解释的自动战斗**：实时高亮执行规则，并显示冷却、能量不足、条件不成立等诊断状态。
-- **会反制构筑的敌人**：维修无人机会公开蓄力、恢复受损单位；失败报告会显示敌方维修量，帮助你判断该优先输出还是打断支援。
+- **会反制构筑的敌人**：维修无人机会公开蓄力、恢复受损单位；护盾中继会公开蓄力并为目标提供短时减伤；失败报告会显示敌方维修与护盾遥测，帮助你判断该优先输出还是打断支援。
 - **以失败推动学习**：伤害分析、动作频率、规则使用率、关键事件时间轴和自动修复建议共同解释失败原因。
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子、每周挑战与多种难度。
@@ -111,7 +111,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Compose combat logic with `AND`, `OR`, `NOT`, priorities, and target selection.
 - See the active rule and every blocked state in real time.
 - Debug defeats through damage analysis, rule usage, action frequency, a critical-event timeline, and contextual fixes.
-- Read and interrupt Repair Drones before they restore enemy hull; failed-run reports expose their repair telemetry.
+- Read and interrupt Repair Drones and Shield Relays before they restore or protect enemy hull; failed-run reports expose both support telemetry.
 - Build around actions, conditions, passive upgrades, and four mechanic-changing protocol synergies.
 - Explore branching routes, persistent hull damage, hazards, daily seeds, weekly gauntlets, multiple difficulties, and two boss paths.
 - Test logic safely in mixed, projectile, swarm, support, and boss sandbox scenarios.
@@ -198,7 +198,7 @@ Overlogic/
 
 当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、沙盒测试、三语界面、离线缓存与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、沙盒测试、三语界面、离线缓存、护盾中继支援敌人与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

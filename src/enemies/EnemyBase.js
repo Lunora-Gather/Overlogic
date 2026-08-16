@@ -21,6 +21,9 @@ export class EnemyBase {
     this.stunTimer = 0;
     this.armor = 0;
     this.flashTimer = 0;
+    this.damageShieldTimer = 0;
+    this.damageShieldMultiplier = 1;
+    this.damageShieldSource = null;
   }
 
   init(data, ctx) {
@@ -36,6 +39,9 @@ export class EnemyBase {
     this.color = data.color || [1, 0.3, 0.3];
     this.armor = data.armor ?? 0;
     this.flashTimer = 0;
+    this.damageShieldTimer = 0;
+    this.damageShieldMultiplier = 1;
+    this.damageShieldSource = null;
   }
 
   isDead() { return this.dead; }
@@ -52,6 +58,11 @@ export class EnemyBase {
       }
       const effectiveArmor = Math.max(0, this.armor - ap);
       finalDmg = Math.max(1, amount - effectiveArmor);
+    }
+    if (this.damageShieldTimer > 0 && this.damageShieldMultiplier < 1) {
+      const beforeShield = finalDmg;
+      finalDmg = Math.max(1, finalDmg * this.damageShieldMultiplier);
+      this.ctx?.tracker?.recordEnemyShieldMitigation(this.enemyId, beforeShield - finalDmg);
     }
     this.hp -= finalDmg;
     this.flashTimer = 0.1; // 100ms visual flash on taking damage
@@ -109,6 +120,14 @@ export class EnemyBase {
     if (this.dead || !this.ctx || !this.ctx.robot || this.ctx.robot.dead) return;
     
     if (this.flashTimer > 0) this.flashTimer -= dt;
+
+    if (this.damageShieldTimer > 0) {
+      this.damageShieldTimer = Math.max(0, this.damageShieldTimer - dt);
+      if (this.damageShieldTimer === 0) {
+        this.damageShieldMultiplier = 1;
+        this.damageShieldSource = null;
+      }
+    }
     
     if (this.stunTimer > 0) {
       this.stunTimer -= dt;

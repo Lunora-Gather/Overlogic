@@ -23,6 +23,7 @@ const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
 const { RepairDroneEnemy } = await import('../src/enemies/RepairDroneEnemy.js?v=20260725-4');
+const { ShieldRelayEnemy } = await import('../src/enemies/ShieldRelayEnemy.js?v=20260725-4');
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers, dailyProtocol, weeklyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
@@ -89,6 +90,9 @@ function verifyDataContracts() {
   assert(GameDatabase.getEnemy('repair_drone'), 'content tables must include the repair support enemy');
   assert(GameDatabase.getBattle(4).enemySpawns.some((spawn) => spawn.enemyId === 'repair_drone'),
     'a mid-game battle must exercise the repair support enemy');
+  assert(GameDatabase.getEnemy('shield_drone'), 'content tables must include the shield relay enemy');
+  assert(GameDatabase.getBattle(5).enemySpawns.some((spawn) => spawn.enemyId === 'shield_drone'),
+    'a mid-game battle must exercise the shield relay enemy');
 }
 
 function verifyRepairDroneContracts() {
@@ -120,6 +124,51 @@ function verifyRepairDroneContracts() {
   interruptedDrone.interrupt();
   assert.equal(interruptedDrone.isCasting(), false, 'repair drone casting must be interruptible');
   assert.equal(interruptedTarget.hp, 4, 'interrupted repair must not restore hull');
+}
+
+function verifyShieldRelayContracts() {
+  const ctx = new BattleContext();
+  ctx.hud = { logConsole() {} };
+  ctx.robot = { x: -8, y: 0, bodyRadius: 0.4, dead: false };
+  const target = new CrawlerEnemy();
+  target.init(GameDatabase.getEnemy('crawler'), ctx);
+  target.x = 0; target.y = 0;
+  const relay = new ShieldRelayEnemy();
+  relay.init(GameDatabase.getEnemy('shield_drone'), ctx);
+  relay.x = 2; relay.y = 0;
+  ctx.enemies = [relay, target];
+  relay.tick(0.1);
+  assert.equal(relay.isCasting(), true, 'shield relay must expose a casting window');
+  for (let i = 0; i < 20 && relay.isCasting(); i += 1) relay.tick(0.1);
+  assert.equal(relay.isShielding(), true, 'shield relay must apply a temporary target barrier');
+  const before = target.hp;
+  target.takeDamage(10, 'test');
+  assert(target.hp - before > -10 && target.hp - before <= -5, 'shield relay must reduce incoming enemy damage');
+  assert((ctx.tracker.toReport().enemy_shield_mitigation?.crawler || 0) > 0,
+    'shield relay mitigation must be exposed in combat telemetry');
+
+  const interruptedTarget = new CrawlerEnemy();
+  interruptedTarget.init(GameDatabase.getEnemy('crawler'), ctx);
+  interruptedTarget.x = 0; interruptedTarget.y = 0;
+  const interruptedRelay = new ShieldRelayEnemy();
+  interruptedRelay.init(GameDatabase.getEnemy('shield_drone'), ctx);
+  interruptedRelay.x = 2; interruptedRelay.y = 0;
+  ctx.enemies = [interruptedRelay, interruptedTarget];
+  interruptedRelay.tick(0.1);
+  interruptedRelay.interrupt();
+  assert.equal(interruptedRelay.isCasting(), false, 'shield relay casting must be interruptible');
+  assert.equal(interruptedTarget.damageShieldTimer, 0, 'interrupted shielding must not protect the target');
+}
+
+function verifyRuleTemplateContracts() {
+  GameState.resetRun();
+  GameState.rules = [];
+  const first = GameState.applyRuleTemplate('defensive_core');
+  assert.equal(first.added, 3, 'defensive template must add its complete starter pattern');
+  const duplicate = GameState.applyRuleTemplate('defensive_core');
+  assert.equal(duplicate.added, 0, 'reapplying a template must not duplicate rules');
+  assert.equal(GameState.applyRuleTemplate('missing_template').added, 0, 'unknown templates must be harmless');
+  GameState.resetRun();
 }
 
 async function verifyGameplayContracts() {
@@ -188,6 +237,7 @@ async function verifyGameplayContracts() {
   assert.equal(GameState.settings.volume, 1, 'settings volume must be clamped');
   assert.equal(GameState.settings.mute, false, 'settings booleans must not trust truthy strings');
   assert.equal(GameState.settings.screenShake, true, 'invalid settings booleans must use safe defaults');
+  assert.equal(GameState.settings.highContrast, false, 'invalid contrast settings must use a safe default');
   assert.equal(GameState.settings.language, 'en');
   assert.equal(GameState.settings.runMode, 'standard');
   assert.equal(GameState.settings.difficulty, 'standard');
@@ -573,6 +623,7 @@ function verifyUiSafetyContracts() {
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
+  assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
   assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
   assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes('name="referrer" content="no-referrer"'), 'release shell must declare browser-enforced security and referrer policies');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
@@ -595,7 +646,9 @@ function verifyUiSafetyContracts() {
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
   assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
   assert(html.includes('id="synergy-list"'), 'editor should expose build synergies');
+  assert(html.includes('id="rule-template"') && html.includes('id="btn-apply-template"'), 'editor should expose safe rule templates');
   assert(html.includes('value="support"') && mainUi.includes("repair_drone"), 'sandbox must expose the support enemy for safe practice');
+  assert(mainUi.includes("shield_drone"), 'sandbox must expose the shield relay enemy for safe practice');
   assert(html.includes('id="rep-timeline"'), 'failure report should expose a critical timeline');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
@@ -604,6 +657,7 @@ function verifyUiSafetyContracts() {
   assert(menuUi.includes('hasPendingBattleResolution') && menuUi.includes('resumePendingBattle'), 'main menu must recover an unresolved victory after refresh');
   assert(gameManager.includes('resumePendingBattle') && gameManager.includes('isPendingFinalBattle'), 'game manager must route pending victories safely');
   assert(editorUi.includes('this.codeModal.openExport') && editorUi.includes('this.codeModal.openImport'), 'build sharing must use the themed code dialog');
+  assert(editorUi.includes('applyRuleTemplate') && editorUi.includes('RULE_TEMPLATES'), 'editor must apply curated templates through GameState');
   assert(!editorUi.includes('prompt('), 'editor must not fall back to native prompt dialogs');
   assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('document.execCommand'), 'code dialog must trap focus and provide a clipboard fallback');
   assert(particleSystem.includes('reduceMotion') && particleSystem.includes('spawnEngineTrail'), 'reduced motion must reach the canvas particle system');
@@ -641,8 +695,12 @@ function verifyUiSafetyContracts() {
     'battle HUD must initialize before protocol and hazard notices are written');
   assert(editorUiSource.includes("enemyIds.has('repair_drone')") && editorUiSource.includes("advice.support.label"),
     'battle briefing must recommend interrupting repair support');
+  assert(editorUiSource.includes("enemyIds.has('shield_drone')") && editorUiSource.includes("advice.shield.label"),
+    'battle briefing must recommend interrupting shield support');
   assert(reportUiSource.includes('enemy_repairs') && reportUiSource.includes("report.timelineRepair"),
     'post-battle report must explain enemy repair telemetry');
+  assert(reportUiSource.includes('enemy_shield_mitigation') && reportUiSource.includes("report.timelineShield"),
+    'post-battle report must explain enemy shield telemetry');
   assert(gameManager.includes('GameState.recordRunCompletion()'), 'completed campaigns must enter the run archive');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
@@ -915,6 +973,8 @@ verifySyntax();
 await verifyImportGraph();
 verifyDataContracts();
 verifyRepairDroneContracts();
+verifyShieldRelayContracts();
+verifyRuleTemplateContracts();
 await verifyGameplayContracts();
 verifyReportContracts();
 verifySaveMigration();

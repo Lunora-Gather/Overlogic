@@ -16,6 +16,11 @@ const modifiers = await fs.readFile(path.join(root, 'src/systems/RunModifiers.js
 const history = await fs.readFile(path.join(root, 'src/systems/RunHistory.js'), 'utf8');
 const archive = await fs.readFile(path.join(root, 'src/systems/RunArchive.js'), 'utf8');
 const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
+const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf8');
+const reportUi = await fs.readFile(path.join(root, 'src/ui/PostBattleReportUI.js'), 'utf8');
+const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
+const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
+const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
@@ -71,6 +76,9 @@ check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must 
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
 check(/addEventListener\(['"]online['"]/.test(main) && /addEventListener\(['"]offline['"]/.test(main), 'offline/online transitions must be surfaced');
 check(/refreshAppNoticeCopy/.test(main) && /overlogic:localechange/.test(main), 'dynamic runtime notices must refresh when the locale changes');
+check(/high-contrast/.test(main) && /high-contrast/.test(css), 'accessibility contrast preference must reach the visual system');
+check(/\.overlay\s*\{[\s\S]*?z-index:\s*13000/.test(css) && /\.app-notice\s*\{[\s\S]*?z-index:\s*12000/.test(css),
+  'modal overlays must remain clickable above transient app notices');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
 check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
 
@@ -84,6 +92,11 @@ check(/weeklyIdentity/.test(gameState) && /weeklySeed/.test(gameState) && /OLR1/
 check(/weeklyProtocol/.test(modifiers) && /mode === 'weekly'/.test(modifiers), 'weekly mode must apply an explicit protocol layer');
 check(/weekly/.test(history) && /weekly/.test(archive), 'history and archive must preserve weekly mode');
 check(/weeklyProtocol/.test(i18n) && /mode\.weekly/.test(i18n), 'weekly mode must be localized in every dictionary');
+check(enemyTable.enemies.some((enemy) => enemy.id === 'shield_drone' && enemy.behaviorType === 'shield_support'), 'content must include a shield relay support enemy');
+check(battleTable.battles.some((battle) => battle.enemySpawns?.some((spawn) => spawn.enemyId === 'shield_drone')), 'a campaign battle must exercise the shield relay');
+check(/ShieldRelayEnemy/.test(arena) && /shield_drone/.test(arena), 'combat runtime must instantiate shield relay behavior');
+check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(reportUi), 'post-battle report must explain shield relay telemetry');
+check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');

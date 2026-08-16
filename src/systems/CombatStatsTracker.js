@@ -23,6 +23,8 @@ export class CombatStatsTracker {
     this.lowHpKills = 0;
     this.enemyKills = new Map();
     this.enemyRepairs = new Map();
+    this.enemyShields = new Map();
+    this.enemyShieldMitigation = new Map();
     this.timeline = [];
     this._lastDamageEventAt = -Infinity;
   }
@@ -78,6 +80,18 @@ export class CombatStatsTracker {
     this.enemyRepairs.set(enemyId, (this.enemyRepairs.get(enemyId) || 0) + amount);
     this._pushTimeline({ kind: 'enemy_repair', source: enemyId, value: amount });
   }
+  recordEnemyShield(enemyId, duration) {
+    if (!enemyId || !Number.isFinite(duration) || duration <= 0) return;
+    const current = this.enemyShields.get(enemyId) || { casts: 0, duration: 0 };
+    current.casts += 1;
+    current.duration += duration;
+    this.enemyShields.set(enemyId, current);
+    this._pushTimeline({ kind: 'enemy_shield', source: enemyId, value: duration });
+  }
+  recordEnemyShieldMitigation(enemyId, amount) {
+    if (!enemyId || !Number.isFinite(amount) || amount <= 0) return;
+    this.enemyShieldMitigation.set(enemyId, (this.enemyShieldMitigation.get(enemyId) || 0) + amount);
+  }
   recordWave(wave, total) { this._pushTimeline({ kind: 'wave', wave, total }); }
   recordRecall() { this._pushTimeline({ kind: 'recall' }); }
   _pushTimeline(event) {
@@ -110,6 +124,8 @@ export class CombatStatsTracker {
       low_hp_kills: this.lowHpKills,
       enemy_kills: Object.fromEntries(this.enemyKills),
       enemy_repairs: Object.fromEntries(this.enemyRepairs),
+      enemy_shields: Object.fromEntries(this.enemyShields),
+      enemy_shield_mitigation: Object.fromEntries(this.enemyShieldMitigation),
       timeline: this.timeline,
     };
   }
