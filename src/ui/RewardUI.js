@@ -70,6 +70,7 @@ export class RewardUI {
 
     if (this._currentOptions.length === 0) {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'btn primary big'; btn.textContent = t('common.continue');
       btn.addEventListener('click', () => GameManager.onRewardChosen(''));
       this.optionsEl.appendChild(btn);

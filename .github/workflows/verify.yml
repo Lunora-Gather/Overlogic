@@ -28,6 +28,8 @@ jobs:
         run: npm run verify
       - name: Run balance gate
         run: npm run balance
+      - name: Run product quality gate
+        run: npm run quality-audit
       - name: Build release candidate
         run: npm run build
       - name: Audit release artifact
@@ -51,6 +53,8 @@ jobs:
         run: npm run build
       - name: Audit deployed artifact
         run: npm run release-audit
+      - name: Re-check product quality
+        run: npm run quality-audit
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact

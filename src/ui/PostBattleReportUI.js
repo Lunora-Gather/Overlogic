@@ -126,6 +126,7 @@ export class PostBattleReportUI {
 
       if (sug.rule) {
         const addBtn = document.createElement('button');
+        addBtn.type = 'button';
         addBtn.className = 'btn small primary';
         addBtn.textContent = t('report.autoAdd');
         addBtn.style.padding = '3px 8px';

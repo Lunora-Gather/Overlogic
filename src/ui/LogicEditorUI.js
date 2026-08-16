@@ -48,15 +48,29 @@ export class LogicEditorUI {
     this.btnImportRules = document.getElementById('btn-import-rules');
     this.btnExportRules = document.getElementById('btn-export-rules');
     this.el.dataset.mobilePanel = 'rules';
-    this.mobileTabs.forEach(button => button.addEventListener('click', () => {
+    const activateMobileTab = (button, moveFocus = false) => {
       this.el.dataset.mobilePanel = button.dataset.editorPanel;
       this.mobileTabs.forEach(item => {
         const active = item === button;
         item.classList.toggle('active', active);
-        item.setAttribute('aria-pressed', active ? 'true' : 'false');
+        item.setAttribute('aria-selected', active ? 'true' : 'false');
+        item.tabIndex = active ? 0 : -1;
       });
-    }));
-    this.mobileTabs.forEach(item => item.setAttribute('aria-pressed', item.dataset.editorPanel === 'rules' ? 'true' : 'false'));
+      if (moveFocus) button.focus();
+    };
+    this.mobileTabs.forEach(button => {
+      button.addEventListener('click', () => activateMobileTab(button));
+      button.addEventListener('keydown', event => {
+        if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+        event.preventDefault();
+        const current = this.mobileTabs.indexOf(button);
+        const next = event.key === 'Home' ? 0
+          : event.key === 'End' ? this.mobileTabs.length - 1
+            : (current + (event.key === 'ArrowRight' ? 1 : -1) + this.mobileTabs.length) % this.mobileTabs.length;
+        activateMobileTab(this.mobileTabs[next], true);
+      });
+    });
+    this.mobileTabs.forEach(item => item.setAttribute('aria-selected', item.dataset.editorPanel === 'rules' ? 'true' : 'false'));
 
     if (this.condSearch) {
       this.condSearch.addEventListener('input', () => this.renderModules());

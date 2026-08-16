@@ -53,6 +53,7 @@ function showBootFailure(error) {
   detail.dataset.i18n = 'boot.offlineDetail';
   detail.textContent = t('boot.offlineDetail');
   const retry = document.createElement('button');
+  retry.type = 'button';
   retry.className = 'btn primary small';
   retry.dataset.i18n = 'boot.retry';
   retry.textContent = t('boot.retry');
