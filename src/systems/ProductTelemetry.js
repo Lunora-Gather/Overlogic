@@ -109,6 +109,7 @@ export function productMetricsSnapshot() {
 }
 
 export function clearProductMetrics() {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(METRICS_KEY);
     return true;

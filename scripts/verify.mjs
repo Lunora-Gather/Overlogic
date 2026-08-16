@@ -527,7 +527,7 @@ async function verifyGameplayContracts() {
 
   GameState.resetRun();
   GameState.currentMapColumn = GameState.mapNodes.length - 1;
-  GameState.selectedNodeId = '6_boss';
+  GameState.selectedNodeId = '8_singularity';
   const pendingFinalBattle = GameState.getActiveBattle();
   GameState.lastReport = { _won: true, _battleId: pendingFinalBattle.id, _endHp: 45 };
   assert.equal(GameState.isPendingFinalBattle(), true, 'final boss reports must resume directly to victory');
@@ -550,12 +550,20 @@ async function verifyGameplayContracts() {
 
   GameState.resetRun();
   GameState.currentMapColumn = GameState.mapNodes.length;
-  GameState.selectedNodeId = '6_boss';
+  GameState.selectedNodeId = '8_singularity';
   GameState.saveToStorage();
   GameState.loadFromStorage();
   GameState.normalizeAfterDatabaseLoad();
   assert.equal(GameState.isDemoCleared(), true, 'completed runs must remain completed after reload');
   assert.equal(GameState.selectedNodeId, null, 'completed runs must not point back to a playable node');
+
+  // Saves from the seven-column campaign must not be reopened as unfinished
+  // when the post-boss ascension chapter is added.
+  GameState.mapNodes = GameState.mapNodes.slice(0, 7);
+  GameState.currentMapColumn = 7;
+  GameState.selectedNodeId = null;
+  assert.equal(GameState.normalizeAfterDatabaseLoad(), true, 'legacy campaign maps must migrate to the expanded route');
+  assert.equal(GameState.isDemoCleared(), true, 'legacy completed campaigns must remain completed after map expansion');
 
   GameState.resetRun();
   GameState.currentMapColumn = 3;
@@ -689,6 +697,11 @@ function verifySaveMigration() {
   assert.equal(GameState.saveToStorage(), false, 'stale tabs must refuse to overwrite an external save change');
   assert.equal(GameState.storageStatus.conflict, true, 'external save changes must enter conflict state');
   assert.equal(GameState.saveLoadout(1), false, 'conflicted tabs must stop writing loadouts');
+  assert.equal(clearHistory(), false, 'conflicted tabs must not clear battle history');
+  assert.equal(resetProfile(), false, 'conflicted tabs must not reset operator progression');
+  assert.equal(clearChallenges(), false, 'conflicted tabs must not clear daily challenge progress');
+  assert.equal(clearRunArchive(), false, 'conflicted tabs must not clear completed run records');
+  assert.equal(clearProductMetrics(), false, 'conflicted tabs must not clear local metrics');
   assert.equal(GameState.clearStorage(), false, 'conflicted tabs must not clear another tab\'s progress');
   localStorage.setItem('overlogic_run_save', persistedBeforeConflict);
   assert.equal(GameState.loadFromStorage(), true, 'reloading the authoritative save must release conflict state');

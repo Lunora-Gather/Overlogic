@@ -102,6 +102,10 @@ check(/navigator\.clipboard/.test(clipboardUi) && /execCommand/.test(clipboardUi
   'shareable integrity codes must retain a manual-copy fallback when clipboard permissions are unavailable');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
+check(/#screen-editor\s+#mission-briefing\s*\{[\s\S]*?flex:\s*0\s+0\s+auto/.test(css),
+  'mobile editor briefing must retain intrinsic height instead of overlapping the synergy panel');
+check(/#screen-editor\s+\.editor-mobile-tabs\s*\{[\s\S]*?width:\s*100%[\s\S]*?align-self:\s*stretch/.test(css),
+  'mobile editor tabs must span the content width for touch targets and visual alignment');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
 check(/addEventListener\(['"]online['"]/.test(main) && /addEventListener\(['"]offline['"]/.test(main), 'offline/online transitions must be surfaced');
@@ -134,8 +138,10 @@ check(/weeklyIdentity/.test(gameState) && /weeklySeed/.test(gameState) && /OLR1/
 check(/weeklyProtocol/.test(modifiers) && /mode === 'weekly'/.test(modifiers), 'weekly mode must apply an explicit protocol layer');
 check(/weekly/.test(history) && /weekly/.test(archive), 'history and archive must preserve weekly mode');
 check(/weeklyProtocol/.test(i18n) && /mode\.weekly/.test(i18n), 'weekly mode must be localized in every dictionary');
+check(/battle_11/.test(i18n) && /battle_12/.test(i18n) && /battle_13/.test(i18n), 'post-boss campaign battles must have localized entity names');
 check(enemyTable.enemies.some((enemy) => enemy.id === 'shield_drone' && enemy.behaviorType === 'shield_support'), 'content must include a shield relay support enemy');
 check(battleTable.battles.some((battle) => battle.enemySpawns?.some((spawn) => spawn.enemyId === 'shield_drone')), 'a campaign battle must exercise the shield relay');
+check(battleTable.battles.length >= 13 && battleTable.battles.some((battle) => battle.id === 'battle_13'), 'campaign must include the post-boss ascension and final core content');
 check(/ShieldRelayEnemy/.test(arena) && /shield_drone/.test(arena), 'combat runtime must instantiate shield relay behavior');
 check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(reportUi), 'post-battle report must explain shield relay telemetry');
 check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');

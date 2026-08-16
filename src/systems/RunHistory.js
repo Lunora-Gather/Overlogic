@@ -118,6 +118,7 @@ export function historySummary() {
 }
 
 export function clearHistory() {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(HISTORY_KEY);
     return true;

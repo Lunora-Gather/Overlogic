@@ -105,7 +105,7 @@ export function recordProfileBattle(entry = {}, bonusXp = 0) {
     debugger: hasLoss && profile.wins >= 1,
     daily_protocol: profile.dailyWins >= 1,
     weekly_protocol: profile.weeklyWins >= 1,
-    boss_breaker: entry.won && ['battle_9', 'battle_10'].includes(entry.battleId),
+    boss_breaker: entry.won && ['battle_9', 'battle_10', 'battle_12', 'battle_13'].includes(entry.battleId),
     speedrun: entry.won && entry.battleTime > 0 && entry.battleTime <= 10,
   };
   for (const achievement of ACHIEVEMENTS) {
@@ -119,5 +119,6 @@ export function recordProfileBattle(entry = {}, bonusXp = 0) {
 }
 
 export function resetProfile() {
+  if (!storageWritesAllowed()) return false;
   return writeProfile(defaultProfile());
 }

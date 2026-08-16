@@ -155,7 +155,7 @@ export function recordChallengeBattle(entry = {}, date = new Date()) {
   const increment = {
     daily_wins: entry.won === true ? 1 : 0,
     daily_damage: Math.max(0, Number(entry.damageDealt) || 0),
-    daily_boss: entry.won === true && ['battle_9', 'battle_10'].includes(entry.battleId) ? 1 : 0,
+    daily_boss: entry.won === true && ['battle_9', 'battle_10', 'battle_12', 'battle_13'].includes(entry.battleId) ? 1 : 0,
   };
   for (const definition of definitions) {
     const item = state.objectives[definition.id];
@@ -184,6 +184,7 @@ export function recordChallengeBattle(entry = {}, date = new Date()) {
 }
 
 export function clearChallenges() {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(CHALLENGE_KEY);
     return true;

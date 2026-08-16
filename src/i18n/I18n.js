@@ -1,5 +1,5 @@
 const SUPPORTED = new Set(['en', 'zh-CN', 'zh-TW']);
-const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继胁脉脱范装触记释阶项预号涌赢员阵档]/;
+const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继胁脉脱范装触记释阶项预号涌赢员阵档灾变虚]/;
 
 const EN = {
   'menu.subtitle': '// design the brain, not the hands',
@@ -62,7 +62,7 @@ const EN = {
   'achievement.debuggerDesc': 'Win after recording at least one defeat.',
   'achievement.dailyProtocolDesc': 'Win a Daily Seed battle.',
   'achievement.weeklyProtocolDesc': 'Win a Weekly Gauntlet battle.',
-  'achievement.bossBreakerDesc': 'Defeat either Protocol Warden.',
+  'achievement.bossBreakerDesc': 'Defeat a major boss in the campaign.',
   'achievement.speedrunDesc': 'Win a battle in 10 seconds or less.',
   'menu.language': 'Language',
   'boot.loading': 'INITIALIZING LOGIC CORE…',
@@ -654,7 +654,7 @@ const ZH_CN = {
   'achievement.dailyProtocol': '每日协议', 'achievement.weeklyProtocol': '每周协议', 'achievement.bossBreaker': 'Boss 破译者', 'achievement.speedrun': '冷启动',
   'achievement.firstBattleDesc': '完成第一次战斗模拟。', 'achievement.firstWinDesc': '依靠编写的规则赢得一场战斗。',
   'achievement.debuggerDesc': '在至少一次失败后重新赢得战斗。', 'achievement.dailyProtocolDesc': '赢得一场每日种子战斗。',
-  'achievement.weeklyProtocolDesc': '赢得一场每周挑战战斗。', 'achievement.bossBreakerDesc': '击败任意一名协议守卫。',
+  'achievement.weeklyProtocolDesc': '赢得一场每周挑战战斗。', 'achievement.bossBreakerDesc': '击败战役中的任意大型首领。',
   'achievement.speedrunDesc': '在 10 秒内赢得一场战斗。',
   'menu.seed': '挑战种子', 'menu.seedPlaceholder': '输入种子或 OLR1 挑战码',
   'menu.copySeed': '复制代码', 'menu.copiedSeed': '已复制', 'menu.copySeedManual': '请手动复制',
@@ -923,11 +923,19 @@ const ENTITY_ZH_CN = {
   battle: {
     battle_1: ['系统校准', ''], battle_2: ['距离测试', ''], battle_3: ['冲锋警报', ''], battle_4: ['虫群', ''],
     battle_5: ['暗影电网', ''], battle_6: ['钢铁浪潮', ''], battle_7: ['混合协议', ''], battle_8: ['熔炉', ''],
-    battle_9: ['协议守卫', ''], battle_10: ['巅峰协议守卫', ''],
+    battle_9: ['协议守卫', ''], battle_10: ['巅峰协议守卫', ''], battle_11: ['中继灾变', ''],
+    battle_12: ['虚空圣堂', ''], battle_13: ['奇点核心', ''],
   },
 };
 
 const ENTITY_ZH_TW = JSON.parse(toTraditional(JSON.stringify(ENTITY_ZH_CN)));
+// A small number of proper nouns are intentionally authored rather than
+// mechanically converted so they keep their established Traditional forms.
+Object.assign(ENTITY_ZH_TW.battle, {
+  battle_11: ['中繼災變', ''],
+  battle_12: ['虛空聖堂', ''],
+  battle_13: ['奇點核心', ''],
+});
 
 const DICTS = { en: EN, 'zh-CN': ZH_CN, 'zh-TW': ZH_TW };
 const ENTITIES = { 'zh-CN': ENTITY_ZH_CN, 'zh-TW': ENTITY_ZH_TW };

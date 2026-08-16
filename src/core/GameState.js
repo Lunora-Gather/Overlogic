@@ -48,6 +48,8 @@ const MAP_NODE_IDS = [
   ['4_a', '4_b'],
   ['5_upgrade'],
   ['6_boss', '6_apex'],
+  ['7_relay', '7_null'],
+  ['8_singularity'],
 ];
 
 // Base stats from DESIGN.md §7.1 + extended upgrades
@@ -890,7 +892,14 @@ class GameStateClass {
       [
         { id: '6_boss', type: 'combat', battleIndex: 8, label: 'Protocol Warden', completed: false },
         { id: '6_apex', type: 'combat', battleIndex: 9, label: 'Apex Warden ★', completed: false }
-      ]
+      ],
+      // Col 7 — Ascension branch after the first boss gate
+      [
+        { id: '7_relay', type: 'combat', battleIndex: 10, label: 'Relay Cataclysm', completed: false },
+        { id: '7_null', type: 'combat', battleIndex: 11, label: 'Null Cathedral', completed: false }
+      ],
+      // Col 8 — Final Singularity Core
+      [ { id: '8_singularity', type: 'combat', battleIndex: 12, label: 'Singularity Core', completed: false } ],
     ];
   }
 
@@ -1382,8 +1391,16 @@ class GameStateClass {
     let changed = false;
     if (!Array.isArray(this.mapNodes) || !this._mapShapeLooksCurrent()) {
       const loadedMap = Array.isArray(this.mapNodes) ? this.mapNodes : [];
+      const wasLegacyCompleted = loadedMap.length === 7 && this.currentMapColumn >= loadedMap.length;
       this._initMap();
       this._mergeMapCompletion(loadedMap);
+      if (wasLegacyCompleted) {
+        for (const column of this.mapNodes) {
+          for (const node of column) node.completed = true;
+        }
+        this.currentMapColumn = this.mapNodes.length;
+        this.selectedNodeId = null;
+      }
       changed = true;
     }
     // `mapNodes.length` is a deliberate sentinel for a completed run. Clamp

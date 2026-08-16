@@ -149,6 +149,7 @@ export function replaceRunArchive(raw) {
 }
 
 export function clearRunArchive() {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(ARCHIVE_KEY);
     return true;

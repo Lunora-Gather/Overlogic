@@ -39,7 +39,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **以失败推动学习**：伤害分析、动作频率、规则使用率、关键事件时间轴和自动修复建议共同解释失败原因。
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可复用的构筑模板**：包含支援集火模板，自动组合支援锁定、蓄力打断、防御和基础攻击，锁定模块会安全跳过。
-- **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子、每周挑战与多种难度。
+- **可重复挑战**：分支路线、持续生命值、危险区域、双 Boss 门、首领后升阶分支、奇点核心终局、每日种子、每周挑战与多种难度。
 - **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP 并累积连续完成天数；进度可随完整备份迁移。
 - **操作员档案与本地榜单**：查看等级、胜率、每日/每周战绩、全部成就，并在分模式、分难度筛选后比较本设备上的前五名运行收据。
 - **每日战术协议**：每日种子同时决定一条公开的战斗变体（信号涌动、玻璃回路或强化中继），在敌方节奏、机体速度与能量恢复之间制造可解释的策略取舍；标准模式不受影响。
@@ -118,7 +118,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Detect and explicitly prioritize Repair Drones and Shield Relays, or interrupt their casting windows before they restore or protect enemy hull; failed-run reports expose both support telemetry.
 - Build around actions, conditions, passive upgrades, and four mechanic-changing protocol synergies.
 - Start from curated build templates, including a support-focus protocol that safely skips modules you have not unlocked yet.
-- Explore branching routes, persistent hull damage, hazards, daily seeds, weekly gauntlets, multiple difficulties, and two boss paths.
+- Explore branching routes, persistent hull damage, hazards, daily seeds, weekly gauntlets, multiple difficulties, a post-boss ascension branch, and the Singularity Core finale.
 - Test logic safely in mixed, projectile, swarm, support, and boss sandbox scenarios.
 - Play in English, Simplified Chinese, or Traditional Chinese on desktop and mobile layouts.
 - Reproduce a run with a numeric seed or an `OLR1-…` challenge code, then review recent battle history and operator progression locally.
@@ -210,7 +210,7 @@ Overlogic/
 
 当前状态：**可完整游玩的 Web 产品基础版本，持续开发中。**
 
-现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、固定步长战斗、数据驱动危险区、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、沙盒测试、三语界面、离线缓存、护盾中继支援敌人、版本化运营清单、显式内容 schema、本地可选产品指标与发布审计。后续重点是扩大敌人和 Boss 内容、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
+现有版本已经覆盖完整的规则编辑、分支流程、奖励、失败报告、胜利结算、可复现种子/挑战码、固定步长战斗、数据驱动危险区、13 个战斗内容、战斗记录、通关档案、个人最佳、操作员档案、成就基础、每日目标、事务化完整存档备份、每日种子、每周挑战、首领后升阶路线、沙盒测试、三语界面、离线缓存、护盾中继支援敌人、版本化运营清单、显式内容 schema、本地可选产品指标与发布审计。后续重点是扩大敌人行为、构筑差异、地图事件、在线排行榜/账号服务与外部玩家验证，而不是改变核心控制方式。
 
 ## 语言
 

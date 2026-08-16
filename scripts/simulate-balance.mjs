@@ -180,6 +180,9 @@ function runSuite() {
   const bossGate = [8, 9].map((index) =>
     simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
   );
+  const ascensionGate = [10, 11, 12].map((index) =>
+    simulateBattle(GameDatabase.getBattle(index), { maxTime: 150 })
+  );
 
   const difficultyGate = ['casual', 'standard', 'veteran'].map((difficulty) => {
     prepareRun({ seed: 20260727, difficulty, fullRules: true, lateGameBuild: true });
@@ -195,7 +198,7 @@ function runSuite() {
     };
   });
 
-  return { earlyGate, midGameGate, bossGate, difficultyGate, weeklyGate, rosterDiagnostics };
+  return { earlyGate, midGameGate, bossGate, ascensionGate, difficultyGate, weeklyGate, rosterDiagnostics };
 }
 
 function prepareRun({ seed, mode = 'standard', difficulty = 'standard', fullRules = false, midGameBuild = false, lateGameBuild = false }) {
@@ -230,6 +233,7 @@ function gateFailures(results) {
     ...results.earlyGate.map((result) => ({ gate: 'early', maxTime: 60, result })),
     ...results.midGameGate.map((result) => ({ gate: 'mid', maxTime: 90, result })),
     ...results.bossGate.map((result) => ({ gate: 'boss', maxTime: 60, result })),
+    ...results.ascensionGate.map((result) => ({ gate: 'ascension', maxTime: 150, result })),
     ...results.difficultyGate.map((result) => ({ gate: `difficulty:${result.difficulty}`, maxTime: 90, result })),
     ...results.weeklyGate.map((result) => ({ gate: `weekly:${result.protocol}`, maxTime: 120, result })),
   ];

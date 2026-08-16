@@ -4676,6 +4676,17 @@ html.high-contrast .history-meta {
 /* Keep mobile editor overrides last so legacy breakpoint rules cannot supersede them. */
 @media (max-width: 760px) {
   #screen-editor .editor-mobile-tabs { display: grid; }
+  #screen-editor .editor-mobile-tabs {
+    width: 100%;
+    align-self: stretch;
+  }
+  /* The editor is a vertical flex layout on touch devices.  Keep the
+     briefing at its intrinsic grid height so its checks/actions can never
+     collapse underneath the synergy panel when the viewport is short. */
+  #screen-editor #mission-briefing {
+    flex: 0 0 auto;
+    min-height: 0;
+  }
   #screen-editor[data-mobile-panel="rules"] #panel-conditions,
   #screen-editor[data-mobile-panel="rules"] #panel-actions,
   #screen-editor[data-mobile-panel="conditions"] #panel-rules,

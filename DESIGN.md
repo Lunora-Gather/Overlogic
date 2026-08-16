@@ -77,8 +77,9 @@ MainMenu → LogicEditing → Combat → (Victory?) → RewardSelection → Logi
 4. 战斗结束：
    - 胜利 → 奖励界面（3 选 1）→ 回到编辑界面 → 下一场
    - 失败 → 复盘界面 → {重新编辑逻辑 / 重打本场 / 重开整局}
-5. 通过 4–5 场普通战斗（路线可包含修复节点）后挑战 Boss `Protocol Warden` 或 `Apex Protocol Warden`
-6. Boss 胜利 → Demo 通关 → 回主菜单
+5. 通过 4–5 场普通战斗（路线可包含修复节点）后挑战第一道 Boss 门 `Protocol Warden` 或 `Apex Protocol Warden`
+6. Boss 胜利 → 进入升阶分支 `Relay Cataclysm` / `Null Cathedral`
+7. 升阶战斗胜利 → 进入 `Singularity Core` 终局 → Victory → 回主菜单
 
 **关键约束**：
 
@@ -386,7 +387,7 @@ function TickLogicBrain(robot, ctx, rules):
 
 ---
 
-## 9. 关卡设计（10 个战斗内容；每局选择 6 个战斗节点）
+## 9. 关卡设计（13 个战斗内容；每局按路线选择 7–8 个战斗节点）
 
 | # | 名称 | 敌人组成 | 教学目的 | 解锁/奖励 |
 |---|------|----------|----------|-----------|
@@ -400,8 +401,11 @@ function TickLogicBrain(robot, ctx, rules):
 | 8 | Crucible | 6 × Crawler + 3 × EMP Drone + 2 × Charger + 3 × Shooter + 1 × Repair Drone + 1 × Shield Relay | 全敌人混合、维修与护盾优先级 | 胜利后奖励 3 选 1 |
 | 9 | Protocol Warden | Boss | 终局标准路线 | 通关 |
 | 10 | Apex Protocol Warden | Apex Boss + 2 × EMP Drone | 终局挑战路线 | 通关 |
+| 11 | Relay Cataclysm | 2 × Charger + Repair Drone + Shield Relay + 3 × Crawler | 首领后的支援协同升阶 | 胜利后奖励 3 选 1 |
+| 12 | Null Cathedral | Boss + 2 × EMP Drone + Shield Relay | Boss 阶段、EMP 与护盾复合反制 | 胜利后奖励 3 选 1 |
+| 13 | Singularity Core | Apex Boss + Repair Drone + Shield Relay + 2 × Charger + 2 × EMP Drone | 最终综合验证 | 通关 |
 
-每场敌人按数据表分 1–3 波生成（避免一开场全挤在场边）；波间隔 `1.15s`。危险区几何同样属于战斗数据契约，使用 `hazards: [{x, y, radius}]` 定义并在加载时校验，不允许通过战斗 ID 在引擎中分支硬编码。
+每场敌人按数据表分 1–3 波生成（避免一开场全挤在场边）；波间隔 `1.15s`。危险区几何同样属于战斗数据契约，使用 `hazards: [{x, y, radius}]` 定义并在加载时校验，不允许通过战斗 ID 在引擎中分支硬编码。旧版七列地图的已通关存档会在载入时迁移为已通关，不会因为追加升阶章节而被重新打开。
 
 ---
 
@@ -925,7 +929,7 @@ Overlogic/
 - [x] 修改规则明显影响战斗结果。
 - [x] ≥3 种普通敌人。
 - [x] ≥1 个 Boss。
-- [x] ≥6 场战斗。
+- [x] ≥13 场数据驱动战斗内容。
 - [x] 战斗胜利后可选奖励。
 - [x] 失败后有复盘信息。
 - [x] 游戏可完整通关一次。
@@ -967,7 +971,7 @@ Overlogic/
 
 ## 26. 最终目标
 
-做出小而精的《Overlogic》Demo。让玩家在 10 分钟内理解："我不是在操作机器人，我是在设计机器人的大脑。"让玩家在失败后自然产生："我再改一条规则肯定能过。"
+保持《Overlogic》核心循环清晰：让玩家在 10 分钟内理解“我不是在操作机器人，我是在设计机器人的大脑”，并通过升阶章节、每日/每周挑战、构筑协同和可解释失败报告持续推动长期重玩。
 
 这就是《Overlogic》的核心。
 
