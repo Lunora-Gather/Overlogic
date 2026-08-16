@@ -32,6 +32,8 @@ jobs:
         run: npm run build
       - name: Audit release artifact
         run: npm run release-audit
+      - name: Smoke test release over HTTP
+        run: npm run http-audit
       - name: Enforce performance budgets
         run: npm run performance-audit
 
@@ -57,6 +59,8 @@ jobs:
         run: npm run build
       - name: Audit deployed artifact
         run: npm run release-audit
+      - name: Smoke test deployed artifact locally
+        run: npm run http-audit
       - name: Re-check product quality
         run: npm run quality-audit
       - name: Re-check performance budgets

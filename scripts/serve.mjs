@@ -3,8 +3,9 @@ import { stat } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, isAbsolute, join, normalize, relative as relativePath, sep } from 'node:path';
 
-const root = normalize(process.cwd());
-const port = Number(process.env.PORT) || 8766;
+const root = normalize(process.env.OVERLOGIC_SERVE_ROOT || process.cwd());
+const requestedPort = Number(process.env.PORT);
+const port = Number.isInteger(requestedPort) && requestedPort >= 0 ? requestedPort : 8766;
 const types = {
   '.css': 'text/css; charset=utf-8',
   '.html': 'text/html; charset=utf-8',
@@ -15,7 +16,7 @@ const types = {
   '.mjs': 'text/javascript; charset=utf-8',
 };
 
-createServer(async (request, response) => {
+const server = createServer(async (request, response) => {
   try {
     const pathname = decodeURIComponent(new URL(request.url, 'http://localhost').pathname);
     const requestedPath = pathname === '/' ? 'index.html' : pathname.replace(/^\/+/, '');
@@ -37,6 +38,10 @@ createServer(async (request, response) => {
     response.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8' });
     response.end('Not found');
   }
-}).listen(port, '127.0.0.1', () => {
-  console.log(`Overlogic dev server: http://127.0.0.1:${port}`);
+});
+
+server.listen(port, '127.0.0.1', () => {
+  const address = server.address();
+  const actualPort = typeof address === 'object' && address ? address.port : port;
+  console.log(`Overlogic dev server: http://127.0.0.1:${actualPort}`);
 });

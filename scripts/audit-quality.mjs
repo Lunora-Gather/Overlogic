@@ -29,6 +29,7 @@ const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'
 const operationsConfig = await fs.readFile(path.join(root, 'src/systems/OperationsConfig.js'), 'utf8');
 const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductTelemetry.js'), 'utf8');
 const storageGate = await fs.readFile(path.join(root, 'src/systems/StorageWriteGate.js'), 'utf8');
+const httpAudit = await fs.readFile(path.join(root, 'scripts/audit-http.mjs'), 'utf8');
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
@@ -170,6 +171,8 @@ check(/id="f-target"[\s\S]*?value="support"/.test(html) && /target\.support/.tes
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');
+check(/npm run http-audit/.test(workflow) && /HTTP_AUDIT_OK/.test(httpAudit),
+  'CI must smoke-test the built release through a real HTTP server');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');
 check(/permissions:\s*\n\s*contents:\s*read/.test(workflow) && /deploy:[\s\S]*?permissions:\s*[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/.test(workflow),
   'CI must keep Pages write permissions scoped to the deploy job');

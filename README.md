@@ -156,6 +156,7 @@ npm run serve
 | `npm run balance` | 运行确定性战斗和平衡门禁 |
 | `npm run build` | 生成带版本化资源地址的 `dist/` 发布目录 |
 | `npm run release-audit` | 检查发布目录、版本占位符、资源完整性与数据 JSON |
+| `npm run http-audit` | 启动本地静态服务器，冒烟验证发布资源的 HTTP 状态码、MIME、版本化模块与数据加载 |
 | `npm run quality-audit` | 检查静态壳层的可访问性、对话框、PWA 元数据与运行时安全钩子 |
 | `npm run performance-audit` | 对发布文件数、总大小、JS、CSS、HTML、JSON 和最大模块执行性能预算 |
 
