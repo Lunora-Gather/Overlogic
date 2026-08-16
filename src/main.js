@@ -31,6 +31,8 @@ if (appVersion) appVersion.textContent = /^[A-Za-z0-9][A-Za-z0-9._-]{6,39}$/.tes
 globalThis.__OVERLOGIC_RELEASE__ = appVersion?.textContent || 'DEV';
 let noticeTimer = null;
 let noticeActionHandler = null;
+let noticeMessageKey = null;
+let noticeActionKey = null;
 
 // Apply the saved locale before the first network request so a slow/failed
 // boot never flashes the wrong language or falls back to English-only copy.
@@ -62,15 +64,21 @@ function showBootFailure(error) {
   console.error('Overlogic boot failed:', error);
 }
 
+function refreshAppNoticeCopy() {
+  if (noticeMessageKey && appNoticeMessage) appNoticeMessage.textContent = t(noticeMessageKey);
+  if (noticeActionKey && appNoticeAction) appNoticeAction.textContent = t(noticeActionKey);
+}
+
 function showAppNotice(messageKey, { actionKey = null, onAction = null, autoHide = 0 } = {}) {
   if (!appNotice || !appNoticeMessage || !appNoticeAction) return;
   if (noticeTimer) clearTimeout(noticeTimer);
   if (noticeActionHandler) appNoticeAction.removeEventListener('click', noticeActionHandler);
   noticeActionHandler = null;
-  appNoticeMessage.textContent = t(messageKey);
+  noticeMessageKey = messageKey;
+  noticeActionKey = actionKey && onAction ? actionKey : null;
+  refreshAppNoticeCopy();
   appNotice.classList.remove('hidden');
   if (actionKey && onAction) {
-    appNoticeAction.textContent = t(actionKey);
     appNoticeAction.classList.remove('hidden');
     noticeActionHandler = () => onAction();
     appNoticeAction.addEventListener('click', noticeActionHandler);
@@ -84,6 +92,7 @@ function showAppNotice(messageKey, { actionKey = null, onAction = null, autoHide
 
 function setupRuntimeSafety() {
   appNoticeClose?.addEventListener('click', () => appNotice?.classList.add('hidden'));
+  window.addEventListener('overlogic:localechange', refreshAppNoticeCopy);
   window.addEventListener('online', () => {
     recordRuntimeEvent('online');
     showAppNotice('notice.online', { autoHide: 3000 });

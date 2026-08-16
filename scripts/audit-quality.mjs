@@ -70,6 +70,7 @@ check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-r
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
 check(/addEventListener\(['"]online['"]/.test(main) && /addEventListener\(['"]offline['"]/.test(main), 'offline/online transitions must be surfaced');
+check(/refreshAppNoticeCopy/.test(main) && /overlogic:localechange/.test(main), 'dynamic runtime notices must refresh when the locale changes');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
 check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
 

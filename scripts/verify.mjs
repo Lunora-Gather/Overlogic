@@ -628,6 +628,7 @@ function verifyUiSafetyContracts() {
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst') && serviceWorker.includes('versionedNetworkFirst'), 'service worker must use versioned precache, online-fresh modules, and offline navigation fallback');
   assert(mainUi.includes("updateViaCache: 'none'") && mainUi.includes('sw.js?v='), 'service worker registration must be release-versioned and bypass stale HTTP cache');
+  assert(mainUi.includes('refreshAppNoticeCopy') && mainUi.includes("overlogic:localechange"), 'runtime notices must follow locale changes');
   assert(buildScript.includes('collectPrecacheUrls') && buildScript.includes('PRECACHE_URLS'), 'build must inject the complete runtime precache manifest');
   assert(buildScript.includes('requestedRelease') && buildScript.includes('A-Za-z0-9'), 'build must sanitize release identifiers before injecting cache/query versions');
   assert(devServer.includes('relativePath') && devServer.includes('X-Content-Type-Options'), 'dev server must reject traversal and send safe response headers');
