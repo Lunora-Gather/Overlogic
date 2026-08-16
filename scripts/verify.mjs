@@ -891,6 +891,7 @@ function verifyUiSafetyContracts() {
   assert.equal(entity('condition', 'battle_time_above', 'Battle Time Above'), '戰鬥時間已達');
   assert.equal(entity('condition', 'support_present', 'Support Unit Present'), '存在支援單位');
   assert.equal(t('target.support'), '支援單位');
+  assert.match(t('report.integrityHelp'), /客戶端/);
   assert.equal(entity('action', 'interrupt_shot', 'Interrupt Shot'), '打斷射擊');
   assert.equal(t('editor.duplicate'), '複製規則');
   assert.equal(t('menu.config.modeStandard'), '自由路線與隨機獎勵');
