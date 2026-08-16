@@ -36,6 +36,7 @@ const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/opera
 const contentTables = await Promise.all(['conditions', 'actions', 'enemies', 'battles', 'rewards']
   .map(async (name) => JSON.parse(await fs.readFile(path.join(root, `data/${name}.json`), 'utf8'))));
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
+const codeqlWorkflow = await fs.readFile(path.join(root, '.github/workflows/codeql.yml'), 'utf8');
 const dependabot = await fs.readFile(path.join(root, '.github/dependabot.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
@@ -182,6 +183,9 @@ check((workflow.match(/uses:\s*actions\/[A-Za-z0-9-]+@[0-9a-f]{40}/g) || []).len
   'CI actions must be pinned to reviewed commit SHAs');
 check(/package-ecosystem:\s*github-actions/.test(dependabot) && /interval:\s*weekly/.test(dependabot),
   'Dependabot must keep pinned GitHub Actions under routine review');
+check(/github\/codeql-action\/(?:init|analyze)@[0-9a-f]{40}/.test(codeqlWorkflow) &&
+  (codeqlWorkflow.match(/uses:\s*[A-Za-z0-9_/-]+@[0-9a-f]{40}/g) || []).length >= 3,
+  'CodeQL workflow must scan JavaScript and pin its actions to reviewed SHAs');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');
 check(/permissions:\s*\n\s*contents:\s*read/.test(workflow) && /deploy:[\s\S]*?permissions:\s*[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/.test(workflow),
   'CI must keep Pages write permissions scoped to the deploy job');
