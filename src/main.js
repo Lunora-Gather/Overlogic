@@ -366,10 +366,34 @@ async function main() {
   const btnDataImport = document.getElementById('btn-data-import');
   const btnDataRestore = document.getElementById('btn-data-restore');
   const btnDataSupport = document.getElementById('btn-data-support');
+  const settingsStorageStatus = document.getElementById('settings-storage-status');
+  const settingsStorageStatusCopy = document.getElementById('settings-storage-status-copy');
   const dataImportFile = document.getElementById('data-import-file');
   let settingsReturnFocus = null;
   let resumeCombatAfterSettings = false;
   let settingsOriginalVolume = null;
+
+  function refreshSettingsStorageStatus() {
+    if (!settingsStorageStatus || !settingsStorageStatusCopy) return;
+    const status = GameState.storageStatus || {};
+    let key = 'settings.storageHealthy';
+    let tone = '';
+    if (status.available === false) {
+      key = 'settings.storageUnavailable';
+      tone = 'danger';
+    } else if (status.conflict) {
+      key = 'settings.storageConflict';
+      tone = 'danger';
+    } else if (status.restoredFromBackup) {
+      key = 'settings.storageRestored';
+      tone = 'warn';
+    } else if (GameState.hasBackup()) {
+      key = 'settings.storageBackupAvailable';
+    }
+    settingsStorageStatus.classList.toggle('warn', tone === 'warn');
+    settingsStorageStatus.classList.toggle('danger', tone === 'danger');
+    settingsStorageStatusCopy.textContent = t(key);
+  }
 
   function openSettings() {
     AudioManager.resume();
@@ -384,6 +408,7 @@ async function main() {
     if (settingProductMetrics) settingProductMetrics.checked = GameState.settings.productMetrics;
     settingLanguage.value = GameState.settings.language;
     if (btnDataRestore) btnDataRestore.disabled = !GameState.hasBackup();
+    refreshSettingsStorageStatus();
 
     settingsReturnFocus = document.activeElement;
     resumeCombatAfterSettings = GameManager.state === 'combat' && arena && !arena.paused;
@@ -450,6 +475,7 @@ async function main() {
       GameState.settings.productMetrics = settingProductMetrics?.checked === true;
       GameState.settings.language = settingLanguage.value;
       GameState.saveSettings();
+      refreshSettingsStorageStatus();
       settingsOriginalVolume = null;
       setLocale(GameState.settings.language);
       document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
@@ -508,6 +534,7 @@ async function main() {
       showAppNotice('notice.importFailed');
       return;
     }
+    refreshSettingsStorageStatus();
     showAppNotice('notice.saveImported', {
       actionKey: 'notice.reloadSave',
       onAction: () => window.location.reload(),
@@ -524,6 +551,7 @@ async function main() {
       onAction: () => window.location.reload(),
     });
     btnDataRestore.disabled = !GameState.hasBackup();
+    refreshSettingsStorageStatus();
   });
 
   // Global Tooltip Delegator

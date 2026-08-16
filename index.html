@@ -426,6 +426,10 @@
         <div class="settings-group data-tools">
           <span class="settings-section-label" data-i18n="settings.data">Save Data</span>
           <p class="settings-help" data-i18n="settings.dataHelp">Export a portable backup before changing devices or clearing browser data.</p>
+          <div id="settings-storage-status" class="settings-storage-status" role="status" aria-live="polite">
+            <strong data-i18n="settings.storageHealth">Save health</strong>
+            <span id="settings-storage-status-copy">—</span>
+          </div>
           <div class="settings-data-actions">
             <button id="btn-data-export" type="button" class="btn secondary small" data-i18n="settings.export">Export</button>
             <button id="btn-data-import" type="button" class="btn ghost small" data-i18n="settings.import">Import</button>
