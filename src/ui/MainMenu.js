@@ -11,7 +11,7 @@ import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 import { leaderboardRuns, runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
-import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
+import { featureEnabled, operationsConfig } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { copyText } from './Clipboard.js?v=20260725-4';
 
@@ -35,6 +35,9 @@ export class MainMenu {
     this.runSeedInput = document.getElementById('run-seed-input');
     this.btnCopyRunSeed = document.getElementById('btn-copy-run-seed');
     this.runConfigHint = document.getElementById('run-config-hint');
+    this.runSeason = document.getElementById('run-season');
+    this.runSeasonName = document.getElementById('run-season-name');
+    this.runSeasonStatus = document.getElementById('run-season-status');
     this.runHistory = document.getElementById('run-history');
     this.runChallenges = document.getElementById('run-challenges');
     this.runProfile = document.getElementById('run-profile');
@@ -237,10 +240,22 @@ export class MainMenu {
       }));
     }
     this.renderRunConfig();
+    this.renderSeason();
     this.renderProfile();
     if (this.profileOverlay && !this.profileOverlay.classList.contains('hidden')) this.renderProfileDialog();
     this.renderChallenges();
     this.renderHistory();
+  }
+
+  renderSeason() {
+    if (!this.runSeason || !this.runSeasonName || !this.runSeasonStatus) return;
+    const operations = operationsConfig();
+    const seasonKey = operations.season?.labelKey;
+    this.runSeasonName.textContent = seasonKey ? t(seasonKey) : t('ops.seasonFoundry');
+    this.runSeasonStatus.textContent = operations.maintenance?.enabled
+      ? t('menu.seasonMaintenance')
+      : t('menu.seasonActive');
+    this.runSeason.classList.toggle('maintenance', operations.maintenance?.enabled === true);
   }
 
   renderProfile() {

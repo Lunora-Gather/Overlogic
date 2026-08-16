@@ -127,6 +127,8 @@ check(/normalizeOperationsConfig/.test(operationsConfig) && /loadOperationsConfi
   'operations manifest must be normalized at boot and included in support diagnostics');
 check(/id="setting-product-metrics"/.test(html) && /productMetrics:\s*false/.test(gameState),
   'local product metrics must require explicit opt-in consent');
+check(/id="run-season"/.test(html) && /renderSeason/.test(menuUi) && /operationsConfig/.test(menuUi) && /menu\.seasonMaintenance/.test(i18n),
+  'the active operations season and maintenance state must be visible and localized in the main menu');
 check(/id="settings-storage-status"/.test(html) && /refreshSettingsStorageStatus/.test(main) && /settings\.storageConflict/.test(i18n),
   'settings must expose localized, actionable save-health state');
 check(/portableSaveIntegrity/.test(gameState) && /payload\.integrity/.test(gameState),

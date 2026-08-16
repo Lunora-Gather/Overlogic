@@ -1140,6 +1140,8 @@ input:focus-visible {
 @media (max-width: 520px) {
   .history-entry { grid-template-columns: 42px 1fr; }
   .history-meta { grid-column: 2; text-align: left; }
+  .run-season { grid-template-columns: 1fr; gap: 3px; }
+  .run-season small { text-align: left; }
 }
 
 .map-nodes {
@@ -4665,6 +4667,53 @@ html.high-contrast .history-meta {
 .run-config-hint,
 .period-seed-label {
   grid-column: 1 / -1;
+}
+
+.run-season {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px 12px;
+  width: min(520px, calc(100vw - 32px));
+  margin-top: -4px;
+  padding: 9px 12px;
+  border: 1px solid rgba(0, 210, 255, 0.2);
+  border-radius: 9px;
+  background: linear-gradient(135deg, rgba(0, 210, 255, 0.07), rgba(7, 17, 31, 0.58));
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.run-season > span {
+  color: var(--accent);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.run-season strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--txt);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.run-season small {
+  color: var(--accent2);
+  font-size: 9px;
+  text-align: right;
+}
+
+.run-season.maintenance {
+  border-color: rgba(255, 185, 56, 0.35);
+  background: linear-gradient(135deg, rgba(255, 185, 56, 0.08), rgba(22, 18, 12, 0.58));
+}
+
+.run-season.maintenance > span,
+.run-season.maintenance small {
+  color: #ffd27b;
 }
 
 .map-node {
