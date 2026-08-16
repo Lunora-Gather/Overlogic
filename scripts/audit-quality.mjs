@@ -83,6 +83,9 @@ for (const tag of tabButtons) {
     'editor tab is missing id, controlled panel, or selected state');
 }
 check(/role="tablist"/.test(html) && /role="tabpanel"/.test(html), 'editor tablist and panels must use ARIA roles');
+check(/id="map-nodes"[^>]*role="list"[^>]*data-i18n-aria-label="editor\.routeMap"/.test(html) &&
+  /setAttribute\('role', 'listitem'\)/.test(editor) && /aria-disabled/.test(editor),
+  'protocol route map must expose list semantics and locked-node state');
 check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor) && /aria-hidden/.test(editor) && /\.inert/.test(editor),
   'editor tabs must support keyboard navigation and keep inactive mobile panels inaccessible');
 check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) && /trapDialogFocus\(this\.profileOverlay\)/.test(menuUi),

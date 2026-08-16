@@ -1192,6 +1192,12 @@ input:focus-visible {
   transform: translateY(-2px);
 }
 
+.map-node.unlocked:focus-visible {
+  outline: 2px solid var(--accent2);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px rgba(62, 255, 157, 0.12), 0 0 18px rgba(62, 255, 157, 0.28);
+}
+
 .mission-briefing {
   border-left: 2px solid rgba(75, 225, 255, 0.62);
 }

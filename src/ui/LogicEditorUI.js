@@ -195,6 +195,7 @@ export class LogicEditorUI {
     GameState.mapNodes.forEach((col, colIdx) => {
       const colDiv = document.createElement('div');
       colDiv.className = 'map-col';
+      colDiv.setAttribute('role', 'listitem');
 
       col.forEach(node => {
         const nodeDiv = document.createElement('div');
@@ -211,6 +212,7 @@ export class LogicEditorUI {
         
         if (node.completed) {
           nodeDiv.classList.add('completed');
+          nodeDiv.setAttribute('aria-disabled', 'true');
         } else if (colIdx === GameState.currentMapColumn) {
           nodeDiv.classList.add('unlocked');
           nodeDiv.tabIndex = 0;
@@ -231,6 +233,9 @@ export class LogicEditorUI {
         } else if (colIdx < GameState.currentMapColumn) {
           // Passed by another path
           nodeDiv.classList.add('completed');
+          nodeDiv.setAttribute('aria-disabled', 'true');
+        } else {
+          nodeDiv.setAttribute('aria-disabled', 'true');
         }
         colDiv.appendChild(nodeDiv);
       });
