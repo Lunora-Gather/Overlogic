@@ -36,6 +36,7 @@ const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/opera
 const contentTables = await Promise.all(['conditions', 'actions', 'enemies', 'battles', 'rewards']
   .map(async (name) => JSON.parse(await fs.readFile(path.join(root, `data/${name}.json`), 'utf8'))));
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
+const dependabot = await fs.readFile(path.join(root, '.github/dependabot.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
 let checks = 0;
@@ -176,6 +177,11 @@ check(/npm run quality-audit/.test(workflow), 'CI must run the product quality g
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');
 check(/npm run http-audit/.test(workflow) && /HTTP_AUDIT_OK/.test(httpAudit),
   'CI must smoke-test the built release through a real HTTP server');
+check((workflow.match(/uses:\s*actions\/[A-Za-z0-9-]+@[0-9a-f]{40}/g) || []).length >= 7 &&
+  !/uses:\s*actions\/[A-Za-z0-9-]+@v\d/.test(workflow),
+  'CI actions must be pinned to reviewed commit SHAs');
+check(/package-ecosystem:\s*github-actions/.test(dependabot) && /interval:\s*weekly/.test(dependabot),
+  'Dependabot must keep pinned GitHub Actions under routine review');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');
 check(/permissions:\s*\n\s*contents:\s*read/.test(workflow) && /deploy:[\s\S]*?permissions:\s*[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/.test(workflow),
   'CI must keep Pages write permissions scoped to the deploy job');

@@ -1046,6 +1046,7 @@ Overlogic/
 - `index.html` 使用 Content Security Policy 限制脚本、连接、Worker、对象、表单与基础 URL；Google Fonts 是唯一允许的第三方样式/字体源，内联样式仅因现有布局属性暂时保留。
 - `referrer=no-referrer` 防止挑战种子、发布查询参数或页面路径随外部字体请求泄露；运行时不加载第三方脚本，也不发送遥测。
 - 发布审计同时检查外部域名白名单、CSP 必需指令、内联事件处理器、动态代码执行、调试语句与源映射标记。任何一项回退都会阻止 Pages 部署。
+- GitHub Actions 使用经过审阅的提交 SHA 固定版本（旁注对应的 release tag），并由产品质量门禁阻止未固定的 `@vN` Action 回退。
 
 ## 35. 繁体中文纯度门禁
 
