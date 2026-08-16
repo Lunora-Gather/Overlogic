@@ -30,6 +30,7 @@ const operationsConfig = await fs.readFile(path.join(root, 'src/systems/Operatio
 const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductTelemetry.js'), 'utf8');
 const storageGate = await fs.readFile(path.join(root, 'src/systems/StorageWriteGate.js'), 'utf8');
 const httpAudit = await fs.readFile(path.join(root, 'scripts/audit-http.mjs'), 'utf8');
+const saveMigrations = await fs.readFile(path.join(root, 'src/systems/SaveMigrations.js'), 'utf8');
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
@@ -133,6 +134,8 @@ check(/id="settings-storage-status"/.test(html) && /refreshSettingsStorageStatus
   'settings must expose localized, actionable save-health state');
 check(/portableSaveIntegrity/.test(gameState) && /payload\.integrity/.test(gameState),
   'portable save exports must carry a tamper-evident integrity envelope');
+check(/migrateRunSave/.test(gameState) && /CURRENT_SAVE_VERSION/.test(saveMigrations) && /unsupported/.test(saveMigrations),
+  'run-save version migrations must be explicit and fail closed on future versions');
 check(/MAX_RECENT\s*=\s*40/.test(productTelemetry) && !/\bfetch\s*\(/.test(productTelemetry) && /clearProductMetrics/.test(productTelemetry),
   'product metrics must remain bounded, local-only, and immediately erasable');
 check(/storageWritesAllowed/.test(storageGate) && /markStorageWriteConflict/.test(storageGate) && /markStorageConflict/.test(main),

@@ -44,6 +44,7 @@ const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await impo
 const { clearRunArchive, leaderboardRuns, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
 const { canonicalRunFacts, runReceipt } = await import('../src/systems/RunVerification.js?v=20260725-4');
 const { combineReplayDigests, replayDigest } = await import('../src/systems/RunReplay.js?v=20260725-4');
+const { CURRENT_SAVE_VERSION, migrateRunSave } = await import('../src/systems/SaveMigrations.js?v=20260725-4');
 const {
   recordRuntimeError,
   recordRuntimeEvent,
@@ -182,6 +183,22 @@ function verifyRunReceiptContracts() {
   assert.match(combineReplayDigests([replay]), /^RPL1-[0-9A-F]{8}$/);
   assert.equal(canonicalRunFacts({ ...facts, seed: 'not-a-seed' }).startsWith('v1|weekly|veteran|1|'), true,
     'run receipt facts must clamp malformed values before hashing');
+}
+
+function verifySaveMigrationContracts() {
+  const legacy = migrateRunSave({
+    saveVersion: 6,
+    runStats: { battlesWon: 2 },
+    lastReport: { _won: true },
+  });
+  assert.equal(legacy.unsupported, false, 'known save versions must remain migratable');
+  assert.equal(legacy.data.saveVersion, CURRENT_SAVE_VERSION);
+  assert.deepEqual(legacy.data.runStats.replayDigests, []);
+  assert.deepEqual(legacy.data.lastReport.replay_events, []);
+  assert.deepEqual(legacy.steps, ['6->7']);
+  assert.equal(migrateRunSave({ saveVersion: CURRENT_SAVE_VERSION }).changed, false);
+  assert.equal(migrateRunSave({ saveVersion: CURRENT_SAVE_VERSION + 1 }).unsupported, true,
+    'future save versions must fail closed instead of being silently downgraded');
 }
 
 function verifyRepairDroneContracts() {
@@ -1190,6 +1207,7 @@ verifyDataContracts();
 verifyOperationsContracts();
 verifyProductTelemetryContracts();
 verifyRunReceiptContracts();
+verifySaveMigrationContracts();
 verifyRepairDroneContracts();
 verifyShieldRelayContracts();
 verifyRuleTemplateContracts();

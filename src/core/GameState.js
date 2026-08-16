@@ -13,8 +13,9 @@ import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.
 import { clearProductMetrics, productMetricsSnapshot, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { combineReplayDigests, MAX_REPLAY_EVENTS } from '../systems/RunReplay.js?v=20260725-4';
 import { markStorageWriteConflict, resetStorageWriteGate, storageWritesAllowed } from '../systems/StorageWriteGate.js?v=20260725-4';
+import { CURRENT_SAVE_VERSION, migrateRunSave } from '../systems/SaveMigrations.js?v=20260725-4';
 
-const SAVE_VERSION = 7;
+const SAVE_VERSION = CURRENT_SAVE_VERSION;
 const RUN_SAVE_KEY = 'overlogic_run_save';
 const RUN_BACKUP_KEY = 'overlogic_run_save_backup';
 const RUN_TEMP_KEY = 'overlogic_run_save_pending';
@@ -1041,6 +1042,9 @@ class GameStateClass {
         this._setStorageStatus({ conflict: false });
         return false;
       }
+      const migration = migrateRunSave(data);
+      if (migration.unsupported) throw new Error(`Unsupported run save version ${migration.fromVersion}`);
+      data = migration.data;
       this.currentBattleIndex = data.currentBattleIndex ?? 0;
       this.currentMapColumn = data.currentMapColumn ?? 0;
       this.selectedNodeId = data.selectedNodeId ?? '0_start';
