@@ -84,6 +84,23 @@ export function recentCompletedRuns(limit = 3) {
   return readEntries().slice(0, Math.max(0, Math.min(10, Number(limit) || 0)));
 }
 
+export function leaderboardRuns({ mode = null, difficulty = null, limit = 10 } = {}) {
+  const modeFilter = MODES.has(mode) ? mode : null;
+  const difficultyFilter = DIFFICULTIES.has(difficulty) ? difficulty : null;
+  const max = Math.max(1, Math.min(20, Math.floor(Number(limit) || 10)));
+  return readEntries()
+    .filter((entry) => !modeFilter || entry.mode === modeFilter)
+    .filter((entry) => !difficultyFilter || entry.difficulty === difficultyFilter)
+    .sort((a, b) => {
+      const timeA = a.totalBattleTime > 0 ? a.totalBattleTime : Number.POSITIVE_INFINITY;
+      const timeB = b.totalBattleTime > 0 ? b.totalBattleTime : Number.POSITIVE_INFINITY;
+      return timeA - timeB || b.totalDamageDealt - a.totalDamageDealt ||
+        Date.parse(a.completedAt) - Date.parse(b.completedAt);
+    })
+    .slice(0, max)
+    .map((entry) => ({ ...entry }));
+}
+
 export function runRecords(entries = readEntries()) {
   const valid = Array.isArray(entries) ? entries.map(normalizeEntry) : [];
   const timed = valid.filter((entry) => entry.totalBattleTime > 0);

@@ -80,6 +80,8 @@ check(/role="tablist"/.test(html) && /role="tabpanel"/.test(html), 'editor tabli
 check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor), 'editor tabs must support keyboard navigation and state updates');
 check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) && /trapDialogFocus\(this\.profileOverlay\)/.test(menuUi),
   'operator dossier must use an accessible localized dialog');
+check(/leaderboardRuns/.test(menuUi) && /dossier-leaderboard-title/.test(menuUi),
+  'operator dossier must render a normalized local leaderboard');
 check(/id="victory-receipt"/.test(html) && /runReceipt/.test(victoryUi) && !runVerification.includes('OLR1-'),
   'victory screen must expose a deterministic run receipt without hardcoding a receipt value');
 
@@ -119,6 +121,8 @@ check(battleTable.battles.some((battle) => battle.enemySpawns?.some((spawn) => s
 check(/ShieldRelayEnemy/.test(arena) && /shield_drone/.test(arena), 'combat runtime must instantiate shield relay behavior');
 check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(reportUi), 'post-battle report must explain shield relay telemetry');
 check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');
+check(/preventScroll:\s*true/.test(menuUi) && /profileCard\.scrollTop\s*=\s*0/.test(menuUi),
+  'long operator dossiers must open at the first section while retaining dialog focus');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');

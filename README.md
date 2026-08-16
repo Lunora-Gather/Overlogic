@@ -40,6 +40,7 @@ Program the brain. Observe the battle. Debug the logic.
 - **具有构筑方向的奖励**：动作、条件、被动升级与四套协议协同会改变战斗机制，而不只是提高数值。
 - **可重复挑战**：分支路线、持续生命值、危险区域、精英战、双 Boss 路线、每日种子、每周挑战与多种难度。
 - **每日目标与长期成长**：每天刷新胜场、伤害和 Boss 目标，完成目标获得 XP 并累积连续完成天数；进度可随完整备份迁移。
+- **操作员档案与本地榜单**：查看等级、胜率、每日/每周战绩、全部成就，并按通关时间比较本设备上的前五名运行收据。
 - **每日战术协议**：每日种子同时决定一条公开的战斗变体（信号涌动、玻璃回路或强化中继），在敌方节奏、机体速度与能量恢复之间制造可解释的策略取舍；标准模式不受影响。
 - **每周挑战**：UTC ISO 周种子决定一条更强的共享战役协议（追猎矩阵、攻城中继或易变网格），适合玩家在一周内反复优化同一套规则并分享挑战码；历史周挑战仍可复现。
 - **可验证的个人纪录**：每次完整通关只结算一次，保存模式、难度、种子、总时间、伤害、规则数与个人最佳，为未来排行榜提供规范数据。
@@ -121,6 +122,7 @@ Program rules → Choose a route → Run combat → Read diagnostics → Upgrade
 - Complete three deterministic daily objectives for bonus XP and build a completion streak; sandbox runs never advance formal progression.
 - Daily runs reveal one deterministic tactical protocol for the seed, while Weekly Gauntlet runs rotate a stronger shared protocol for the ISO week; standard runs remain unchanged.
 - Keep a deduplicated local archive of completed campaigns and personal-best times, ready for a future opt-in leaderboard.
+- Review a full operator dossier with rank progress, achievements, career statistics, and a receipt-backed top-five local leaderboard.
 - Export and restore a verified full save backup, including settings, loadouts, battle history, and profile achievements.
 - Resume a persisted win safely after a refresh: pending rewards are settled once instead of replaying the cleared battle.
 - Download a privacy-safe support bundle with bounded runtime diagnostics; diagnostics stay in memory and are never uploaded automatically.

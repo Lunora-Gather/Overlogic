@@ -49,6 +49,8 @@ const EN = {
   'menu.profileDailyWins': 'Daily wins', 'menu.profileWeeklyWins': 'Weekly wins', 'menu.profileClearsLabel': 'Campaign clears',
   'menu.profileBestBattle': 'Best battle', 'menu.profileNoTime': 'No record', 'menu.profileAchievementsTitle': 'Achievement Grid',
   'menu.profileLocked': 'Locked', 'menu.profileUnlockedOn': 'Unlocked {date}',
+  'menu.profileLeaderboardTitle': 'Local Run Leaderboard', 'menu.profileLeaderboardLocal': 'This device',
+  'menu.profileLeaderboardEmpty': 'Complete a campaign to create the first ranked receipt.', 'menu.profileDamageValue': 'DMG {value}',
   'menu.challengesTitle': 'Daily Objectives', 'menu.challengeDate': 'UTC {date}', 'menu.challengeStreak': 'STREAK {count}d', 'menu.challengeProgress': '{current}/{target}', 'menu.challengeDone': 'COMPLETE',
   'challenge.dailyWins': 'Win battles', 'challenge.dailyDamage': 'Deal damage', 'challenge.dailyBoss': 'Defeat bosses',
   'achievement.firstBattle': 'First Contact', 'achievement.firstWin': 'Logic Online',
@@ -624,6 +626,8 @@ const ZH_CN = {
   'menu.profileDailyWins': '每日胜场', 'menu.profileWeeklyWins': '每周胜场', 'menu.profileClearsLabel': '战役通关',
   'menu.profileBestBattle': '最快战斗', 'menu.profileNoTime': '暂无记录', 'menu.profileAchievementsTitle': '成就矩阵',
   'menu.profileLocked': '尚未解锁', 'menu.profileUnlockedOn': '解锁于 {date}',
+  'menu.profileLeaderboardTitle': '本地通关排行榜', 'menu.profileLeaderboardLocal': '当前设备',
+  'menu.profileLeaderboardEmpty': '完成一次战役即可生成第一条排行收据。', 'menu.profileDamageValue': '伤害 {value}',
   'menu.challengesTitle': '每日目标', 'menu.challengeDate': 'UTC {date}', 'menu.challengeStreak': '连续 {count} 天', 'menu.challengeProgress': '{current}/{target}', 'menu.challengeDone': '已完成',
   'challenge.dailyWins': '赢得战斗', 'challenge.dailyDamage': '造成伤害', 'challenge.dailyBoss': '击败首领',
   'achievement.firstBattle': '首次接触', 'achievement.firstWin': '逻辑上线', 'achievement.debugger': '调试循环',
@@ -688,7 +692,7 @@ function toTraditional(value) {
     检: '檢', 毁: '毀', 没: '沒', 热: '熱', 状: '狀', 盖: '蓋', 紧: '緊',
     终: '終', 继: '繼', 胁: '脅', 脉: '脈', 脱: '脫', 范: '範', 装: '裝',
     触: '觸', 记: '記', 释: '釋', 阶: '階', 项: '項', 预: '預', 号: '號', 涌: '湧',
-    维: '維', 遥: '遙',
+    维: '維', 遥: '遙', 据: '據',
   };
   return [...output].map(char => chars[char] || char).join('');
 }

@@ -39,7 +39,7 @@ const {
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
-const { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
+const { clearRunArchive, leaderboardRuns, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
 const { canonicalRunFacts, runReceipt } = await import('../src/systems/RunVerification.js?v=20260725-4');
 const {
   recordRuntimeError,
@@ -719,6 +719,10 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
   assert(html.includes('id="profile-overlay"') && menuUi.includes('renderProfileDialog') && menuUi.includes('this._profileReturnFocus'),
     'operator progression must expose an accessible detailed dossier');
+  assert(menuUi.includes('leaderboardRuns') && menuUi.includes('dossier-leaderboard-title'),
+    'operator dossier must expose the normalized local run leaderboard');
+  assert(menuUi.includes('preventScroll: true') && menuUi.includes('profileCard.scrollTop = 0'),
+    'the mobile operator dossier must open at its title without losing keyboard focus containment');
   assert(html.includes('id="victory-receipt"') && victoryUi.includes('runReceipt') && victoryUi.includes('btn-copy-victory-receipt'),
     'victory results must expose a shareable deterministic run receipt');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
@@ -933,6 +937,10 @@ function verifyRunHistoryContracts() {
   assert.deepEqual({ completions: runRecords().completions, daily: runRecords().dailyCompletions, weekly: runRecords().weeklyCompletions, veteran: runRecords().veteranCompletions },
     { completions: 3, daily: 1, weekly: 1, veteran: 1 });
   assert.equal(runRecords().bestRun.id, 'run_test_fast');
+  assert.deepEqual(leaderboardRuns({ limit: 2 }).map((entry) => entry.id), ['run_test_fast', 'run_test_weekly'],
+    'local leaderboard must rank positive completion times ascending');
+  assert.deepEqual(leaderboardRuns({ mode: 'weekly', difficulty: 'standard' }).map((entry) => entry.id), ['run_test_weekly'],
+    'local leaderboard filters must preserve mode and difficulty boundaries');
   GameState.currentMapColumn = GameState.mapNodes.length;
   GameState.runConfig = { mode: 'standard', difficulty: 'casual', seed: 103 };
   GameState.runStats = {

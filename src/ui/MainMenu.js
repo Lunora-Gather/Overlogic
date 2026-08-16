@@ -9,7 +9,7 @@ import { recentBattles, historySummary } from '../systems/RunHistory.js?v=202607
 import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfileProgression.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
-import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
+import { leaderboardRuns, runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
@@ -289,6 +289,14 @@ export class MainMenu {
         <span class="achievement-xp">+${achievement.xp} XP</span>
       </article>`;
     }).join('');
+    const leaderboard = leaderboardRuns({ limit: 5 });
+    const leaderboardRows = leaderboard.map((entry, index) => `<li class="leaderboard-row">
+      <span class="leaderboard-rank">#${index + 1}</span>
+      <span class="leaderboard-route"><strong>${escapeHtml(t(`mode.${entry.mode}`))}</strong><small>${escapeHtml(t(`difficulty.${entry.difficulty}`))}</small></span>
+      <span class="leaderboard-time">${entry.totalBattleTime.toFixed(1)}s</span>
+      <span class="leaderboard-damage">${escapeHtml(t('menu.profileDamageValue', { value: Math.round(entry.totalDamageDealt) }))}</span>
+      <code>${escapeHtml(entry.receipt)}</code>
+    </li>`).join('');
     this.profileDialogBody.innerHTML = `
       <section class="dossier-rank" aria-label="${escapeHtml(t('menu.profileXp', { current: rank.current, required: rank.required }))}">
         <div><span>${escapeHtml(t('menu.profileRank', { level: rank.level }))}</span><strong>${escapeHtml(t('menu.profileXp', { current: rank.current, required: rank.required }))}</strong></div>
@@ -305,6 +313,10 @@ export class MainMenu {
       <section class="dossier-achievements" aria-labelledby="dossier-achievements-title">
         <div class="dossier-section-heading"><h3 id="dossier-achievements-title">${escapeHtml(t('menu.profileAchievementsTitle'))}</h3><span>${unlockedCount}/${ACHIEVEMENTS.length}</span></div>
         <div class="achievement-grid">${achievements}</div>
+      </section>
+      <section class="dossier-leaderboard" aria-labelledby="dossier-leaderboard-title">
+        <div class="dossier-section-heading"><h3 id="dossier-leaderboard-title">${escapeHtml(t('menu.profileLeaderboardTitle'))}</h3><span>${escapeHtml(t('menu.profileLeaderboardLocal'))}</span></div>
+        ${leaderboardRows ? `<ol class="leaderboard-list">${leaderboardRows}</ol>` : `<p class="leaderboard-empty">${escapeHtml(t('menu.profileLeaderboardEmpty'))}</p>`}
       </section>`;
   }
 
@@ -314,7 +326,11 @@ export class MainMenu {
     this.renderProfileDialog();
     this.profileOverlay.classList.remove('hidden');
     this.profileOverlay.setAttribute('aria-hidden', 'false');
-    this.btnProfileClose.focus();
+    // Keep keyboard focus inside the dialog without letting the bottom action
+    // scroll a long mobile dossier past its title and career summary.
+    this.btnProfileClose.focus({ preventScroll: true });
+    const profileCard = this.profileOverlay.querySelector('.profile-card');
+    if (profileCard) profileCard.scrollTop = 0;
     AudioManager.play('button_click');
   }
 
