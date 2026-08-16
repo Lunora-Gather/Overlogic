@@ -53,9 +53,25 @@ async function staleWhileRevalidate(request) {
   return cached || refresh;
 }
 
+async function versionedNetworkFirst(request) {
+  try {
+    const response = await fetch(request);
+    if (response.ok) {
+      const cache = await caches.open(CACHE_NAME);
+      await putCacheSafe(cache, request, response.clone());
+    }
+    return response;
+  } catch {
+    return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
+  }
+}
+
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
   if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  event.respondWith(request.mode === 'navigate' ? networkFirst(request) : staleWhileRevalidate(request));
+  const versioned = url.searchParams.has('v') || url.searchParams.has('release');
+  event.respondWith(request.mode === 'navigate'
+    ? networkFirst(request)
+    : (versioned ? versionedNetworkFirst(request) : staleWhileRevalidate(request)));
 });

@@ -992,6 +992,7 @@ Overlogic/
 - 构建脚本遍历 `dist/`，把 `src/` 和 `data/` 的全部运行时文件注入 Service Worker 预缓存清单；发布版本只保留安全的字母数字、点、下划线和短横线标识。
 - 模块和数据请求带版本查询参数，Service Worker 使用 `ignoreSearch` 从无查询参数的预缓存中恢复，避免“文件已缓存但查询版本不同”造成的离线空壳。
 - 预缓存失败会退回最小应用壳，单个缓存写入失败不会产生未处理 Promise；这样私密浏览模式、低配额和弱网环境仍能启动并提供可解释的状态。
+- Service Worker 注册 URL 带发布版本并设置 `updateViaCache: none`；带 `v`/`release` 的模块和数据在线时使用 network-first，离线时再通过 `ignoreSearch` 命中完整预缓存，避免新 HTML 被旧 Worker 配上旧模块形成混合版本。
 
 ## 33. 每日战术协议
 

@@ -146,7 +146,10 @@ function setupRuntimeSafety() {
 function registerServiceWorker() {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
   const hadController = Boolean(navigator.serviceWorker.controller);
-  navigator.serviceWorker.register('./sw.js').then((registration) => {
+  const release = document.querySelector('meta[name="overlogic-release"]')?.content || '';
+  const safeRelease = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(release) ? release : '';
+  const serviceWorkerUrl = safeRelease ? `./sw.js?v=${encodeURIComponent(safeRelease)}` : './sw.js';
+  navigator.serviceWorker.register(serviceWorkerUrl, { updateViaCache: 'none' }).then((registration) => {
     if (registration.waiting && hadController) {
       window.dispatchEvent(new CustomEvent('overlogic:update-ready'));
     }

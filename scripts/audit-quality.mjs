@@ -9,6 +9,7 @@ const root = process.cwd();
 const html = await fs.readFile(path.join(root, 'index.html'), 'utf8');
 const css = await fs.readFile(path.join(root, 'style.css'), 'utf8');
 const main = await fs.readFile(path.join(root, 'src/main.js'), 'utf8');
+const serviceWorker = await fs.readFile(path.join(root, 'sw.js'), 'utf8');
 const editor = await fs.readFile(path.join(root, 'src/ui/LogicEditorUI.js'), 'utf8');
 const gameState = await fs.readFile(path.join(root, 'src/core/GameState.js'), 'utf8');
 const modifiers = await fs.readFile(path.join(root, 'src/systems/RunModifiers.js'), 'utf8');
@@ -69,6 +70,8 @@ check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-r
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
 check(/addEventListener\(['"]online['"]/.test(main) && /addEventListener\(['"]offline['"]/.test(main), 'offline/online transitions must be surfaced');
+check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
+check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
 
 check(manifest.name && manifest.short_name && manifest.start_url && manifest.scope, 'PWA manifest core metadata is incomplete');
 check(manifest.display === 'standalone', 'PWA must remain installable as a standalone app');
