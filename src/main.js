@@ -132,6 +132,7 @@ function setupRuntimeSafety() {
     'overlogic_profile',
     'overlogic_live_challenges',
     'overlogic_run_archive',
+    'overlogic_product_metrics',
     'overlogic_loadout_slot_1',
     'overlogic_loadout_slot_2',
     'overlogic_loadout_slot_3',
@@ -141,6 +142,7 @@ function setupRuntimeSafety() {
     // complete external data change so another tab cannot silently continue
     // on stale in-memory state.
     if (event.key !== null && !externalDataKeys.has(event.key)) return;
+    GameState.markStorageConflict();
     recordRuntimeEvent(event.newValue ? 'external-data-updated' : 'external-data-cleared');
     showAppNotice('notice.externalSave', {
       actionKey: 'notice.reloadSave',

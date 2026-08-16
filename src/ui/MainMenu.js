@@ -13,6 +13,7 @@ import { leaderboardRuns, runRecords } from '../systems/RunArchive.js?v=20260725
 import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
+import { copyText } from './Clipboard.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -195,11 +196,11 @@ export class MainMenu {
     this.runSeedInput?.addEventListener('input', updateRunConfig);
     this.btnCopyRunSeed?.addEventListener('click', async () => {
       const code = GameState.exportRunCode();
-      try {
-        await navigator.clipboard?.writeText(code);
+      const copied = await copyText(code);
+      if (copied) {
         this.btnCopyRunSeed.textContent = t('menu.copiedSeed');
         setTimeout(() => { this.btnCopyRunSeed.textContent = t('menu.copySeed'); }, 1400);
-      } catch {
+      } else {
         this.runSeedInput?.select();
         this.btnCopyRunSeed.textContent = t('menu.copySeedManual');
       }

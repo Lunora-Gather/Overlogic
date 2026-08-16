@@ -34,8 +34,9 @@ async function networkFirst(request) {
     if (response.ok) {
       const cache = await caches.open(CACHE_NAME);
       await putCacheSafe(cache, request, response.clone());
+      return response;
     }
-    return response;
+    return (await caches.match(request, { ignoreSearch: true })) || response;
   } catch {
     return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
   }
@@ -59,8 +60,9 @@ async function versionedNetworkFirst(request) {
     if (response.ok) {
       const cache = await caches.open(CACHE_NAME);
       await putCacheSafe(cache, request, response.clone());
+      return response;
     }
-    return response;
+    return (await caches.match(request, { ignoreSearch: true })) || response;
   } catch {
     return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
   }

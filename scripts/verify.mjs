@@ -20,6 +20,7 @@ const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-4');
 const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-4');
 const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-4');
 const { ruleTemplateById } = await import('../src/logic/RuleTemplates.js?v=20260725-4');
+const { resetStorageWriteGate } = await import('../src/systems/StorageWriteGate.js?v=20260725-4');
 const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-4');
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
@@ -683,6 +684,16 @@ function verifySaveMigration() {
   assert.equal(GameState.saveToStorage(), true);
   const verifiedPrimary = JSON.parse(localStorage.getItem('overlogic_run_save'));
   assert.equal(typeof verifiedPrimary._integrity, 'string', 'new saves must carry an integrity checksum');
+  const persistedBeforeConflict = localStorage.getItem('overlogic_run_save');
+  localStorage.setItem('overlogic_run_save', `${persistedBeforeConflict}external-change`);
+  assert.equal(GameState.saveToStorage(), false, 'stale tabs must refuse to overwrite an external save change');
+  assert.equal(GameState.storageStatus.conflict, true, 'external save changes must enter conflict state');
+  assert.equal(GameState.saveLoadout(1), false, 'conflicted tabs must stop writing loadouts');
+  assert.equal(GameState.clearStorage(), false, 'conflicted tabs must not clear another tab\'s progress');
+  localStorage.setItem('overlogic_run_save', persistedBeforeConflict);
+  assert.equal(GameState.loadFromStorage(), true, 'reloading the authoritative save must release conflict state');
+  assert.equal(GameState.storageStatus.conflict, false);
+  resetStorageWriteGate();
   localStorage.setItem('overlogic_run_save', JSON.stringify({ rules: [], _integrity: 'tampered' }));
   assert.equal(GameState.loadFromStorage(), true, 'a corrupt primary save must fall back to the last verified backup');
   assert.equal(GameState.rules[0].priority, 91, 'backup restore must recover the previous complete state');
@@ -743,6 +754,7 @@ function verifyUiSafetyContracts() {
   const particleSystem = fs.readFileSync('src/vfx/ParticleSystem.js', 'utf8');
   const backgroundAnim = fs.readFileSync('src/systems/BackgroundAnim.js', 'utf8');
   const mainUi = fs.readFileSync('src/main.js', 'utf8');
+  const gameState = fs.readFileSync('src/core/GameState.js', 'utf8');
   const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
@@ -752,6 +764,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
   assert(html.includes('id="setting-product-metrics"') && mainUi.includes('configureProductMetrics'), 'settings should expose explicit local metrics consent');
   assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
+  assert(html.includes('name="mobile-web-app-capable"') && html.includes('inputmode="text"') && html.includes('autocapitalize="characters"'), 'install shell and challenge-code input must be mobile-friendly');
   assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes('name="referrer" content="no-referrer"'), 'release shell must declare browser-enforced security and referrer policies');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
   assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
@@ -800,6 +813,8 @@ function verifyUiSafetyContracts() {
   const clipboardUiSource = fs.readFileSync('src/ui/Clipboard.js', 'utf8');
   assert(clipboardUiSource.includes('navigator.clipboard') && clipboardUiSource.includes("execCommand?.('copy')"),
     'share code copy should have a browser-compatible fallback');
+  assert(codeModalUi.includes('copyText(this.textarea.value)') && menuUi.includes('copyText(code)'),
+    'all share-code entry points must use the unified clipboard fallback');
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
@@ -809,12 +824,14 @@ function verifyUiSafetyContracts() {
   assert(editorUi.includes('this.codeModal.openExport') && editorUi.includes('this.codeModal.openImport'), 'build sharing must use the themed code dialog');
   assert(editorUi.includes('applyRuleTemplate') && editorUi.includes('RULE_TEMPLATES'), 'editor must apply curated templates through GameState');
   assert(!editorUi.includes('prompt('), 'editor must not fall back to native prompt dialogs');
-  assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('document.execCommand'), 'code dialog must trap focus and provide a clipboard fallback');
+  assert(codeModalUi.includes('trapDialogFocus') && codeModalUi.includes('copyText'), 'code dialog must trap focus and use the shared clipboard fallback');
   assert(particleSystem.includes('reduceMotion') && particleSystem.includes('spawnEngineTrail'), 'reduced motion must reach the canvas particle system');
   assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
-  assert(mainUi.includes('overlogic_run_archive') && mainUi.includes('event.key !== null'), 'external tabs must surface changes across all persistent data stores');
+  assert(mainUi.includes('overlogic_run_archive') && mainUi.includes('overlogic_product_metrics') && mainUi.includes('event.key !== null'), 'external tabs must surface changes across all persistent data stores');
+  assert(mainUi.includes('GameState.markStorageConflict') && gameState.includes('_lastPersistedSerialized'),
+    'external storage changes must block stale writes until the current tab reloads');
   assert(menuUi.includes('dailyProtocol') && menuUi.includes('weeklyProtocol') && menuUi.includes('menu.dailyProtocolLabel') && menuUi.includes('menu.weeklyProtocolLabel'), 'periodic modes must disclose their deterministic protocol before launch');
   assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'), 'background animation must pause with hidden combat and resume on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');

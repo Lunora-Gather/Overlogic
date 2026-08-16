@@ -3,6 +3,7 @@
 // seasons, and entitlements can later map onto this versioned shape.
 
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const PROFILE_KEY = 'overlogic_profile';
 const PROFILE_VERSION = 1;
@@ -55,6 +56,7 @@ function readProfile() {
 }
 
 function writeProfile(profile) {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     return true;

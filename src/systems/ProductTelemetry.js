@@ -5,6 +5,7 @@
 // without exposing rule codes, challenge seeds, file paths, or user identity.
 
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const METRICS_KEY = 'overlogic_product_metrics';
 const METRICS_VERSION = 1;
@@ -73,6 +74,7 @@ function readState() {
 }
 
 function writeState(state) {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.setItem(METRICS_KEY, JSON.stringify(normalizeState(state)));
     return true;
@@ -123,4 +125,3 @@ export function durationBucket(seconds) {
   if (value < 60) return '30_59';
   return '60_plus';
 }
-

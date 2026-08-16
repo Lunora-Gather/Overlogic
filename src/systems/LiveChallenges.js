@@ -5,6 +5,7 @@
 // consume it without changing battle code or silently collecting telemetry.
 
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const CHALLENGE_KEY = 'overlogic_live_challenges';
 const CHALLENGE_VERSION = 1;
@@ -106,6 +107,7 @@ function readState(date = utcDate()) {
 }
 
 function writeState(state) {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.setItem(CHALLENGE_KEY, JSON.stringify(state));
     return true;

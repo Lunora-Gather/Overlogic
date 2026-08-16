@@ -4,6 +4,7 @@
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { trapDialogFocus } from './focusTrap.js?v=20260725-4';
 import { t } from '../i18n/I18n.js?v=20260725-4';
+import { copyText } from './Clipboard.js?v=20260725-4';
 
 export class CodeModal {
   constructor() {
@@ -94,17 +95,10 @@ export class CodeModal {
 
   async _copyToClipboard({ quiet = false } = {}) {
     if (!this.textarea) return false;
-    let copied = false;
-    try {
-      if (navigator.clipboard?.writeText) {
-        await navigator.clipboard.writeText(this.textarea.value);
-        copied = true;
-      }
-    } catch {}
+    const copied = await copyText(this.textarea.value);
     if (!copied) {
       this.textarea.focus();
       this.textarea.select();
-      try { copied = document.execCommand?.('copy') === true; } catch {}
     }
     if (!quiet) {
       this.copy.textContent = t(copied ? 'editor.copied' : 'editor.copyFailed');

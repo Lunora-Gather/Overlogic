@@ -171,7 +171,7 @@ Overlogic/
 │  ├─ logic/             # 条件评估、规则选择与动作执行
 │  ├─ robot/             # 机器人属性与战斗行为
 │  ├─ enemies/           # 敌人与 Boss 行为
-│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标、通关纪录、运行记录、回放摘要与诊断
+│  ├─ systems/           # 音频、统计、奖励、协同协议、档案、每日目标、通关纪录、运行记录、回放摘要、诊断与存档写入闸门
 │  ├─ ui/                # 编辑器、HUD、奖励、报告与胜利界面
 │  ├─ render/            # 竞技场与镜头渲染
 │  ├─ vfx/               # 弹体、地雷、危险区域与粒子效果
@@ -183,10 +183,11 @@ Overlogic/
 ├─ manifest.webmanifest  # 可安装 Web App 元数据
 ├─ sw.js                 # 版本化离线缓存与弱网回退
 ├─ icon.svg              # 应用图标与分享预览图
+├─ SECURITY.md           # 漏洞报告入口与客户端安全边界
 └─ DESIGN.md             # 完整设计与维护约束
 ```
 
-玩法内容优先放在 `data/*.json` 中，所有内容表都带 `schemaVersion` 并在运行时拒绝未知版本；运营开关和容量边界统一维护在 `data/operations.json` 与 `src/systems/OperationsConfig.js`；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。
+玩法内容优先放在 `data/*.json` 中，所有内容表都带 `schemaVersion` 并在运行时拒绝未知版本；运营开关和容量边界统一维护在 `data/operations.json` 与 `src/systems/OperationsConfig.js`；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。检测到其他标签页改写持久化数据后，`StorageWriteGate` 会阻止当前标签继续写入，必须刷新后重新载入权威存档。
 
 ## 质量与发布 / Quality and deployment
 

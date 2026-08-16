@@ -807,7 +807,7 @@ Your Logic Survived
 | `OverlogicSystem` | Overlogic 值计算与效果 |
 | `GameDatabase` | 加载并校验 `data/*.json`，向运行时提供统一内容契约 |
 | `ProtocolSynergies` / `RunModifiers` | 协同协议与难度/路线修正 |
-| `RunHistory` / `RunArchive` / `ProfileProgression` / `LiveChallenges` / `RuntimeDiagnostics` | 本地战斗记录、完整通关档案、个人最佳、等级、成就、每日目标与隐私安全的内存诊断；默认不向外发送遥测 |
+| `RunHistory` / `RunArchive` / `ProfileProgression` / `LiveChallenges` / `RuntimeDiagnostics` / `StorageWriteGate` | 本地战斗记录、完整通关档案、个人最佳、等级、成就、每日目标、隐私安全的内存诊断与跨标签写入冲突保护；默认不向外发送遥测 |
 
 ### 18.2 主状态机
 
@@ -834,7 +834,7 @@ Overlogic/
     enemies/                  # EnemyBase、普通敌人、BossProtocolWarden
     render/                   # ArenaRenderer、Camera
     vfx/                      # Projectile、Mine、HazardTile、ParticleSystem
-    systems/                  # 奖励、协同协议、统计、报告、音频、战斗/通关记录、档案与每日目标
+    systems/                  # 奖励、协同协议、统计、报告、音频、战斗/通关记录、档案、每日目标与存档写入闸门
     ui/                       # 主菜单、编辑器、HUD、奖励、报告与胜利界面
     i18n/                     # 简体中文、繁體中文、English 文案
   scripts/                    # serve、build、verify、balance
@@ -1013,13 +1013,14 @@ Overlogic/
 
 - `RuntimeDiagnostics` 只保留内存中的有限错误、事件和帧统计；错误文本会截断并遮盖 URL、本地路径，避免把隐私带入支援包。
 - 支援包明确由玩家点击下载，包含版本、存储状态、启动耗时、长帧计数和最近错误摘要；完整游戏存档不混入运行时诊断。
-- `storage` 事件覆盖主存档、备份、设置、战斗历史、操作员档案、每日挑战、通关档案与三个配置栏；包括 `key === null` 的 `localStorage.clear()` 情况。检测到外部变更时必须先刷新，避免两个标签页互相覆盖。
+- `storage` 事件覆盖主存档、备份、设置、战斗历史、操作员档案、每日挑战、通关档案、本地产品指标与三个配置栏；包括 `key === null` 的 `localStorage.clear()` 情况。检测到外部变更时必须先刷新，避免两个标签页互相覆盖。
+- `GameState` 同时保存主存档的最后已确认序列化内容；即使浏览器未及时派发 `storage` 事件，下一次写入也会执行 compare-and-swap 检查。发现内容不一致时，主存档、配置栏、历史、档案、挑战和本地指标写入全部暂停，直到当前标签重新载入。
 - 动态运行提示保存消息键而不是只保存已翻译文本；语言切换时同步刷新提示正文与操作按钮，避免更新、离线、存档冲突等通知出现中英繁混排。
 
 ## 32. 离线缓存完整性
 
 - 构建脚本遍历 `dist/`，把 `src/` 和 `data/` 的全部运行时文件注入 Service Worker 预缓存清单；发布版本只保留安全的字母数字、点、下划线和短横线标识。
-- 模块和数据请求带版本查询参数，Service Worker 使用 `ignoreSearch` 从无查询参数的预缓存中恢复，避免“文件已缓存但查询版本不同”造成的离线空壳。
+- 模块和数据请求带版本查询参数，Service Worker 使用 `ignoreSearch` 从无查询参数的预缓存中恢复，避免“文件已缓存但查询版本不同”造成的离线空壳；导航和带版本请求收到非 2xx 响应时也优先回退到已缓存的同源资源，减少 Pages 404 或弱网抖动造成的空白页。
 - 预缓存失败会退回最小应用壳，单个缓存写入失败不会产生未处理 Promise；这样私密浏览模式、低配额和弱网环境仍能启动并提供可解释的状态。
 - Service Worker 注册 URL 带发布版本并设置 `updateViaCache: none`；带 `v`/`release` 的模块和数据在线时使用 network-first，离线时再通过 `ignoreSearch` 命中完整预缓存，避免新 HTML 被旧 Worker 配上旧模块形成混合版本。
 

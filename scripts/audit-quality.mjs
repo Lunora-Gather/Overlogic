@@ -28,6 +28,7 @@ const runReplay = await fs.readFile(path.join(root, 'src/systems/RunReplay.js'),
 const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
 const operationsConfig = await fs.readFile(path.join(root, 'src/systems/OperationsConfig.js'), 'utf8');
 const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductTelemetry.js'), 'utf8');
+const storageGate = await fs.readFile(path.join(root, 'src/systems/StorageWriteGate.js'), 'utf8');
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
@@ -118,13 +119,15 @@ check(/id="setting-product-metrics"/.test(html) && /productMetrics:\s*false/.tes
   'local product metrics must require explicit opt-in consent');
 check(/MAX_RECENT\s*=\s*40/.test(productTelemetry) && !/\bfetch\s*\(/.test(productTelemetry) && /clearProductMetrics/.test(productTelemetry),
   'product metrics must remain bounded, local-only, and immediately erasable');
+check(/storageWritesAllowed/.test(storageGate) && /markStorageWriteConflict/.test(storageGate) && /markStorageConflict/.test(main),
+  'cross-tab storage conflicts must stop stale tabs from continuing to write');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
 check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
 
 check(manifest.name && manifest.short_name && manifest.start_url && manifest.scope, 'PWA manifest core metadata is incomplete');
 check(manifest.display === 'standalone', 'PWA must remain installable as a standalone app');
 check(Array.isArray(manifest.icons) && manifest.icons.length > 0, 'PWA manifest must declare an icon');
-check(/rel="manifest"/.test(html) && /name="theme-color"/.test(html), 'install shell metadata is incomplete');
+check(/rel="manifest"/.test(html) && /name="theme-color"/.test(html) && /name="mobile-web-app-capable"/.test(html), 'install shell metadata is incomplete');
 
 check(/value="weekly"/.test(html), 'the shell must expose the weekly challenge mode');
 check(/weeklyIdentity/.test(gameState) && /weeklySeed/.test(gameState) && /OLR1/.test(gameState), 'weekly mode must use a stable challenge seed and share code');
@@ -158,5 +161,7 @@ check(/id="f-target"[\s\S]*?value="support"/.test(html) && /target\.support/.tes
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');
+check(/permissions:\s*\n\s*contents:\s*read/.test(workflow) && /deploy:[\s\S]*?permissions:\s*[\s\S]*?pages:\s*write[\s\S]*?id-token:\s*write/.test(workflow),
+  'CI must keep Pages write permissions scoped to the deploy job');
 
 console.log(`QUALITY_AUDIT_OK (${checks} checks)`);

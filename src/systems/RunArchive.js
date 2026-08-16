@@ -6,6 +6,7 @@
 
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { runReceipt } from './RunVerification.js?v=20260725-4';
+import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
@@ -67,6 +68,7 @@ function readEntries() {
 }
 
 function writeEntries(entries) {
+  if (!storageWritesAllowed()) return false;
   try {
     localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
       version: ARCHIVE_VERSION,

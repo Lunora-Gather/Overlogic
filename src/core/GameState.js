@@ -12,6 +12,7 @@ import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
 import { clearProductMetrics, productMetricsSnapshot, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { combineReplayDigests, MAX_REPLAY_EVENTS } from '../systems/RunReplay.js?v=20260725-4';
+import { markStorageWriteConflict, resetStorageWriteGate, storageWritesAllowed } from '../systems/StorageWriteGate.js?v=20260725-4';
 
 const SAVE_VERSION = 7;
 const RUN_SAVE_KEY = 'overlogic_run_save';
@@ -128,7 +129,8 @@ class GameStateClass {
       difficulty: 'standard',
     };
     // simple pub/sub for UI re-render
-    this.storageStatus = { available: true, restoredFromBackup: false, lastError: null };
+    this.storageStatus = { available: true, restoredFromBackup: false, conflict: false, lastError: null };
+    this._lastPersistedSerialized = null;
     this._listeners = { rules: [], stats: [], progress: [], storage: [] };
     this.loadSettings();
     if (!this.loadFromStorage()) {
@@ -167,6 +169,7 @@ class GameStateClass {
   }
 
   saveSettings() {
+    if (!storageWritesAllowed()) return false;
     try {
       const volume = Number(this.settings.volume);
       this.settings.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.8;
@@ -182,9 +185,11 @@ class GameStateClass {
       // Apply to AudioManager
       AudioManager.setVolume(this.settings.volume);
       AudioManager.setMute(this.settings.mute);
+      return true;
     } catch (e) {
       recordStorageError(e, 'settings');
       console.error('Failed to save settings', e);
+      return false;
     }
   }
 
@@ -959,9 +964,20 @@ class GameStateClass {
     this._emit('storage');
   }
 
+  markStorageConflict() {
+    markStorageWriteConflict();
+    this._setStorageStatus({ conflict: true, available: true, lastError: 'Another tab changed persistent data' });
+  }
+
   saveToStorage() {
+    if (!storageWritesAllowed()) return false;
     try {
       const serialized = serializeRunSave(this._runSaveData());
+      const current = localStorage.getItem(RUN_SAVE_KEY);
+      if (current !== this._lastPersistedSerialized) {
+        this.markStorageConflict();
+        return false;
+      }
       const previous = localStorage.getItem(RUN_SAVE_KEY);
 
       // Stage and verify the complete payload before replacing the primary
@@ -974,8 +990,16 @@ class GameStateClass {
         localStorage.setItem(RUN_BACKUP_KEY, previous);
       }
       localStorage.setItem(RUN_SAVE_KEY, serialized);
+      // A second tab can still win the tiny interval between the initial
+      // compare and this replacement. Verify the committed value as a final
+      // best-effort race detector before advancing our in-memory marker.
+      if (localStorage.getItem(RUN_SAVE_KEY) !== serialized) {
+        this.markStorageConflict();
+        return false;
+      }
       localStorage.removeItem(RUN_TEMP_KEY);
-      this._setStorageStatus({ available: true, lastError: null });
+      this._lastPersistedSerialized = serialized;
+      this._setStorageStatus({ available: true, conflict: false, lastError: null });
       return true;
     } catch (e) {
       recordStorageError(e, 'run-save');
@@ -1003,6 +1027,9 @@ class GameStateClass {
       }
       if (!data) {
         if (primaryError) throw primaryError;
+        this._lastPersistedSerialized = null;
+        resetStorageWriteGate();
+        this._setStorageStatus({ conflict: false });
         return false;
       }
       this.currentBattleIndex = data.currentBattleIndex ?? 0;
@@ -1030,9 +1057,12 @@ class GameStateClass {
       this.saveVersion = data.saveVersion ?? 1;
       this._setStorageStatus({
         available: true,
+        conflict: false,
         restoredFromBackup,
         lastError: restoredFromBackup ? String(primaryError?.message || 'Primary save was invalid') : null,
       });
+      this._lastPersistedSerialized = restoredFromBackup ? backupRaw : primaryRaw;
+      resetStorageWriteGate();
       return true;
     } catch (e) {
       recordStorageError(e, 'run-load');
@@ -1043,6 +1073,7 @@ class GameStateClass {
   }
 
   clearStorage() {
+    if (!storageWritesAllowed()) return false;
     let cleared = true;
     const keys = [RUN_SAVE_KEY, RUN_BACKUP_KEY, RUN_TEMP_KEY];
     for (let slot = 1; slot <= LOADOUT_SLOTS; slot += 1) keys.push(`overlogic_loadout_slot_${slot}`);
@@ -1054,6 +1085,10 @@ class GameStateClass {
         recordStorageError(error, `reset:${key}`);
       }
     }
+    // A partial reset may still have removed the primary slot. Rebase the
+    // compare-and-swap marker before resetRun() so a retry can repair the
+    // local stores instead of being mistaken for a stale-tab overwrite.
+    try { this._lastPersistedSerialized = localStorage.getItem(RUN_SAVE_KEY); } catch {}
     cleared = clearHistory() && cleared;
     cleared = resetProfile() && cleared;
     cleared = clearChallenges() && cleared;
@@ -1064,6 +1099,7 @@ class GameStateClass {
   }
 
   restoreBackup() {
+    if (!storageWritesAllowed()) return false;
     try {
       const raw = localStorage.getItem(RUN_BACKUP_KEY);
       if (!raw || !parseRunSave(raw)) return false;
@@ -1145,6 +1181,7 @@ class GameStateClass {
   }
 
   importSaveData(raw) {
+    if (!storageWritesAllowed()) return false;
     if (typeof raw !== 'string' || raw.length === 0 || raw.length > 1_000_000) return false;
     let previousPrimary;
     let previousBackup;
@@ -1250,6 +1287,7 @@ class GameStateClass {
 
   saveLoadout(slotIndex) {
     if (!validLoadoutSlot(slotIndex)) return false;
+    if (!storageWritesAllowed()) return false;
     try {
       localStorage.setItem(`overlogic_loadout_slot_${slotIndex}`, JSON.stringify(this.rules));
       return true;
