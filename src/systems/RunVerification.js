@@ -38,6 +38,9 @@ export function canonicalRunFacts(entry = {}) {
     Math.round(cleanNumber(entry.finalHp, 0, 1_000_000) * 10) / 10,
     Math.floor(cleanNumber(entry.rulesCount, 0, 40)),
     Math.floor(cleanNumber(entry.upgrades, 0, 99)),
+    Math.floor(cleanNumber(entry.simulationVersion, 1, 99)),
+    Math.round(cleanNumber(entry.simulationStep, 1 / 60, 0.5) * 10_000) / 10_000,
+    cleanText(entry.replayDigest, 'none'),
   ].join('|');
 }
 
@@ -45,4 +48,3 @@ export function runReceipt(entry = {}) {
   const hash = fnv1a(canonicalRunFacts(entry));
   return `OLR${RECEIPT_VERSION}-${hash.toString(16).padStart(8, '0').toUpperCase()}`;
 }
-

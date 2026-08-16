@@ -3,6 +3,7 @@
 
 export class CombatStatsTracker {
   constructor() {
+    this.replayEvents = [];
     this.damageBySource = new Map();   // sourceKind -> float
     this.damageDealtByKind = new Map();
     this.totalDamageDealt = 0;
@@ -40,10 +41,12 @@ export class CombatStatsTracker {
       this._pushTimeline({ kind: 'damage', source, value: amount });
     }
     this._lastDamageEventAt = this.battleTime;
+    this._pushReplay({ kind: 'damage_taken', source, value: amount });
   }
   recordDamageDealt(amount, kind) {
     this.totalDamageDealt += amount;
     this.damageDealtByKind.set(kind, (this.damageDealtByKind.get(kind) || 0) + amount);
+    this._pushReplay({ kind: 'damage_dealt', source: kind, value: amount });
   }
   setRuleSnapshot(rules) {
     this.activeRuleIds = (rules || []).filter(rule => rule.enabled !== false).map(rule => rule.id);
@@ -53,6 +56,7 @@ export class CombatStatsTracker {
     this.actionLastUsedTime.set(actionId, this.battleTime);
     if (ruleId) this.ruleUsage.set(ruleId, (this.ruleUsage.get(ruleId) || 0) + 1);
     this._pushTimeline({ kind: 'action', actionId, ruleId });
+    this._pushReplay({ kind: 'action', actionId, ruleId });
   }
   recordDiagnostics(diagnostics) {
     if (!diagnostics) return;
@@ -67,6 +71,7 @@ export class CombatStatsTracker {
     this.interruptSuccesses += 1;
     this.castingEventsInterrupted += 1;
     this._pushTimeline({ kind: 'interrupt' });
+    this._pushReplay({ kind: 'interrupt' });
   }
   recordCastingSeen() { this.castingEventsSeen += 1; }
   recordShieldActivated(hpPct) { this.shieldActivatedAtHp = hpPct; }   // latest activation wins
@@ -74,11 +79,13 @@ export class CombatStatsTracker {
   recordEnemyDeath(enemyId) {
     if (!enemyId) return;
     this.enemyKills.set(enemyId, (this.enemyKills.get(enemyId) || 0) + 1);
+    this._pushReplay({ kind: 'enemy_death', enemyId });
   }
   recordEnemyRepair(enemyId, amount) {
     if (!enemyId || !Number.isFinite(amount) || amount <= 0) return;
     this.enemyRepairs.set(enemyId, (this.enemyRepairs.get(enemyId) || 0) + amount);
     this._pushTimeline({ kind: 'enemy_repair', source: enemyId, value: amount });
+    this._pushReplay({ kind: 'enemy_repair', enemyId, value: amount });
   }
   recordEnemyShield(enemyId, duration) {
     if (!enemyId || !Number.isFinite(duration) || duration <= 0) return;
@@ -87,16 +94,27 @@ export class CombatStatsTracker {
     current.duration += duration;
     this.enemyShields.set(enemyId, current);
     this._pushTimeline({ kind: 'enemy_shield', source: enemyId, value: duration });
+    this._pushReplay({ kind: 'enemy_shield', enemyId, value: duration });
   }
   recordEnemyShieldMitigation(enemyId, amount) {
     if (!enemyId || !Number.isFinite(amount) || amount <= 0) return;
     this.enemyShieldMitigation.set(enemyId, (this.enemyShieldMitigation.get(enemyId) || 0) + amount);
   }
-  recordWave(wave, total) { this._pushTimeline({ kind: 'wave', wave, total }); }
-  recordRecall() { this._pushTimeline({ kind: 'recall' }); }
+  recordWave(wave, total) {
+    this._pushTimeline({ kind: 'wave', wave, total });
+    this._pushReplay({ kind: 'wave', wave, total });
+  }
+  recordRecall() {
+    this._pushTimeline({ kind: 'recall' });
+    this._pushReplay({ kind: 'recall' });
+  }
   _pushTimeline(event) {
     this.timeline.push({ time: this.battleTime, ...event });
     if (this.timeline.length > 40) this.timeline.shift();
+  }
+  _pushReplay(event) {
+    if (this.replayEvents.length >= 6000) return;
+    this.replayEvents.push({ time: this.battleTime, ...event });
   }
   tick(dt) { this.battleTime += dt; }
   snapshotDeath(hp, energy, nearby) {
@@ -127,6 +145,7 @@ export class CombatStatsTracker {
       enemy_shields: Object.fromEntries(this.enemyShields),
       enemy_shield_mitigation: Object.fromEntries(this.enemyShieldMitigation),
       timeline: this.timeline,
+      replay_events: this.replayEvents,
     };
   }
 }

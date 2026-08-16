@@ -40,6 +40,9 @@ function normalizeEntry(raw = {}, index = 0) {
     finalHp: finiteNumber(raw.finalHp, 0, 1_000_000),
     rulesCount: Math.floor(finiteNumber(raw.rulesCount, 0, 40)),
     upgrades: Math.floor(finiteNumber(raw.upgrades, 0, 99)),
+    simulationVersion: Math.floor(finiteNumber(raw.simulationVersion, 1, 99)),
+    simulationStep: finiteNumber(raw.simulationStep, 1 / 60, 0.5),
+    replayDigest: /^RPL\d+-[0-9A-F]{8}$/.test(String(raw.replayDigest || '')) ? String(raw.replayDigest) : '',
   };
   normalized.receipt = runReceipt(normalized);
   return normalized;

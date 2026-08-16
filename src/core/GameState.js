@@ -11,8 +11,9 @@ import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/Runti
 import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
 import { clearProductMetrics, productMetricsSnapshot, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
+import { combineReplayDigests, MAX_REPLAY_EVENTS } from '../systems/RunReplay.js?v=20260725-4';
 
-const SAVE_VERSION = 6;
+const SAVE_VERSION = 7;
 const RUN_SAVE_KEY = 'overlogic_run_save';
 const RUN_BACKUP_KEY = 'overlogic_run_save_backup';
 const RUN_TEMP_KEY = 'overlogic_run_save_pending';
@@ -91,6 +92,7 @@ function defaultRunStats() {
     totalDamageDealt: 0,
     totalBattleTime: 0,
     rewardsChosen: [],
+    replayDigests: [],
   };
 }
 
@@ -281,6 +283,9 @@ class GameStateClass {
     this.runStats.battlesWon += 1;
     this.runStats.totalDamageDealt += Number(this.lastReport?.total_damage_dealt) || 0;
     this.runStats.totalBattleTime += Number(this.lastReport?.battle_time) || 0;
+    if (this.lastReport?._replayDigest) {
+      this.runStats.replayDigests = [...(this.runStats.replayDigests || []), this.lastReport._replayDigest].slice(-12);
+    }
     if (rewardId) this.runStats.rewardsChosen.push(rewardId);
 
     // Persist HP before applying rewards so Max HP upgrades can also grant
@@ -341,6 +346,9 @@ class GameStateClass {
       finalHp: Number(this.lastReport?._endHp) || 0,
       rulesCount: this.rules.length,
       upgrades: Array.isArray(this.runStats.rewardsChosen) ? this.runStats.rewardsChosen.length : 0,
+      simulationVersion: this.lastReport?._simulationVersion,
+      simulationStep: this.lastReport?._simulationStep,
+      replayDigest: combineReplayDigests(this.runStats.replayDigests),
     });
     if (result.persisted) {
       this.runStats.completionRecorded = true;
@@ -1402,6 +1410,9 @@ class GameStateClass {
       rewardsChosen: Array.isArray(this.runStats?.rewardsChosen)
         ? this.runStats.rewardsChosen.filter(id => GameDatabase.getReward(id))
         : [],
+      replayDigests: Array.isArray(this.runStats?.replayDigests)
+        ? this.runStats.replayDigests.filter((digest) => /^RPL\d+-[0-9A-F]{8}$/.test(String(digest))).slice(-12)
+        : [],
     };
     if (JSON.stringify(normalizedRunStats) !== JSON.stringify(this.runStats)) {
       this.runStats = normalizedRunStats;
@@ -1412,6 +1423,13 @@ class GameStateClass {
       changed = true;
     } else if (Array.isArray(this.lastReport.timeline) && this.lastReport.timeline.length > 100) {
       this.lastReport = { ...this.lastReport, timeline: this.lastReport.timeline.slice(-100) };
+      changed = true;
+    }
+    if (Array.isArray(this.lastReport.replay_events) && this.lastReport.replay_events.length > MAX_REPLAY_EVENTS) {
+      this.lastReport = { ...this.lastReport, replay_events: this.lastReport.replay_events.slice(-MAX_REPLAY_EVENTS) };
+      changed = true;
+    } else if (this.lastReport.replay_events !== undefined && !Array.isArray(this.lastReport.replay_events)) {
+      this.lastReport = { ...this.lastReport, replay_events: [] };
       changed = true;
     }
     const requestedMode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';

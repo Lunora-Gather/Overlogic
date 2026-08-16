@@ -21,6 +21,7 @@ const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf
 const reportUi = await fs.readFile(path.join(root, 'src/ui/PostBattleReportUI.js'), 'utf8');
 const victoryUi = await fs.readFile(path.join(root, 'src/ui/VictoryUI.js'), 'utf8');
 const runVerification = await fs.readFile(path.join(root, 'src/systems/RunVerification.js'), 'utf8');
+const runReplay = await fs.readFile(path.join(root, 'src/systems/RunReplay.js'), 'utf8');
 const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
 const operationsConfig = await fs.readFile(path.join(root, 'src/systems/OperationsConfig.js'), 'utf8');
 const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductTelemetry.js'), 'utf8');
@@ -82,8 +83,12 @@ check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) &&
   'operator dossier must use an accessible localized dialog');
 check(/leaderboardRuns/.test(menuUi) && /dossier-leaderboard-title/.test(menuUi),
   'operator dossier must render a normalized local leaderboard');
+check(/profile-leaderboard-mode/.test(menuUi) && /profileLeaderboardDifficulty/.test(menuUi),
+  'local leaderboard must expose fair mode and difficulty filters');
 check(/id="victory-receipt"/.test(html) && /runReceipt/.test(victoryUi) && !runVerification.includes('OLR1-'),
   'victory screen must expose a deterministic run receipt without hardcoding a receipt value');
+check(/combineReplayDigests/.test(victoryUi) && /simulationVersion/.test(victoryUi),
+  'victory receipts must include archived replay facts');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
@@ -123,6 +128,16 @@ check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(
 check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');
 check(/preventScroll:\s*true/.test(menuUi) && /profileCard\.scrollTop\s*=\s*0/.test(menuUi),
   'long operator dossiers must open at the first section while retaining dialog focus');
+check(/SIMULATION_STEP_SECONDS/.test(arena) && /MAX_CATCH_UP_STEPS/.test(arena) && /simulationAccumulator/.test(arena),
+  'live combat must declare and enforce a bounded fixed-step simulation');
+check(/battle\.hazards/.test(arena) && !/battle\.id === ['"]battle_4['"]/.test(arena),
+  'campaign hazard geometry must be data-driven');
+check(battleTable.battles.every((battle) => Array.isArray(battle.hazards) && battle.hazards.length <= 16),
+  'battle content must declare bounded hazard geometry');
+check(/boss_laser/.test(arena) && /case ['"]boss_laser['"]/.test(await fs.readFile(path.join(root, 'src/systems/AudioManager.js'), 'utf8')),
+  'boss laser feedback must have a dedicated audio cue');
+check(/MAX_REPLAY_EVENTS/.test(runReplay) && /replayDigest/.test(runVerification) && /_replayDigest/.test(arena),
+  'combat records must expose a bounded deterministic replay digest');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');

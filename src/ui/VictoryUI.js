@@ -10,6 +10,7 @@ import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { runReceipt } from '../systems/RunVerification.js?v=20260725-4';
+import { combineReplayDigests } from '../systems/RunReplay.js?v=20260725-4';
 
 export class VictoryUI {
   constructor() {
@@ -72,6 +73,9 @@ export class VictoryUI {
     const battlesWon = runStats.battlesWon ?? 0;
     const totalTime = runStats.totalBattleTime ?? 0;
     const upgrades = Array.isArray(runStats.rewardsChosen) ? runStats.rewardsChosen.length : 0;
+    const replayDigests = Array.isArray(runStats.replayDigests)
+      ? runStats.replayDigests
+      : (report._replayDigest ? [report._replayDigest] : []);
     const records = runRecords();
     const receipt = runReceipt({
       mode: GameState.runConfig?.mode,
@@ -83,6 +87,9 @@ export class VictoryUI {
       finalHp,
       rulesCount: ruleCount,
       upgrades,
+      simulationVersion: report._simulationVersion,
+      simulationStep: report._simulationStep,
+      replayDigest: combineReplayDigests(replayDigests),
     });
     if (this.receiptEl) this.receiptEl.textContent = receipt;
 

@@ -900,6 +900,40 @@ input:focus-visible {
   padding-top: 4px;
 }
 
+.leaderboard-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0;
+}
+
+.leaderboard-filters label {
+  display: grid;
+  gap: 4px;
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.leaderboard-filters select {
+  min-width: 0;
+  min-height: 34px;
+  padding: 6px 8px;
+  border: 1px solid var(--border-soft);
+  border-radius: 7px;
+  color: var(--txt);
+  background: rgba(4, 10, 21, 0.82);
+  font: inherit;
+  text-transform: none;
+}
+
+.leaderboard-filters select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .leaderboard-list {
   display: grid;
   gap: 8px;
@@ -996,6 +1030,10 @@ input:focus-visible {
 
   .leaderboard-row code {
     grid-column: 3;
+  }
+
+  .leaderboard-filters {
+    grid-template-columns: 1fr;
   }
 }
 

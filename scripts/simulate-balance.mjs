@@ -34,20 +34,8 @@ const ENEMY_CLASSES = {
 };
 
 function addHazards(ctx, battle) {
-  const ids2 = new Set(['battle_4', 'battle_6']);
-  const ids3 = new Set(['battle_5', 'battle_7']);
-  const ids4 = new Set(['battle_8', 'battle_9', 'battle_10']);
-  if (ids2.has(battle.id)) {
-    ctx.hazards.push(new HazardTile(-4, -4, 2.0), new HazardTile(4, 4, 2.0));
-  } else if (ids3.has(battle.id)) {
-    ctx.hazards.push(new HazardTile(-5, 3, 2.2), new HazardTile(5, -3, 2.2), new HazardTile(0, 0, 1.8));
-  } else if (ids4.has(battle.id)) {
-    ctx.hazards.push(
-      new HazardTile(-6, -6, 2.5),
-      new HazardTile(6, 6, 2.5),
-      new HazardTile(-6, 6, 2.5),
-      new HazardTile(6, -6, 2.5),
-    );
+  for (const hazard of battle.hazards || []) {
+    ctx.hazards.push(new HazardTile(hazard.x, hazard.y, hazard.radius));
   }
 }
 
@@ -77,7 +65,9 @@ function spawnWave(ctx, spawns, random = Math.random) {
 
 export function simulateBattle(battle, options = {}) {
   const maxTime = options.maxTime ?? 90;
-  const dt = options.dt ?? 1 / 30;
+  // Match the live arena's fixed simulation step so balance gates exercise
+  // the same deterministic timing model as real players.
+  const dt = options.dt ?? 1 / 60;
   const ctx = new BattleContext();
   ctx.hud = { logConsole() {} };
   const stats = new RobotStats();
@@ -178,7 +168,9 @@ function runSuite() {
   const earlyBattles = [0, 1, 2].map((index) => GameDatabase.getBattle(index));
   const earlyGate = earlyBattles.map((battle) => simulateBattle(battle));
 
-  prepareRun({ seed: 20260725, fullRules: true });
+  // Mid-game gates represent a reachable build after the first few reward
+  // choices, rather than an unupgraded robot entering the Crucible.
+  prepareRun({ seed: 20260725, fullRules: true, midGameBuild: true });
   const rosterDiagnostics = Array.from({ length: GameDatabase.getBattleCount() }, (_, index) =>
     simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
   );
@@ -206,11 +198,17 @@ function runSuite() {
   return { earlyGate, midGameGate, bossGate, difficultyGate, weeklyGate, rosterDiagnostics };
 }
 
-function prepareRun({ seed, mode = 'standard', difficulty = 'standard', fullRules = false, lateGameBuild = false }) {
+function prepareRun({ seed, mode = 'standard', difficulty = 'standard', fullRules = false, midGameBuild = false, lateGameBuild = false }) {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
   GameState.runConfig = { mode, difficulty, seed };
   if (fullRules) GameState._advanceTeachRulesTo(4);
+  if (midGameBuild) {
+    Object.assign(GameState.stats, {
+      basic_dmg: 10,
+    });
+    GameState.runStats.rewardsChosen = ['pu_basic_dmg'];
+  }
   if (lateGameBuild) {
     // Six legal campaign selections: damage ×3, armor penetration ×2 and
     // Emergency Recall. This is a demanding but reachable Apex route build,

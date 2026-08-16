@@ -47,6 +47,8 @@ export class MainMenu {
     this._confirmKey = null;
     this._confirmResolver = null;
     this._profileReturnFocus = null;
+    this.profileLeaderboardMode = null;
+    this.profileLeaderboardDifficulty = null;
     const standalone = window.matchMedia?.('(display-mode: standalone)').matches === true ||
       window.navigator?.standalone === true;
     this.btnExit?.classList.toggle('hidden', !standalone);
@@ -289,7 +291,17 @@ export class MainMenu {
         <span class="achievement-xp">+${achievement.xp} XP</span>
       </article>`;
     }).join('');
-    const leaderboard = leaderboardRuns({ limit: 5 });
+    const modes = ['standard', 'daily', 'weekly'];
+    const difficulties = ['casual', 'standard', 'veteran'];
+    const selectedMode = modes.includes(this.profileLeaderboardMode)
+      ? this.profileLeaderboardMode
+      : (modes.includes(GameState.runConfig?.mode) ? GameState.runConfig.mode : 'standard');
+    const selectedDifficulty = difficulties.includes(this.profileLeaderboardDifficulty)
+      ? this.profileLeaderboardDifficulty
+      : (difficulties.includes(GameState.runConfig?.difficulty) ? GameState.runConfig.difficulty : 'standard');
+    const leaderboard = leaderboardRuns({ mode: selectedMode, difficulty: selectedDifficulty, limit: 5 });
+    const modeOptions = modes.map((mode) => `<option value="${mode}"${mode === selectedMode ? ' selected' : ''}>${escapeHtml(t(`mode.${mode}`))}</option>`).join('');
+    const difficultyOptions = difficulties.map((difficulty) => `<option value="${difficulty}"${difficulty === selectedDifficulty ? ' selected' : ''}>${escapeHtml(t(`difficulty.${difficulty}`))}</option>`).join('');
     const leaderboardRows = leaderboard.map((entry, index) => `<li class="leaderboard-row">
       <span class="leaderboard-rank">#${index + 1}</span>
       <span class="leaderboard-route"><strong>${escapeHtml(t(`mode.${entry.mode}`))}</strong><small>${escapeHtml(t(`difficulty.${entry.difficulty}`))}</small></span>
@@ -316,8 +328,24 @@ export class MainMenu {
       </section>
       <section class="dossier-leaderboard" aria-labelledby="dossier-leaderboard-title">
         <div class="dossier-section-heading"><h3 id="dossier-leaderboard-title">${escapeHtml(t('menu.profileLeaderboardTitle'))}</h3><span>${escapeHtml(t('menu.profileLeaderboardLocal'))}</span></div>
+        <div class="leaderboard-filters" aria-label="${escapeHtml(t('menu.profileLeaderboardFilters'))}">
+          <label><span>${escapeHtml(t('menu.profileLeaderboardMode'))}</span><select id="profile-leaderboard-mode" aria-label="${escapeHtml(t('menu.profileLeaderboardMode'))}">${modeOptions}</select></label>
+          <label><span>${escapeHtml(t('menu.profileLeaderboardDifficulty'))}</span><select id="profile-leaderboard-difficulty" aria-label="${escapeHtml(t('menu.profileLeaderboardDifficulty'))}">${difficultyOptions}</select></label>
+        </div>
         ${leaderboardRows ? `<ol class="leaderboard-list">${leaderboardRows}</ol>` : `<p class="leaderboard-empty">${escapeHtml(t('menu.profileLeaderboardEmpty'))}</p>`}
       </section>`;
+    const modeFilter = this.profileDialogBody.querySelector('#profile-leaderboard-mode');
+    const difficultyFilter = this.profileDialogBody.querySelector('#profile-leaderboard-difficulty');
+    modeFilter?.addEventListener('change', () => {
+      this.profileLeaderboardMode = modeFilter.value;
+      this.renderProfileDialog();
+      this.profileDialogBody.querySelector('#profile-leaderboard-mode')?.focus({ preventScroll: true });
+    });
+    difficultyFilter?.addEventListener('change', () => {
+      this.profileLeaderboardDifficulty = difficultyFilter.value;
+      this.renderProfileDialog();
+      this.profileDialogBody.querySelector('#profile-leaderboard-difficulty')?.focus({ preventScroll: true });
+    });
   }
 
   _openProfile() {

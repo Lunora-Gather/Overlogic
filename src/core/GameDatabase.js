@@ -212,6 +212,19 @@ function validateDataTables({ conditions, actions, enemies, battles, rewards }) 
       if (!Number.isInteger(spawn.count) || spawn.count < 1) errors.push(`battle ${battle.id}: invalid spawn count`);
       if (!Number.isInteger(spawn.wave) || spawn.wave < 1) errors.push(`battle ${battle.id}: invalid spawn wave`);
     }
+    if (battle.hazards !== undefined) {
+      if (!Array.isArray(battle.hazards) || battle.hazards.length > 16) {
+        errors.push(`battle ${battle.id}: hazards must be an array of at most 16 entries`);
+      }
+      for (const hazard of battle.hazards || []) {
+        if (!hazard || typeof hazard !== 'object' ||
+          !finite(hazard.x) || !finite(hazard.y) || !finite(hazard.radius) ||
+          hazard.radius <= 0 || hazard.radius > 8 ||
+          Math.abs(hazard.x) > 9.5 || Math.abs(hazard.y) > 9.5) {
+          errors.push(`battle ${battle.id}: invalid hazard geometry`);
+        }
+      }
+    }
     for (const rewardId of battle.rewardPool || []) if (!rewardIds.has(rewardId)) errors.push(`battle ${battle.id}: missing reward ${rewardId}`);
   }
 

@@ -184,6 +184,12 @@ class AudioManagerClass {
         this._sweep(220, 55, 0.6, 0.35, 'sawtooth', pan);
         this._noise(0.5, 0.25, 200, pan);
         break;
+      case 'boss_laser':
+        // Distinct high-energy telegraph/fire cue; keep it separate from the
+        // phase transition so players can learn the interrupt timing.
+        this._sweep(180, 1800, 0.45, 0.28, 'sawtooth', pan);
+        this._tone(90, 0.32, 0.2, 'square', pan);
+        break;
       case 'defeat':
         this._arpeggio([220, 207.65, 164.81], 0.15, 0.25, 'sawtooth', pan);
         break;

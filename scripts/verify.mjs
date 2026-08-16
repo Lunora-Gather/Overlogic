@@ -41,6 +41,7 @@ const { profileSnapshot, profileRank, resetProfile } = await import('../src/syst
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 const { clearRunArchive, leaderboardRuns, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
 const { canonicalRunFacts, runReceipt } = await import('../src/systems/RunVerification.js?v=20260725-4');
+const { combineReplayDigests, replayDigest } = await import('../src/systems/RunReplay.js?v=20260725-4');
 const {
   recordRuntimeError,
   recordRuntimeEvent,
@@ -97,6 +98,8 @@ function verifyDataContracts() {
     }
   }
   assert.deepEqual(errors, []);
+  assert(GameDatabase.getBattle(3).hazards?.length === 2 && GameDatabase.getBattle(8).hazards?.length === 4,
+    'campaign hazard geometry must be authored in the battle content contract');
   assert(GameDatabase.getEnemy('repair_drone'), 'content tables must include the repair support enemy');
   assert(GameDatabase.getBattle(4).enemySpawns.some((spawn) => spawn.enemyId === 'repair_drone'),
     'a mid-game battle must exercise the repair support enemy');
@@ -157,11 +160,22 @@ function verifyRunReceiptContracts() {
   const facts = {
     mode: 'weekly', difficulty: 'veteran', seed: 202633, battlesWon: 7,
     totalDamageDealt: 2900, totalBattleTime: 121.5, finalHp: 28, rulesCount: 10, upgrades: 6,
+    simulationVersion: 2, simulationStep: 1 / 60,
   };
   const first = runReceipt(facts);
   assert.match(first, /^OLR1-[0-9A-F]{8}$/);
   assert.equal(runReceipt({ ...facts }), first, 'run receipts must be deterministic');
   assert.notEqual(runReceipt({ ...facts, totalDamageDealt: 2901 }), first, 'material run facts must alter the receipt');
+  assert.notEqual(runReceipt({ ...facts, simulationVersion: 1 }), first, 'simulation version must be part of the receipt facts');
+  assert.notEqual(runReceipt({ ...facts, simulationStep: 1 / 30 }), first, 'simulation step must be part of the receipt facts');
+  const replay = replayDigest([{ time: 0.25, kind: 'action', actionId: 'basic_attack', ruleId: 'rule_1' }], {
+    battleId: 'battle_1', seed: 101, simulationVersion: 2, simulationStep: 1 / 60,
+  });
+  assert.match(replay, /^RPL1-[0-9A-F]{8}$/);
+  assert.equal(replayDigest([{ time: 0.25, kind: 'action', actionId: 'basic_attack', ruleId: 'rule_1' }], {
+    battleId: 'battle_1', seed: 101, simulationVersion: 2, simulationStep: 1 / 60,
+  }), replay, 'replay digests must be deterministic');
+  assert.match(combineReplayDigests([replay]), /^RPL1-[0-9A-F]{8}$/);
   assert.equal(canonicalRunFacts({ ...facts, seed: 'not-a-seed' }).startsWith('v1|weekly|veteran|1|'), true,
     'run receipt facts must clamp malformed values before hashing');
 }
@@ -721,10 +735,14 @@ function verifyUiSafetyContracts() {
     'operator progression must expose an accessible detailed dossier');
   assert(menuUi.includes('leaderboardRuns') && menuUi.includes('dossier-leaderboard-title'),
     'operator dossier must expose the normalized local run leaderboard');
+  assert(menuUi.includes('profile-leaderboard-mode') && menuUi.includes('profileLeaderboardDifficulty'),
+    'operator leaderboard must separate mode and difficulty before comparing runs');
   assert(menuUi.includes('preventScroll: true') && menuUi.includes('profileCard.scrollTop = 0'),
     'the mobile operator dossier must open at its title without losing keyboard focus containment');
   assert(html.includes('id="victory-receipt"') && victoryUi.includes('runReceipt') && victoryUi.includes('btn-copy-victory-receipt'),
     'victory results must expose a shareable deterministic run receipt');
+  assert(victoryUi.includes('combineReplayDigests') && victoryUi.includes('simulationVersion'),
+    'victory receipts must include the fixed-step replay facts used by the archive');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
@@ -764,6 +782,8 @@ function verifyUiSafetyContracts() {
   const reportUi = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   const historyUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const arenaUi = fs.readFileSync('src/core/CombatArena.js', 'utf8');
+  const audioSource = fs.readFileSync('src/systems/AudioManager.js', 'utf8');
+  const trackerSource = fs.readFileSync('src/systems/CombatStatsTracker.js', 'utf8');
   const editorUiSource = fs.readFileSync('src/ui/LogicEditorUI.js', 'utf8');
   const reportUiSource = fs.readFileSync('src/ui/PostBattleReportUI.js', 'utf8');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
@@ -778,6 +798,12 @@ function verifyUiSafetyContracts() {
   assert(arenaUi.includes('if (!report._sandbox)') && arenaUi.includes('recordBattle(GameState.lastReport)'), 'sandbox runs must not enter progression history');
   assert(arenaUi.includes("overlogic:challenge-complete"), 'completed daily objectives must provide player feedback');
   assert(arenaUi.includes('runModifiers') && arenaUi.includes('log.dailyProtocol') && arenaUi.includes('log.weeklyProtocol'), 'combat must apply and announce periodic protocol modifiers');
+  assert(arenaUi.includes('SIMULATION_STEP_SECONDS') && arenaUi.includes('MAX_CATCH_UP_STEPS') && arenaUi.includes('simulationAccumulator'),
+    'live combat must use a bounded fixed-step simulation accumulator');
+  assert(arenaUi.includes('battle.hazards') && !arenaUi.includes("battle.id === 'battle_4'"),
+    'campaign hazard placement must remain data-driven rather than battle-id hardcoded');
+  assert(arenaUi.includes("AudioManager.play('boss_laser')") && audioSource.includes("case 'boss_laser'"),
+    'boss laser feedback must use a dedicated audio cue');
   assert(arenaUi.indexOf('this.hud.onBattleStart(battle)') < arenaUi.indexOf("'log.dailyProtocol'"),
     'battle HUD must initialize before protocol and hazard notices are written');
   assert(editorUiSource.includes("enemyIds.has('repair_drone')") && editorUiSource.includes("advice.support.label"),
@@ -789,6 +815,8 @@ function verifyUiSafetyContracts() {
   assert(reportUiSource.includes('enemy_shield_mitigation') && reportUiSource.includes("report.timelineShield"),
     'post-battle report must explain enemy shield telemetry');
   assert(gameManager.includes('GameState.recordRunCompletion()'), 'completed campaigns must enter the run archive');
+  assert(arenaUi.includes('_replayDigest') && trackerSource.includes('replay_events'),
+    'completed combat must expose a replay digest and bounded event stream');
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
   setLocale('zh-CN', { notify: false });
@@ -840,6 +868,10 @@ function verifyRuleTelemetryContracts() {
   assert.equal(report.timeline.some(event => event.kind === 'damage'), true);
   assert.equal(report.timeline.some(event => event.kind === 'wave'), true);
   assert.equal(report.enemy_kills.crawler, 2, 'combat reports should preserve enemy kill distribution');
+  assert(report.replay_events.some(event => event.kind === 'action'), 'combat reports should retain bounded replay events');
+  const bounded = new CombatStatsTracker();
+  for (let index = 0; index < 6_050; index += 1) bounded.recordAction('basic_attack', 'r1');
+  assert.equal(bounded.toReport().replay_events.length, 6_000, 'replay events must remain bounded for storage safety');
 }
 
 function verifySynergyContracts() {
@@ -950,6 +982,8 @@ function verifyRunHistoryContracts() {
   GameState.lastReport = { _endHp: 44 };
   assert.equal(GameState.recordRunCompletion()?.persisted, true, 'cleared campaigns should archive through GameState');
   assert.equal(GameState.runStats.completionRecorded, true);
+  assert.match(runArchiveSnapshot().entries.find(entry => entry.id === 'run_integration')?.replayDigest || '', /^RPL1-[0-9A-F]{8}$/,
+    'completed campaigns must archive a deterministic combined replay digest');
   assert.equal(GameState.recordRunCompletion(), null, 'a completed run must only settle once');
   const archiveBackup = GameState.exportSaveData();
   clearRunArchive();

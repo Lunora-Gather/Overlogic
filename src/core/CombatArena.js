@@ -26,8 +26,15 @@ import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { recordFrame } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { durationBucket, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
+import { replayDigest } from '../systems/RunReplay.js?v=20260725-4';
 
 const WAVE_CLEAR_DELAY = 1.15;
+// Simulation is deliberately decoupled from display refresh. A fixed step
+// keeps a seeded run identical on 60 Hz, 120 Hz, and throttled mobile tabs;
+// the renderer may interpolate later without changing gameplay facts.
+export const SIMULATION_STEP_SECONDS = 1 / 60;
+const MAX_CATCH_UP_STEPS = 120;
+const SIMULATION_VERSION = 2;
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
   shooter: ShooterEnemy,
@@ -61,6 +68,7 @@ export class CombatArena {
     this.paused = false;
     this.speed = 1;
     this.lastTs = 0;
+    this.simulationAccumulator = 0;
     this.battleTime = 0;
     this._rafId = 0;
     this._finished = false;
@@ -68,6 +76,7 @@ export class CombatArena {
     this.onFinished = null;    // callback(won)
     this._phaseToastTimer = 0;
     this._waveClearTimer = 0;
+    this.simulationAccumulator = 0;
     this.random = Math.random;
   }
 
@@ -118,39 +127,22 @@ export class CombatArena {
       }), 'info');
     }
 
-    // Spawn environmental hazards depending on battle
-    this.ctx.hazards = [];
-    if (battle.hazardPattern === 'cross') {
-      this.ctx.hazards.push(new HazardTile(-5, -5, 2.2));
-      this.ctx.hazards.push(new HazardTile(5, 5, 2.2));
-      this.ctx.hazards.push(new HazardTile(-5, 5, 2.2));
-      this.ctx.hazards.push(new HazardTile(5, -5, 2.2));
-      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
-    } else if (battle.id === 'battle_4' || battle.id === 'battle_6') {
-      // Swarm / Iron Tide — plasma hazards
-      this.ctx.hazards.push(new HazardTile(-4, -4, 2.0));
-      this.ctx.hazards.push(new HazardTile(4, 4, 2.0));
-      this.hud.logConsole(t('log.hazards', { count: 2 }), 'warn');
-    } else if (battle.id === 'battle_5' || battle.id === 'battle_7') {
-      // Shadow Grid / Mixed Protocol — 3 hazards
-      this.ctx.hazards.push(new HazardTile(-5, 3, 2.2));
-      this.ctx.hazards.push(new HazardTile(5, -3, 2.2));
-      this.ctx.hazards.push(new HazardTile(0, 0, 1.8));
-      this.hud.logConsole(t('log.hazards', { count: 3 }), 'warn');
-    } else if (battle.id === 'battle_8') {
-      // Crucible — heavy hazards
-      this.ctx.hazards.push(new HazardTile(-6, -6, 2.5));
-      this.ctx.hazards.push(new HazardTile(6, 6, 2.5));
-      this.ctx.hazards.push(new HazardTile(-6, 6, 2.5));
-      this.ctx.hazards.push(new HazardTile(6, -6, 2.5));
-      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
-    } else if (battle.id === 'battle_9' || battle.id === 'battle_10') {
-      // Warden / Apex Warden boss arenas
-      this.ctx.hazards.push(new HazardTile(-6, -6, 2.5));
-      this.ctx.hazards.push(new HazardTile(6, 6, 2.5));
-      this.ctx.hazards.push(new HazardTile(-6, 6, 2.5));
-      this.ctx.hazards.push(new HazardTile(6, -6, 2.5));
-      this.hud.logConsole(t('log.criticalHazards', { count: 4 }), 'danger');
+    // Hazard geometry belongs to the battle content contract. Keep the
+    // sandbox's legacy hazardPattern as a compatibility path, while campaign
+    // battles can now be authored and validated without editing the engine.
+    this.ctx.hazards = Array.isArray(battle.hazards)
+      ? battle.hazards.map(({ x, y, radius }) => new HazardTile(x, y, radius))
+      : [];
+    if (this.ctx.hazards.length === 0 && battle.hazardPattern === 'cross') {
+      this.ctx.hazards = [
+        new HazardTile(-5, -5, 2.2), new HazardTile(5, 5, 2.2),
+        new HazardTile(-5, 5, 2.2), new HazardTile(5, -5, 2.2),
+      ];
+    }
+    if (this.ctx.hazards.length > 0) {
+      this.hud.logConsole(t(this.ctx.hazards.length >= 4 ? 'log.criticalHazards' : 'log.hazards', {
+        count: this.ctx.hazards.length,
+      }), this.ctx.hazards.length >= 4 ? 'danger' : 'warn');
     }
 
     this.executor = new ActionExecutor();
@@ -206,11 +198,20 @@ export class CombatArena {
     this._rafId = requestAnimationFrame((t) => this._loop(t));
     const rawDt = Math.max(0, (ts - this.lastTs) / 1000);
     recordFrame(rawDt * 1000);
-    const realDt = Math.min(0.05, rawDt); // cap to avoid huge jumps
+    const realDt = Math.min(0.25, rawDt); // cap hidden-tab catch-up to a bounded window
     this.lastTs = ts;
     if (this.paused) { this._render(); return; }
-    const dt = realDt * this.speed;
-    this._update(dt);
+    this.simulationAccumulator += realDt * this.speed;
+    let steps = 0;
+    while (this.simulationAccumulator >= SIMULATION_STEP_SECONDS && steps < MAX_CATCH_UP_STEPS) {
+      this._update(SIMULATION_STEP_SECONDS);
+      this.simulationAccumulator -= SIMULATION_STEP_SECONDS;
+      steps += 1;
+      if (this._finished) break;
+    }
+    // A tab can be suspended for longer than the bounded catch-up window. Do
+    // not let stale wall-clock time create an unbounded CPU spike on resume.
+    if (steps >= MAX_CATCH_UP_STEPS) this.simulationAccumulator = 0;
     this._render();
   }
 
@@ -329,7 +330,7 @@ export class CombatArena {
           };
           e.onLaserFire = () => {
             this.camera.shake(0.4, 15);
-            AudioManager.play('boss_phase');
+            AudioManager.play('boss_laser');
           };
           this.hud.showBossBar(localizedBossName);
         }
@@ -354,6 +355,14 @@ export class CombatArena {
     report._battleId = this.battle?.id || null;
     report._won = won === true;
     report._sandbox = String(this.battle?.id || '').startsWith('sandbox_');
+    report._simulationVersion = SIMULATION_VERSION;
+    report._simulationStep = SIMULATION_STEP_SECONDS;
+    report._replayDigest = replayDigest(report.replay_events, {
+      battleId: report._battleId,
+      seed: report._runSeed,
+      simulationVersion: report._simulationVersion,
+      simulationStep: report._simulationStep,
+    });
     if (!won) {
       this.ctx.tracker.snapshotDeath(
         this.robot.hp, this.robot.energy,
@@ -399,7 +408,14 @@ export class CombatArena {
   togglePause() { this.paused = !this.paused; }
   stepFrame() {
     if (!this.paused || this._finished) return;
-    this._update(0.15);
+    // Preserve the existing debug affordance of advancing roughly one logic
+    // tick while still executing the same fixed-step simulation path.
+    const debugDuration = 0.15;
+    let remaining = debugDuration;
+    while (remaining >= SIMULATION_STEP_SECONDS && !this._finished) {
+      this._update(SIMULATION_STEP_SECONDS);
+      remaining -= SIMULATION_STEP_SECONDS;
+    }
     this._render();
   }
   setSpeed(s) { this.speed = s; }
