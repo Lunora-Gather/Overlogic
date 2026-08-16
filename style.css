@@ -538,7 +538,7 @@ input:focus-visible {
   text-align: center;
 }
 
-.daily-seed-label {
+.period-seed-label {
   grid-column: 1 / -1;
   justify-self: center;
   margin: 0;
@@ -1514,7 +1514,7 @@ html[data-locale^="zh"] h3 {
   font: 600 12px/1.2 var(--font-ui);
 }
 
-#daily-seed-label {
+#period-seed-label {
   grid-column: 1 / -1;
   text-align: center;
   color: var(--accent2);
@@ -1565,7 +1565,7 @@ html[data-locale^="zh"] h3 {
   .locale-switcher button { padding: 6px 8px; }
   .title-block { margin-bottom: 12px; }
   .run-config-panel { grid-template-columns: 1fr; }
-  #daily-seed-label { grid-column: 1; }
+  #period-seed-label { grid-column: 1; }
 }
 
 .mission-briefing {
@@ -4107,7 +4107,7 @@ select:focus-visible,
 }
 
 .run-config-hint,
-.daily-seed-label {
+.period-seed-label {
   grid-column: 1 / -1;
 }
 

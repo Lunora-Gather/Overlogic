@@ -13,7 +13,7 @@ const SAVE_VERSION = 6;
 const RUN_SAVE_KEY = 'overlogic_run_save';
 const RUN_BACKUP_KEY = 'overlogic_run_save_backup';
 const RUN_TEMP_KEY = 'overlogic_run_save_pending';
-const RUN_MODES = new Set(['standard', 'daily']);
+const RUN_MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
 const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'boss']);
@@ -61,6 +61,23 @@ function baseStats() {
 
 function createRunId() {
   return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+}
+
+function isoWeekIdentity(date = new Date()) {
+  const input = new Date(date);
+  const source = Number.isFinite(input.getTime()) ? input : new Date();
+  const thursday = new Date(Date.UTC(source.getUTCFullYear(), source.getUTCMonth(), source.getUTCDate()));
+  const weekday = thursday.getUTCDay() || 7;
+  thursday.setUTCDate(thursday.getUTCDate() + 4 - weekday);
+  const year = thursday.getUTCFullYear();
+  const yearStart = new Date(Date.UTC(year, 0, 1));
+  const week = Math.ceil((((thursday - yearStart) / 86_400_000) + 1) / 7);
+  return {
+    year,
+    week,
+    key: `${year}-W${String(week).padStart(2, '0')}`,
+    seed: Number(`${year}${String(week).padStart(2, '0')}`),
+  };
 }
 
 function defaultRunStats() {
@@ -181,7 +198,7 @@ class GameStateClass {
     this.runConfig = {
       mode: RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard',
       difficulty: DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard',
-      seed: this.settings.runMode === 'daily' ? this.dailySeed() : createRunSeed(),
+      seed: this.periodSeed(this.settings.runMode) || createRunSeed(),
     };
     this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._initDefaultRules();
@@ -429,6 +446,43 @@ class GameStateClass {
     return Number(`${year}${month}${day}`);
   }
 
+  dailyIdentityFromSeed(seed) {
+    const numeric = Number(seed);
+    const text = String(Math.floor(numeric));
+    if (!Number.isSafeInteger(numeric) || !/^\d{8}$/.test(text)) return null;
+    const year = Number(text.slice(0, 4));
+    const month = Number(text.slice(4, 6));
+    const day = Number(text.slice(6, 8));
+    const parsed = new Date(Date.UTC(year, month - 1, day));
+    if (parsed.getUTCFullYear() !== year || parsed.getUTCMonth() !== month - 1 || parsed.getUTCDate() !== day) return null;
+    return { year, month, day, key: `${text.slice(0, 4)}-${text.slice(4, 6)}-${text.slice(6, 8)}`, seed: numeric };
+  }
+
+  weeklyIdentity(date = new Date()) {
+    return { ...isoWeekIdentity(date) };
+  }
+
+  weeklyIdentityFromSeed(seed) {
+    const numeric = Number(seed);
+    const text = String(Math.floor(numeric));
+    if (!Number.isSafeInteger(numeric) || !/^\d{6}$/.test(text)) return null;
+    const year = Number(text.slice(0, 4));
+    const week = Number(text.slice(4));
+    const lastIsoWeek = isoWeekIdentity(new Date(Date.UTC(year, 11, 28))).week;
+    if (year < 1970 || week < 1 || week > lastIsoWeek) return null;
+    return { year, week, key: `${year}-W${String(week).padStart(2, '0')}`, seed: numeric };
+  }
+
+  weeklySeed(date = new Date()) {
+    return isoWeekIdentity(date).seed;
+  }
+
+  periodSeed(mode, date = new Date()) {
+    if (mode === 'daily') return this.dailySeed(date);
+    if (mode === 'weekly') return this.weeklySeed(date);
+    return null;
+  }
+
   hasRunProgress() {
     return this.currentMapColumn > 0 || this.runStats.battlesWon > 0;
   }
@@ -457,8 +511,8 @@ class GameStateClass {
       this.runConfig = {
         mode: this.settings.runMode,
         difficulty: this.settings.difficulty,
-        seed: this.settings.runMode === 'daily'
-          ? this.dailySeed()
+        seed: this.periodSeed(this.settings.runMode)
+          ? (parsedSeed || this.periodSeed(this.settings.runMode))
           : (parsedSeed || (previousMode === 'standard' && Number.isSafeInteger(Number(this.runConfig?.seed))
               ? Number(this.runConfig.seed)
               : createRunSeed())),
@@ -469,7 +523,7 @@ class GameStateClass {
   }
 
   randomFor(salt = '') {
-    const seed = Number(this.runConfig?.seed) || this.dailySeed();
+    const seed = Number(this.runConfig?.seed) || this.periodSeed(this.runConfig?.mode) || this.dailySeed();
     let state = hashString(`${seed}:${salt}`) || 0x6d2b79f5;
     return () => {
       state |= 0;
@@ -483,7 +537,7 @@ class GameStateClass {
   exportRunCode() {
     const mode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';
     const difficulty = DIFFICULTIES.has(this.runConfig?.difficulty) ? this.runConfig.difficulty : 'standard';
-    const seed = normalizeRunSeed(this.runConfig?.seed) || this.dailySeed();
+    const seed = normalizeRunSeed(this.runConfig?.seed) || this.periodSeed(mode) || createRunSeed();
     return `${RUN_CODE_PREFIX}-${mode.toUpperCase()}-${difficulty.toUpperCase()}-${seed.toString(36).toUpperCase()}`;
   }
 
@@ -905,7 +959,7 @@ class GameStateClass {
       this.runConfig = data.runConfig ?? {
         mode: this.settings.runMode,
         difficulty: this.settings.difficulty,
-        seed: this.settings.runMode === 'daily' ? this.dailySeed() : createRunSeed(),
+        seed: this.periodSeed(this.settings.runMode) || createRunSeed(),
       };
       this.tutorialProgress = data.tutorialProgress ?? { editedRule: false, sandboxRun: false };
       this._ruleCounter = data._ruleCounter ?? 0;
@@ -1306,12 +1360,9 @@ class GameStateClass {
     const normalizedRunConfig = {
       mode: normalizedMode,
       difficulty: normalizedDifficulty,
-      seed: normalizedMode === 'daily'
-        ? (Number.isSafeInteger(Number(this.runConfig?.seed)) && Number(this.runConfig.seed) > 0
-            ? Number(this.runConfig.seed) : this.dailySeed())
-        : (Number.isSafeInteger(Number(this.runConfig?.seed)) && Number(this.runConfig.seed) > 0
-            ? Number(this.runConfig.seed)
-            : createRunSeed()),
+      seed: Number.isSafeInteger(Number(this.runConfig?.seed)) && Number(this.runConfig.seed) > 0
+        ? Number(this.runConfig.seed)
+        : (this.periodSeed(normalizedMode) || createRunSeed()),
     };
     if (JSON.stringify(normalizedRunConfig) !== JSON.stringify(this.runConfig)) {
       this.runConfig = normalizedRunConfig;

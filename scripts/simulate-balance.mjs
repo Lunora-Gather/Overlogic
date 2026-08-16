@@ -19,7 +19,7 @@ const { EmpDroneEnemy } = await import('../src/enemies/EmpDroneEnemy.js?v=202607
 const { RepairDroneEnemy } = await import('../src/enemies/RepairDroneEnemy.js?v=20260725-4');
 const { BossProtocolWarden } = await import('../src/enemies/BossProtocolWarden.js?v=20260725-4');
 const { HazardTile } = await import('../src/vfx/HazardTile.js?v=20260725-4');
-const { runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
+const { runModifiers, weeklyProtocol } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
@@ -190,13 +190,22 @@ function runSuite() {
     return { difficulty, ...simulateBattle(GameDatabase.getBattle(7), { maxTime: 120 }) };
   });
 
-  return { earlyGate, midGameGate, bossGate, difficultyGate, rosterDiagnostics };
+  const weeklyGate = [202631, 202632, 202633].map((seed) => {
+    prepareRun({ seed, mode: 'weekly', fullRules: true, lateGameBuild: true });
+    return {
+      seed,
+      protocol: weeklyProtocol(seed)?.id || null,
+      ...simulateBattle(GameDatabase.getBattle(7), { maxTime: 120 }),
+    };
+  });
+
+  return { earlyGate, midGameGate, bossGate, difficultyGate, weeklyGate, rosterDiagnostics };
 }
 
-function prepareRun({ seed, difficulty = 'standard', fullRules = false, lateGameBuild = false }) {
+function prepareRun({ seed, mode = 'standard', difficulty = 'standard', fullRules = false, lateGameBuild = false }) {
   GameState.clearStorage();
   GameState.normalizeAfterDatabaseLoad();
-  GameState.runConfig = { mode: 'standard', difficulty, seed };
+  GameState.runConfig = { mode, difficulty, seed };
   if (fullRules) GameState._advanceTeachRulesTo(4);
   if (lateGameBuild) {
     // Six legal campaign selections: damage ×3, armor penetration ×2 and
@@ -220,6 +229,7 @@ function gateFailures(results) {
     ...results.midGameGate.map((result) => ({ gate: 'mid', maxTime: 90, result })),
     ...results.bossGate.map((result) => ({ gate: 'boss', maxTime: 60, result })),
     ...results.difficultyGate.map((result) => ({ gate: `difficulty:${result.difficulty}`, maxTime: 90, result })),
+    ...results.weeklyGate.map((result) => ({ gate: `weekly:${result.protocol}`, maxTime: 120, result })),
   ];
   return checks.filter(({ result, maxTime }) => (
     !result.won || result.time > maxTime || result.hp <= 0 ||

@@ -10,6 +10,11 @@ const html = await fs.readFile(path.join(root, 'index.html'), 'utf8');
 const css = await fs.readFile(path.join(root, 'style.css'), 'utf8');
 const main = await fs.readFile(path.join(root, 'src/main.js'), 'utf8');
 const editor = await fs.readFile(path.join(root, 'src/ui/LogicEditorUI.js'), 'utf8');
+const gameState = await fs.readFile(path.join(root, 'src/core/GameState.js'), 'utf8');
+const modifiers = await fs.readFile(path.join(root, 'src/systems/RunModifiers.js'), 'utf8');
+const history = await fs.readFile(path.join(root, 'src/systems/RunHistory.js'), 'utf8');
+const archive = await fs.readFile(path.join(root, 'src/systems/RunArchive.js'), 'utf8');
+const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
@@ -69,6 +74,12 @@ check(manifest.name && manifest.short_name && manifest.start_url && manifest.sco
 check(manifest.display === 'standalone', 'PWA must remain installable as a standalone app');
 check(Array.isArray(manifest.icons) && manifest.icons.length > 0, 'PWA manifest must declare an icon');
 check(/rel="manifest"/.test(html) && /name="theme-color"/.test(html), 'install shell metadata is incomplete');
+
+check(/value="weekly"/.test(html), 'the shell must expose the weekly challenge mode');
+check(/weeklyIdentity/.test(gameState) && /weeklySeed/.test(gameState) && /OLR1/.test(gameState), 'weekly mode must use a stable challenge seed and share code');
+check(/weeklyProtocol/.test(modifiers) && /mode === 'weekly'/.test(modifiers), 'weekly mode must apply an explicit protocol layer');
+check(/weekly/.test(history) && /weekly/.test(archive), 'history and archive must preserve weekly mode');
+check(/weeklyProtocol/.test(i18n) && /mode\.weekly/.test(i18n), 'weekly mode must be localized in every dictionary');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');

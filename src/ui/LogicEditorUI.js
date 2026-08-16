@@ -302,7 +302,7 @@ export class LogicEditorUI {
       ['shield', 'dash_away', 'repair', 'emp_burst'].includes(rule.actionId)
     );
     const advice = this._battleAdvice(battle);
-    const dailyProtocol = runModifiers(GameState.runConfig || {}).protocol;
+    const runProtocol = runModifiers(GameState.runConfig || {}).protocol;
     const hasCounter = this._hasEquivalentRule(advice);
     const currentHp = GameState.persistentHp ?? GameState.stats.max_hp;
     const hpRatio = currentHp / Math.max(1, GameState.stats.max_hp);
@@ -333,9 +333,9 @@ export class LogicEditorUI {
         <span class="${healthy ? 'ok' : 'bad'}">${healthy ? `✓ ${escapeHtml(t('brief.hullStable'))}` : `! ${escapeHtml(t('brief.lowHp'))}`}</span>
         <span class="${hasCounter ? 'ok' : 'bad'}">${hasCounter ? '✓' : '!'} ${escapeHtml(t('brief.countermeasure'))}</span>
       </div>
-      ${dailyProtocol ? `<div class="brief-protocol">${escapeHtml(t('brief.dailyProtocol', {
-        name: t(dailyProtocol.titleKey),
-        description: t(dailyProtocol.descriptionKey),
+      ${runProtocol ? `<div class="brief-protocol">${escapeHtml(t(GameState.runConfig?.mode === 'weekly' ? 'brief.weeklyProtocol' : 'brief.dailyProtocol', {
+        name: t(runProtocol.titleKey),
+        description: t(runProtocol.descriptionKey),
       }))}</div>` : ''}
       <div class="brief-actions">
         ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : `<span class="counter-ready">✓ ${escapeHtml(t('brief.counterLoaded'))}</span>`}

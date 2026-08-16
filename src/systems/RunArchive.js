@@ -9,7 +9,7 @@ import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
 const MAX_ENTRIES = 40;
-const MODES = new Set(['standard', 'daily']);
+const MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 
 function finiteNumber(value, min = 0, max = 1_000_000_000) {
@@ -88,6 +88,7 @@ export function runRecords(entries = readEntries()) {
   return {
     completions: valid.length,
     dailyCompletions: valid.filter((entry) => entry.mode === 'daily').length,
+    weeklyCompletions: valid.filter((entry) => entry.mode === 'weekly').length,
     veteranCompletions: valid.filter((entry) => entry.difficulty === 'veteran').length,
     bestTime: best?.totalBattleTime ?? null,
     bestRun: best ? { ...best } : null,

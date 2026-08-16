@@ -101,7 +101,7 @@ export class CombatArena {
     AudioManager.play('battle_start');
     this.hud.onBattleStart(battle);
     if (modifiers.protocol) {
-      this.hud.logConsole(t('log.dailyProtocol', {
+      this.hud.logConsole(t(GameState.runConfig?.mode === 'weekly' ? 'log.weeklyProtocol' : 'log.dailyProtocol', {
         name: t(modifiers.protocol.titleKey),
         description: t(modifiers.protocol.descriptionKey),
       }), 'info');

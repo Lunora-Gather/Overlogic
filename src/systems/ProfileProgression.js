@@ -12,6 +12,7 @@ export const ACHIEVEMENTS = Object.freeze([
   { id: 'first_win', titleKey: 'achievement.firstWin', xp: 50 },
   { id: 'debugger', titleKey: 'achievement.debugger', xp: 75 },
   { id: 'daily_protocol', titleKey: 'achievement.dailyProtocol', xp: 100 },
+  { id: 'weekly_protocol', titleKey: 'achievement.weeklyProtocol', xp: 150 },
   { id: 'boss_breaker', titleKey: 'achievement.bossBreaker', xp: 150 },
   { id: 'speedrun', titleKey: 'achievement.speedrun', xp: 100 },
 ]);
@@ -24,6 +25,7 @@ function defaultProfile() {
     wins: 0,
     losses: 0,
     dailyWins: 0,
+    weeklyWins: 0,
     bestBattleTime: null,
     achievements: {},
   };
@@ -40,6 +42,7 @@ function readProfile() {
     profile.wins = Math.max(0, Number(profile.wins) || 0);
     profile.losses = Math.max(0, Number(profile.losses) || 0);
     profile.dailyWins = Math.max(0, Number(profile.dailyWins) || 0);
+    profile.weeklyWins = Math.max(0, Number(profile.weeklyWins) || 0);
     profile.bestBattleTime = profile.bestBattleTime !== null && Number.isFinite(Number(profile.bestBattleTime))
       ? Math.max(0, Number(profile.bestBattleTime)) : null;
     profile.achievements = profile.achievements && typeof profile.achievements === 'object'
@@ -88,6 +91,7 @@ export function recordProfileBattle(entry = {}, bonusXp = 0) {
   if (entry.won) profile.wins += 1;
   else profile.losses += 1;
   if (entry.won && entry.mode === 'daily') profile.dailyWins += 1;
+  if (entry.won && entry.mode === 'weekly') profile.weeklyWins += 1;
   if (entry.won && Number.isFinite(entry.battleTime) && entry.battleTime > 0) {
     profile.bestBattleTime = profile.bestBattleTime === null
       ? entry.battleTime : Math.min(profile.bestBattleTime, entry.battleTime);
@@ -98,6 +102,7 @@ export function recordProfileBattle(entry = {}, bonusXp = 0) {
     first_win: profile.wins >= 1,
     debugger: hasLoss && profile.wins >= 1,
     daily_protocol: profile.dailyWins >= 1,
+    weekly_protocol: profile.weeklyWins >= 1,
     boss_breaker: entry.won && ['battle_9', 'battle_10'].includes(entry.battleId),
     speedrun: entry.won && entry.battleTime > 0 && entry.battleTime <= 10,
   };

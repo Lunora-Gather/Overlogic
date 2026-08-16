@@ -25,7 +25,7 @@ const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725
 const { RepairDroneEnemy } = await import('../src/enemies/RepairDroneEnemy.js?v=20260725-4');
 const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
-const { difficultyModifiers, dailyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
+const { difficultyModifiers, dailyProtocol, weeklyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
@@ -143,11 +143,30 @@ async function verifyGameplayContracts() {
   const protocolB = dailyProtocol(GameState.dailySeed());
   assert(protocolA && protocolA.id === protocolB.id, 'daily protocol must be deterministic for the UTC seed');
   assert.equal(dailyProtocol(0), null, 'invalid daily seeds must not select a protocol');
+  assert.equal(GameState.dailyIdentityFromSeed(20260816).key, '2026-08-16', 'historical daily seeds must retain their displayed date');
+  assert.equal(GameState.dailyIdentityFromSeed(20260231), null, 'invalid daily calendar seeds must be rejected');
+  const weekDate = new Date(Date.UTC(2026, 7, 16));
+  assert.equal(GameState.weeklyIdentity(weekDate).key, '2026-W33', 'weekly identity must follow ISO week boundaries');
+  assert.equal(GameState.weeklySeed(weekDate), 202633, 'weekly seed must be stable and shareable');
+  assert.equal(GameState.weeklyIdentityFromSeed(202633).key, '2026-W33', 'historical weekly seeds must retain their displayed week');
+  assert.equal(GameState.weeklyIdentityFromSeed(202600), null, 'invalid weekly seed weeks must be rejected');
+  assert.equal(GameState.weeklyIdentityFromSeed(202153), null, 'years without ISO week 53 must reject that seed');
+  const weeklyA = weeklyProtocol(GameState.weeklySeed(weekDate));
+  const weeklyB = weeklyProtocol(GameState.weeklySeed(weekDate));
+  assert(weeklyA && weeklyA.id === weeklyB.id, 'weekly protocol must be deterministic for the ISO week seed');
+  assert.equal(weeklyProtocol(0), null, 'invalid weekly seeds must not select a protocol');
   const standardModifiers = runModifiers({ mode: 'standard', difficulty: 'standard', seed: 20260816 });
   assert.equal(standardModifiers.protocol, null, 'standard runs must not inherit daily mutators');
   const dailyModifiers = runModifiers({ mode: 'daily', difficulty: 'standard', seed: 20260816 });
   assert(dailyModifiers.protocol && dailyModifiers.enemySpeed !== 1 || dailyModifiers.enemyDamage !== 1,
     'daily runs must apply a visible protocol modifier');
+  const weeklyModifiers = runModifiers({ mode: 'weekly', difficulty: 'standard', seed: 202633 });
+  assert(weeklyModifiers.protocol && weeklyModifiers.enemyHp !== 1, 'weekly runs must apply a visible protocol modifier');
+  GameState.configureRun('weekly', 'standard', 202633);
+  assert.equal(GameState.runConfig.mode, 'weekly');
+  const weeklyCode = GameState.exportRunCode();
+  assert.match(weeklyCode, /^OLR1-WEEKLY-STANDARD-/);
+  assert.deepEqual(GameState.parseRunCode(weeklyCode), { mode: 'weekly', difficulty: 'standard', seed: 202633 });
   GameState.configureRun('standard', 'standard');
   assert.equal(Number.isSafeInteger(GameState.runConfig.seed), true, 'standard runs must receive a shareable seed');
   GameState.configureRun('standard', 'veteran', 20260816);
@@ -566,7 +585,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="btn-pause"') && html.includes('aria-pressed="false"'), 'pause control should expose its state');
   assert(html.includes('aria-keyshortcuts="S"'), 'speed control should expose its keyboard shortcut');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
-  assert(html.includes('id="run-mode"'), 'menu should expose run modes');
+  assert(html.includes('id="run-mode"') && html.includes('value="weekly"'), 'menu should expose standard, daily, and weekly run modes');
   assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
@@ -592,7 +611,7 @@ function verifyUiSafetyContracts() {
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
   assert(mainUi.includes('overlogic_run_archive') && mainUi.includes('event.key !== null'), 'external tabs must surface changes across all persistent data stores');
-  assert(menuUi.includes('dailyProtocol') && menuUi.includes('menu.dailyProtocolLabel'), 'daily mode must disclose its deterministic protocol before launch');
+  assert(menuUi.includes('dailyProtocol') && menuUi.includes('weeklyProtocol') && menuUi.includes('menu.dailyProtocolLabel') && menuUi.includes('menu.weeklyProtocolLabel'), 'periodic modes must disclose their deterministic protocol before launch');
   assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'), 'background animation must pause with hidden combat and resume on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
@@ -615,8 +634,8 @@ function verifyUiSafetyContracts() {
   assert(historyUi.includes("import { escapeHtml } from './safeHtml.js") && historyUi.includes('escapeHtml(battle)'), 'history cards must escape imported identifiers');
   assert(arenaUi.includes('if (!report._sandbox)') && arenaUi.includes('recordBattle(GameState.lastReport)'), 'sandbox runs must not enter progression history');
   assert(arenaUi.includes("overlogic:challenge-complete"), 'completed daily objectives must provide player feedback');
-  assert(arenaUi.includes('runModifiers') && arenaUi.includes('log.dailyProtocol'), 'combat must apply and announce daily protocol modifiers');
-  assert(arenaUi.indexOf('this.hud.onBattleStart(battle)') < arenaUi.indexOf("t('log.dailyProtocol'"),
+  assert(arenaUi.includes('runModifiers') && arenaUi.includes('log.dailyProtocol') && arenaUi.includes('log.weeklyProtocol'), 'combat must apply and announce periodic protocol modifiers');
+  assert(arenaUi.indexOf('this.hud.onBattleStart(battle)') < arenaUi.indexOf("'log.dailyProtocol'"),
     'battle HUD must initialize before protocol and hazard notices are written');
   assert(editorUiSource.includes("enemyIds.has('repair_drone')") && editorUiSource.includes("advice.support.label"),
     'battle briefing must recommend interrupting repair support');
@@ -763,8 +782,12 @@ function verifyRunHistoryContracts() {
     id: 'run_test_fast', completedAt: '2026-08-11T12:00:00Z', mode: 'daily', difficulty: 'veteran',
     seed: 102, battlesWon: 7, totalDamageDealt: 2600, totalBattleTime: 119.25, finalHp: 31, rulesCount: 9, upgrades: 6,
   });
-  assert.deepEqual({ completions: runRecords().completions, daily: runRecords().dailyCompletions, veteran: runRecords().veteranCompletions },
-    { completions: 2, daily: 1, veteran: 1 });
+  recordCompletedRun({
+    id: 'run_test_weekly', completedAt: '2026-08-12T12:00:00Z', mode: 'weekly', difficulty: 'standard',
+    seed: 202633, battlesWon: 7, totalDamageDealt: 2900, totalBattleTime: 121.5, finalHp: 28, rulesCount: 10, upgrades: 6,
+  });
+  assert.deepEqual({ completions: runRecords().completions, daily: runRecords().dailyCompletions, weekly: runRecords().weeklyCompletions, veteran: runRecords().veteranCompletions },
+    { completions: 3, daily: 1, weekly: 1, veteran: 1 });
   assert.equal(runRecords().bestRun.id, 'run_test_fast');
   GameState.currentMapColumn = GameState.mapNodes.length;
   GameState.runConfig = { mode: 'standard', difficulty: 'casual', seed: 103 };
@@ -779,7 +802,7 @@ function verifyRunHistoryContracts() {
   const archiveBackup = GameState.exportSaveData();
   clearRunArchive();
   assert.equal(GameState.importSaveData(archiveBackup), true, 'full backups must include completed run records');
-  assert.equal(runArchiveSnapshot().entries.length, 3);
+  assert.equal(runArchiveSnapshot().entries.length, 4);
   recordBattle({
     _battleId: 'battle_4', _runSeed: 20260816, _runMode: 'daily', _difficulty: 'veteran',
     _won: true, battle_time: 12.34, _endHp: 77, total_damage_dealt: 248,
@@ -790,25 +813,32 @@ function verifyRunHistoryContracts() {
     _won: false, battle_time: 9.1, death_hp: 0, total_damage_dealt: 30,
     damage_by_source: { crawler: 22 },
   });
+  recordBattle({
+    _battleId: 'battle_5', _runSeed: 202633, _runMode: 'weekly', _difficulty: 'standard',
+    _won: true, battle_time: 11.2, _endHp: 68, total_damage_dealt: 200,
+    damage_by_source: { repair_drone: 12 },
+  });
   const recent = recentBattles(4);
-  assert.equal(recent.length, 2);
-  assert.equal(recent[0].won, false, 'history should put the newest battle first');
-  assert.equal(recent[1].seed, 20260816);
-  assert.deepEqual(historySummary(), { battles: 2, wins: 1, losses: 1, damageDealt: 278 });
+  assert.equal(recent.length, 3);
+  assert.equal(recent[0].mode, 'weekly', 'history should preserve weekly mode');
+  assert.equal(recent[1].won, false, 'history should put the newest battle first');
+  assert.equal(recent[2].seed, 20260816);
+  assert.deepEqual(historySummary(), { battles: 3, wins: 2, losses: 1, damageDealt: 478 });
   const profile = profileSnapshot();
-  assert.equal(profile.totalBattles, 2);
-  assert.equal(profile.wins, 1);
+  assert.equal(profile.totalBattles, 3);
+  assert.equal(profile.wins, 2);
   assert.equal(profile.losses, 1);
   assert.equal(profile.achievements.first_battle !== undefined, true);
   assert.equal(profile.achievements.debugger !== undefined, true);
+  assert.equal(profile.achievements.weekly_protocol !== undefined, true);
   assert.equal(profileRank(profile.xp).level >= 1, true);
   const fullExport = GameState.exportSaveData();
   clearHistory();
   resetProfile();
   assert.equal(recentBattles().length, 0);
   assert.equal(GameState.importSaveData(fullExport), true, 'full backups must include local history and profile');
-  assert.equal(recentBattles().length, 2);
-  assert.equal(profileSnapshot().wins, 1);
+  assert.equal(recentBattles().length, 3);
+  assert.equal(profileSnapshot().wins, 2);
   GameState.settings.language = 'en';
   GameState.saveSettings();
   localStorage.setItem('overlogic_loadout_slot_2', JSON.stringify([{ baseline: true }]));

@@ -10,7 +10,7 @@ import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfilePr
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { challengeSnapshot } from '../systems/LiveChallenges.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
-import { dailyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
+import { dailyProtocol, weeklyProtocol } from '../systems/RunModifiers.js?v=20260725-4';
 
 export class MainMenu {
   constructor() {
@@ -28,7 +28,7 @@ export class MainMenu {
     this.btnConfirmCancel = document.getElementById('btn-confirm-cancel');
     this.runMode = document.getElementById('run-mode');
     this.runDifficulty = document.getElementById('run-difficulty');
-    this.dailySeedLabel = document.getElementById('daily-seed-label');
+    this.periodSeedLabel = document.getElementById('period-seed-label');
     this.runSeedInput = document.getElementById('run-seed-input');
     this.btnCopyRunSeed = document.getElementById('btn-copy-run-seed');
     this.runConfigHint = document.getElementById('run-config-hint');
@@ -132,7 +132,8 @@ export class MainMenu {
         this.runDifficulty.value = challenge.difficulty;
       }
       if (GameState.canConfigureRun()) {
-        GameState.configureRun(this.runMode.value, this.runDifficulty.value, challenge?.seed || this._requestedSeed());
+        const requestedSeed = challenge?.seed || (['standard'].includes(this.runMode.value) ? this._requestedSeed() : null);
+        GameState.configureRun(this.runMode.value, this.runDifficulty.value, requestedSeed);
       }
       this.renderRunConfig();
     };
@@ -298,17 +299,36 @@ export class MainMenu {
   }
 
   renderRunConfig() {
-    if (!this.dailySeedLabel || !this.runMode) return;
-    const daily = this.runMode.value === 'daily';
-    this.dailySeedLabel.classList.toggle('hidden', !daily);
-    this.dailySeedLabel.textContent = daily
-      ? t('menu.dailySeed', { seed: GameState.dailySeed() })
-      : '';
+    if (!this.periodSeedLabel || !this.runMode) return;
+    const period = this.runMode.value;
+    const daily = period === 'daily';
+    const weekly = period === 'weekly';
+    const configuredSeed = Number(GameState.runConfig?.seed) || null;
+    const fixedSeed = configuredSeed || GameState.periodSeed(period);
+    const currentDailySeed = GameState.dailySeed();
+    this.periodSeedLabel.classList.toggle('hidden', !daily && !weekly);
+    this.periodSeedLabel.textContent = daily
+      ? (fixedSeed && fixedSeed !== currentDailySeed
+        ? t('menu.archivedDailySeed', {
+          date: GameState.dailyIdentityFromSeed(fixedSeed)?.key || String(fixedSeed),
+          seed: fixedSeed,
+        })
+        : t('menu.dailySeed', { seed: fixedSeed || currentDailySeed }))
+      : weekly
+        ? t('menu.weeklySeed', {
+          week: GameState.weeklyIdentityFromSeed(fixedSeed)?.key || GameState.weeklyIdentity().key,
+          seed: fixedSeed || GameState.weeklySeed(),
+        })
+        : '';
     if (this.runSeedInput) {
       const active = GameState.hasRunProgress() && !GameState.isDemoCleared();
-      this.runSeedInput.disabled = active || daily;
-      if (document.activeElement !== this.runSeedInput || active || daily) {
-        this.runSeedInput.value = daily ? String(GameState.dailySeed()) : String(GameState.runConfig.seed || '');
+      this.runSeedInput.disabled = active || daily || weekly;
+      if (document.activeElement !== this.runSeedInput || active || daily || weekly) {
+        this.runSeedInput.value = daily
+          ? String(fixedSeed || GameState.dailySeed())
+          : weekly
+            ? String(fixedSeed || GameState.weeklySeed())
+            : String(GameState.runConfig.seed || '');
       }
     }
     if (this.runConfigHint && this.runDifficulty) {
@@ -324,10 +344,12 @@ export class MainMenu {
       const difficulty = this.runDifficulty.value;
       const hints = [
         t(`menu.config.${difficulty}`),
-        daily ? t('menu.config.daily') : t('menu.config.modeStandard'),
+        daily ? t('menu.config.daily') : weekly ? t('menu.config.weekly') : t('menu.config.modeStandard'),
       ];
-      const protocol = daily ? dailyProtocol(GameState.dailySeed()) : null;
-      if (protocol) hints.push(`${t('menu.dailyProtocolLabel')}: ${t(protocol.titleKey)}`);
+      const protocol = daily
+        ? dailyProtocol(fixedSeed || GameState.dailySeed())
+        : (weekly ? weeklyProtocol(fixedSeed || GameState.weeklySeed()) : null);
+      if (protocol) hints.push(`${t(weekly ? 'menu.weeklyProtocolLabel' : 'menu.dailyProtocolLabel')}: ${t(protocol.titleKey)}`);
       this.runConfigHint.textContent = hints.join(' · ');
     }
   }
