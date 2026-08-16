@@ -8,6 +8,7 @@ class GameDatabaseClass {
     this.enemies = new Map();      // id -> enemy data
     this.battles = [];             // ordered list
     this.rewards = new Map();      // id -> reward data
+    this.contentSchemaVersion = 0;
     this._loaded = false;
     this._loading = null;
   }
@@ -23,6 +24,10 @@ class GameDatabaseClass {
         this._fetchJson('data/battles.json?v=20260725-4'),
         this._fetchJson('data/rewards.json?v=20260725-4'),
       ]);
+      if (c.schemaVersion !== 1 || a.schemaVersion !== 1 || e.schemaVersion !== 1 ||
+          b.schemaVersion !== 1 || r.schemaVersion !== 1) {
+        throw new Error('Simulation data schema version is unsupported');
+      }
       if (!Array.isArray(c.conditions) || !Array.isArray(a.actions) ||
           !Array.isArray(e.enemies) || !Array.isArray(b.battles) || !Array.isArray(r.rewards)) {
         throw new Error('Simulation data has an invalid shape');
@@ -42,6 +47,7 @@ class GameDatabaseClass {
       for (const x of e.enemies) this.enemies.set(x.id, x);
       this.battles = b.battles;
       for (const x of r.rewards) this.rewards.set(x.id, x);
+      this.contentSchemaVersion = 1;
       this._loaded = true;
     })();
     try {
@@ -78,6 +84,7 @@ class GameDatabaseClass {
   getBattle(i)     { return (i >= 0 && i < this.battles.length) ? this.battles[i] : null; }
   getBattleCount() { return this.battles.length; }
   getReward(id)    { return this.rewards.get(id)    || null; }
+  getContentSchemaVersion() { return this.contentSchemaVersion; }
   allRewards()     { return [...this.rewards.values()]; }
 
   validateContracts() {

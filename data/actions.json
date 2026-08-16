@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "actions": [
     { "id": "basic_attack", "displayName": "Basic Attack", "description": "Fire a bullet at nearest enemy.", "cooldown": 0.4, "energyCost": 0, "range": 8.0, "effectValue": { "dmg": 8, "bulletSpeed": 12.0, "bulletLife": 2.0 }, "teachUnlock": 1 },
     { "id": "dash_toward", "displayName": "Dash Toward", "description": "Dash toward nearest enemy.", "cooldown": 3.0, "energyCost": 10, "range": 3.0, "effectValue": { "dashDist": 3.0, "invulnTime": 0.15 }, "teachUnlock": 2 },

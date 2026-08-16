@@ -178,7 +178,7 @@ Overlogic/
 └─ DESIGN.md             # 完整设计与维护约束
 ```
 
-玩法内容优先放在 `data/*.json` 中；运营开关和容量边界统一维护在 `data/operations.json` 与 `src/systems/OperationsConfig.js`；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。
+玩法内容优先放在 `data/*.json` 中，所有内容表都带 `schemaVersion` 并在运行时拒绝未知版本；运营开关和容量边界统一维护在 `data/operations.json` 与 `src/systems/OperationsConfig.js`；跨界面与战斗共享的机制应集中到独立系统模块。例如，协议协同的激活条件统一维护在 `src/systems/ProtocolSynergies.js`。
 
 ## 质量与发布 / Quality and deployment
 

@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "conditions": [
     { "id": "enemy_nearby", "displayName": "Enemy Nearby", "description": "A nearby enemy exists within radius.", "parameterType": "float", "defaultValue": 8.0, "minValue": 1.0, "maxValue": 20.0, "teachUnlock": 1 },
     { "id": "enemy_far", "displayName": "Enemy Far", "description": "Nearest enemy distance >= minDistance.", "parameterType": "float", "defaultValue": 5.0, "minValue": 2.0, "maxValue": 20.0, "teachUnlock": 2 },

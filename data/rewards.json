@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "rewards": [
     { "id": "pu_max_hp", "displayName": "Max HP +20", "rewardType": "passive", "targetId": "max_hp", "value": 20 },
     { "id": "pu_max_energy", "displayName": "Max Energy +30", "rewardType": "passive", "targetId": "max_energy", "value": 30 },

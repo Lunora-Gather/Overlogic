@@ -23,6 +23,8 @@ const operationsConfig = await fs.readFile(path.join(root, 'src/systems/Operatio
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
+const contentTables = await Promise.all(['conditions', 'actions', 'enemies', 'battles', 'rewards']
+  .map(async (name) => JSON.parse(await fs.readFile(path.join(root, `data/${name}.json`), 'utf8'))));
 const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
 
@@ -83,6 +85,8 @@ check(/\.overlay\s*\{[\s\S]*?z-index:\s*13000/.test(css) && /\.app-notice\s*\{[\
   'modal overlays must remain clickable above transient app notices');
 check(operationsTable.schemaVersion === 1 && operationsTable.features && operationsTable.limits,
   'operations manifest must declare a versioned feature and limit contract');
+check(contentTables.every((table) => table.schemaVersion === 1),
+  'all simulation content tables must declare the supported schema version');
 check(/normalizeOperationsConfig/.test(operationsConfig) && /loadOperationsConfig/.test(main) && /operationsSnapshot/.test(gameState),
   'operations manifest must be normalized at boot and included in support diagnostics');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');

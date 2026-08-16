@@ -68,6 +68,7 @@ async function verifyImportGraph() {
 }
 
 function verifyDataContracts() {
+  assert.equal(GameDatabase.getContentSchemaVersion(), 1, 'content tables must expose the supported schema version');
   assert.deepEqual(GameDatabase.validateContracts(), [], 'content tables must satisfy the runtime data contract');
   const errors = [];
   for (let i = 0; i < GameDatabase.getBattleCount(); i += 1) {

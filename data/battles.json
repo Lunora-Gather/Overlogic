@@ -1,4 +1,5 @@
 {
+  "schemaVersion": 1,
   "battles": [
     { "id": "battle_1", "displayName": "Calibration", "enemySpawns": [ { "enemyId": "crawler", "count": 3, "wave": 1 } ], "rewardPool": ["pu_max_hp", "pu_basic_dmg", "pu_dash_cd"], "arenaType": "standard_20x20", "teachUnlockAfter": 2 },
     { "id": "battle_2", "displayName": "Distance Test", "enemySpawns": [ { "enemyId": "shooter", "count": 2, "wave": 1 }, { "enemyId": "crawler", "count": 2, "wave": 2 } ], "rewardPool": ["pu_max_hp", "pu_basic_dmg", "pu_energy_regen", "new_action_repair", "pu_nanite_repair"], "arenaType": "standard_20x20", "teachUnlockAfter": 3 },
