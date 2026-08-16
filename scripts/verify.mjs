@@ -40,6 +40,7 @@ const { recordBattle, recentBattles, historySummary, clearHistory } = await impo
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 const { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
+const { canonicalRunFacts, runReceipt } = await import('../src/systems/RunVerification.js?v=20260725-4');
 const {
   recordRuntimeError,
   recordRuntimeEvent,
@@ -150,6 +151,19 @@ function verifyProductTelemetryContracts() {
   configureProductMetrics(false);
   assert.equal(productMetricsSnapshot().enabled, false);
   assert.equal(localStorage.getItem('overlogic_product_metrics'), null, 'disabling metrics must delete stored events');
+}
+
+function verifyRunReceiptContracts() {
+  const facts = {
+    mode: 'weekly', difficulty: 'veteran', seed: 202633, battlesWon: 7,
+    totalDamageDealt: 2900, totalBattleTime: 121.5, finalHp: 28, rulesCount: 10, upgrades: 6,
+  };
+  const first = runReceipt(facts);
+  assert.match(first, /^OLR1-[0-9A-F]{8}$/);
+  assert.equal(runReceipt({ ...facts }), first, 'run receipts must be deterministic');
+  assert.notEqual(runReceipt({ ...facts, totalDamageDealt: 2901 }), first, 'material run facts must alter the receipt');
+  assert.equal(canonicalRunFacts({ ...facts, seed: 'not-a-seed' }).startsWith('v1|weekly|veteran|1|'), true,
+    'run receipt facts must clamp malformed values before hashing');
 }
 
 function verifyRepairDroneContracts() {
@@ -684,6 +698,7 @@ function verifyUiSafetyContracts() {
   const menuUi = fs.readFileSync('src/ui/MainMenu.js', 'utf8');
   const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
+  const victoryUi = fs.readFileSync('src/ui/VictoryUI.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
@@ -704,6 +719,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
   assert(html.includes('id="profile-overlay"') && menuUi.includes('renderProfileDialog') && menuUi.includes('this._profileReturnFocus'),
     'operator progression must expose an accessible detailed dossier');
+  assert(html.includes('id="victory-receipt"') && victoryUi.includes('runReceipt') && victoryUi.includes('btn-copy-victory-receipt'),
+    'victory results must expose a shareable deterministic run receipt');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
@@ -900,6 +917,7 @@ function verifyRunHistoryContracts() {
     id: 'run_test_first', completedAt: '2026-08-10T12:00:00Z', mode: 'standard', difficulty: 'standard',
     seed: 101, battlesWon: 7, totalDamageDealt: 2400, totalBattleTime: 140.5, finalHp: 22, rulesCount: 8, upgrades: 6,
   });
+  assert.equal(firstRun.entry.receipt, runReceipt(firstRun.entry), 'archives must store normalized run receipts');
   assert.equal(firstRun.isNew, true);
   assert.equal(runRecords().completions, 1);
   assert.equal(runRecords().bestTime, 140.5);
@@ -1040,6 +1058,7 @@ await verifyImportGraph();
 verifyDataContracts();
 verifyOperationsContracts();
 verifyProductTelemetryContracts();
+verifyRunReceiptContracts();
 verifyRepairDroneContracts();
 verifyShieldRelayContracts();
 verifyRuleTemplateContracts();

@@ -19,6 +19,8 @@ const archive = await fs.readFile(path.join(root, 'src/systems/RunArchive.js'), 
 const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
 const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf8');
 const reportUi = await fs.readFile(path.join(root, 'src/ui/PostBattleReportUI.js'), 'utf8');
+const victoryUi = await fs.readFile(path.join(root, 'src/ui/VictoryUI.js'), 'utf8');
+const runVerification = await fs.readFile(path.join(root, 'src/systems/RunVerification.js'), 'utf8');
 const templates = await fs.readFile(path.join(root, 'src/logic/RuleTemplates.js'), 'utf8');
 const operationsConfig = await fs.readFile(path.join(root, 'src/systems/OperationsConfig.js'), 'utf8');
 const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductTelemetry.js'), 'utf8');
@@ -78,6 +80,8 @@ check(/role="tablist"/.test(html) && /role="tabpanel"/.test(html), 'editor tabli
 check(/ArrowLeft|ArrowRight/.test(editor) && /aria-selected/.test(editor), 'editor tabs must support keyboard navigation and state updates');
 check(/id="profile-overlay"/.test(html) && /renderProfileDialog/.test(menuUi) && /trapDialogFocus\(this\.profileOverlay\)/.test(menuUi),
   'operator dossier must use an accessible localized dialog');
+check(/id="victory-receipt"/.test(html) && /runReceipt/.test(victoryUi) && !runVerification.includes('OLR1-'),
+  'victory screen must expose a deterministic run receipt without hardcoding a receipt value');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');

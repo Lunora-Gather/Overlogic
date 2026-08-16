@@ -3157,6 +3157,62 @@ input[type="number"] {
   text-shadow: 0 0 12px rgba(0, 210, 255, 0.5);
 }
 
+.victory-receipt {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  width: min(680px, 100%);
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid rgba(62, 255, 157, 0.24);
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(62, 255, 157, 0.06), rgba(7, 17, 31, 0.7));
+}
+
+.victory-receipt > div {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.receipt-label {
+  color: var(--accent2);
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.victory-receipt small {
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.4;
+}
+
+.victory-receipt code {
+  padding: 7px 9px;
+  border: 1px solid rgba(62, 255, 157, 0.2);
+  border-radius: 6px;
+  color: #d8ffe9;
+  background: rgba(2, 8, 14, 0.7);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+@media (max-width: 620px) {
+  .victory-receipt {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .victory-receipt > div {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ===== Victory Rules List Replay ===== */
 .victory-rules-list {
   list-style: none;

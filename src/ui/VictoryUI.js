@@ -9,6 +9,7 @@ import { drawStatsChart } from './StatsChart.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
+import { runReceipt } from '../systems/RunVerification.js?v=20260725-4';
 
 export class VictoryUI {
   constructor() {
@@ -18,6 +19,8 @@ export class VictoryUI {
     this.replayBtn = document.getElementById('btn-victory-replay');
     this.statsEl = document.getElementById('victory-run-stats');
     this.rulesEl = document.getElementById('victory-rules-summary');
+    this.receiptEl = document.getElementById('victory-receipt');
+    this.copyReceiptBtn = document.getElementById('btn-copy-victory-receipt');
 
     this.btn.addEventListener('click', () => {
       AudioManager.play('button_click');
@@ -27,6 +30,19 @@ export class VictoryUI {
       AudioManager.play('button_click');
       GameState.resetRun();
       GameManager.goLogicEdit();
+    });
+    this.copyReceiptBtn?.addEventListener('click', async () => {
+      const receipt = this.receiptEl?.textContent?.trim() || '';
+      if (!receipt) return;
+      try {
+        if (!navigator.clipboard?.writeText) throw new Error('clipboard unavailable');
+        await navigator.clipboard.writeText(receipt);
+        const original = this.copyReceiptBtn.textContent;
+        this.copyReceiptBtn.textContent = t('victory.receiptCopied');
+        setTimeout(() => { this.copyReceiptBtn.textContent = original; }, 1400);
+      } catch {
+        this.copyReceiptBtn.textContent = t('victory.receiptManual');
+      }
     });
 
     // Redraw on resize
@@ -57,6 +73,18 @@ export class VictoryUI {
     const totalTime = runStats.totalBattleTime ?? 0;
     const upgrades = Array.isArray(runStats.rewardsChosen) ? runStats.rewardsChosen.length : 0;
     const records = runRecords();
+    const receipt = runReceipt({
+      mode: GameState.runConfig?.mode,
+      difficulty: GameState.runConfig?.difficulty,
+      seed: GameState.runConfig?.seed,
+      battlesWon,
+      totalDamageDealt: dmgDealt,
+      totalBattleTime: totalTime,
+      finalHp,
+      rulesCount: ruleCount,
+      upgrades,
+    });
+    if (this.receiptEl) this.receiptEl.textContent = receipt;
 
     this.statsEl.innerHTML = `
       <div class="victory-stat"><span class="stat-label">${t('victory.battles')}</span><span class="stat-value">${battlesWon}</span></div>

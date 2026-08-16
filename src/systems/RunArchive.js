@@ -5,6 +5,7 @@
 // rules, free-form text, or device identifiers.
 
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
+import { runReceipt } from './RunVerification.js?v=20260725-4';
 
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
@@ -27,7 +28,7 @@ function normalizeEntry(raw = {}, index = 0) {
   const id = /^[A-Za-z0-9:_-]{6,96}$/.test(suppliedId)
     ? suppliedId
     : `imported-${index}-${Math.round(finiteNumber(raw.seed, 1, Number.MAX_SAFE_INTEGER))}`;
-  return {
+  const normalized = {
     id,
     completedAt: normalizeTimestamp(raw.completedAt),
     mode: MODES.has(raw.mode) ? raw.mode : 'standard',
@@ -40,6 +41,8 @@ function normalizeEntry(raw = {}, index = 0) {
     rulesCount: Math.floor(finiteNumber(raw.rulesCount, 0, 40)),
     upgrades: Math.floor(finiteNumber(raw.upgrades, 0, 99)),
   };
+  normalized.receipt = runReceipt(normalized);
+  return normalized;
 }
 
 function readEntries() {
