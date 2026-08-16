@@ -114,6 +114,7 @@ check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(
 check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');
 
 check(/npm run quality-audit/.test(workflow), 'CI must run the product quality gate before deployment');
+check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');
 check(/needs:\s*verify/.test(workflow), 'Pages deploy must depend on verification');
 
 console.log(`QUALITY_AUDIT_OK (${checks} checks)`);

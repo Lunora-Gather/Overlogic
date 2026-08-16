@@ -43,7 +43,7 @@ async function collectPrecacheUrls(dir, out = []) {
       continue;
     }
     const relative = path.relative(output, target).split(path.sep).join('/');
-    if (relative === 'release.json' || relative === '.nojekyll' || relative === 'README.md' || relative === 'LICENSE') continue;
+    if (relative === 'release.json' || relative === '.nojekyll' || relative === 'README.md' || relative === 'OPERATIONS.md' || relative === 'LICENSE') continue;
     out.push(`./${relative}`);
   }
   return out;

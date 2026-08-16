@@ -152,6 +152,7 @@ npm run serve
 | `npm run build` | 生成带版本化资源地址的 `dist/` 发布目录 |
 | `npm run release-audit` | 检查发布目录、版本占位符、资源完整性与数据 JSON |
 | `npm run quality-audit` | 检查静态壳层的可访问性、对话框、PWA 元数据与运行时安全钩子 |
+| `npm run performance-audit` | 对发布文件数、总大小、JS、CSS、HTML、JSON 和最大模块执行性能预算 |
 
 也可以使用任何支持 ES Modules 与 JSON MIME 类型的静态服务器运行源码。
 
@@ -194,7 +195,8 @@ Overlogic/
 6. 发布产物审计（版本占位符、必需文件、JSON 数据与根目录清洁度）。
 7. 产品质量审计（显式按钮类型、ARIA 对话框/Tab/进度条、PWA 元数据、离线与运行时安全钩子）。
 8. 运营清单 schema 与安全默认值检查。
-9. GitHub Pages 部署。
+9. 首屏资源、模块体积与发布总量性能预算。
+10. GitHub Pages 部署。
 
 部署只上传生成的 `dist/` 内容；构建脚本会为模块、数据与 Service Worker 注册地址注入提交版本，自动把全部运行时模块和数据表写入预缓存，并给缓存写入加配额失败保护。带版本的运行时资源在线时优先取得最新发布，离线时忽略查询参数命中完整预缓存，既避免新 HTML 与旧模块混载，也保证首次成功安装后断网仍能恢复完整运行时，而不只是应用壳层。
 

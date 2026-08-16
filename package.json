@@ -9,6 +9,7 @@
     "verify": "node scripts/verify.mjs",
     "balance": "node scripts/simulate-balance.mjs",
     "release-audit": "node scripts/audit-release.mjs",
-    "quality-audit": "node scripts/audit-quality.mjs"
+    "quality-audit": "node scripts/audit-quality.mjs",
+    "performance-audit": "node scripts/audit-performance.mjs"
   }
 }

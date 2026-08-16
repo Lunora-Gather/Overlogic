@@ -34,6 +34,8 @@ jobs:
         run: npm run build
       - name: Audit release artifact
         run: npm run release-audit
+      - name: Enforce performance budgets
+        run: npm run performance-audit
 
   deploy:
     if: github.event_name == 'push'
@@ -55,6 +57,8 @@ jobs:
         run: npm run release-audit
       - name: Re-check product quality
         run: npm run quality-audit
+      - name: Re-check performance budgets
+        run: npm run performance-audit
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload Pages artifact

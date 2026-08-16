@@ -29,7 +29,7 @@
 ## 发布流程
 
 1. 修改 `data/operations.json`，同步更新三语文案或 `DESIGN.md`。
-2. 运行 `npm run verify`、`npm run quality-audit`、`npm run build` 和 `npm run release-audit`。
+2. 运行 `npm run verify`、`npm run quality-audit`、`npm run build`、`npm run release-audit` 和 `npm run performance-audit`。
 3. 在本地页面确认模式选项、模板入口、沙盒入口和维护提示。
 4. 推送后等待 Verify 与 deploy 两个作业成功，再检查线上 `meta[name="overlogic-release"]`。
 
