@@ -1023,8 +1023,8 @@ function verifyUiSafetyContracts() {
   assert(mainUi.includes('GameState.markStorageConflict') && gameState.includes('_lastPersistedSerialized'),
     'external storage changes must block stale writes until the current tab reloads');
   assert(menuUi.includes('dailyProtocol') && menuUi.includes('weeklyProtocol') && menuUi.includes('menu.dailyProtocolLabel') && menuUi.includes('menu.weeklyProtocolLabel'), 'periodic modes must disclose their deterministic protocol before launch');
-  assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('arena.setPaused(false)') &&
-    !mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'),
+  assert(/bgAnim\?\.stop\(\);\s*arena\.setPaused\(true\)/.test(mainUi) && /arena\.setPaused\(false\)/.test(mainUi) &&
+    !/bgAnim\?\.start\(\);\s*arena\.setPaused\(false\)/.test(mainUi),
     'background animation must pause with hidden combat and remain stopped on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
