@@ -2,6 +2,7 @@
 // Cycles between Warning state and Active (damaging) state.
 
 import { spawnBurst } from './ParticleSystem.js?v=20260725-4';
+import { t } from '../i18n/I18n.js?v=20260725-4';
 
 export class HazardTile {
   constructor(x, y, radius = 2.0, warnDuration = 1.5, activeDuration = 1.5) {
@@ -82,7 +83,7 @@ export class HazardTile {
       g.font = 'bold 10px monospace';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText('⚠️ WARN', rx, ry);
+      g.fillText(`⚠ ${t('combat.hazardWarn')}`, rx, ry);
     } else {
       // Active state (pulsating plasma/electric grid, crimson/neon red glow)
       const pulse = 0.9 + 0.1 * Math.sin(performance.now() / 60);
@@ -112,7 +113,7 @@ export class HazardTile {
       g.font = 'bold 11px monospace';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
-      g.fillText('⚡ HAZARD ⚡', rx, ry);
+      g.fillText(`⚡ ${t('combat.hazardActive')} ⚡`, rx, ry);
     }
     g.restore();
   }

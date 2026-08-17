@@ -3,6 +3,7 @@
 
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { spawnBurst, spawnText, spawnEngineTrail } from '../vfx/ParticleSystem.js?v=20260725-4';
+import { t } from '../i18n/I18n.js?v=20260725-4';
 
 export class EnemyBase {
   constructor() {
@@ -70,7 +71,7 @@ export class EnemyBase {
     // Spawn floating damage text on enemy
     const dmgColor = kind === 'interrupt' ? '#ffe24b' : '#00d2ff';
     const mitigated = amount - finalDmg;
-    const text = mitigated > 0 ? `-${Math.round(finalDmg)} (Mitigated)` : `-${Math.round(finalDmg)}`;
+    const text = mitigated > 0 ? `-${Math.round(finalDmg)} (${t('combat.mitigated')})` : `-${Math.round(finalDmg)}`;
     spawnText(this.ctx, this.x, this.y - this.bodyRadius, text, dmgColor, 11);
     if (this.ctx && this.ctx.tracker) {
       this.ctx.tracker.recordDamageDealt(finalDmg, kind);
@@ -184,7 +185,7 @@ export class EnemyBase {
       g.shadowBlur = 6;
       g.font = '8px monospace';
       g.textAlign = 'center';
-      g.fillText('⚡ STUNNED ⚡', this.x * scale, this.y * scale - this.bodyRadius * scale - 12);
+      g.fillText(`⚡ ${t('combat.stunned')} ⚡`, this.x * scale, this.y * scale - this.bodyRadius * scale - 12);
       g.restore();
     }
 

@@ -65,6 +65,12 @@ try {
     assert.equal(response.status, 200, `${file} must return HTTP 200`);
     const contentType = response.headers.get('content-type') || '';
     if (expectedType) assert.match(contentType, expectedType, `${file} has the wrong MIME type`);
+    if (file === 'index.html') {
+      assert.equal(response.headers.get('x-content-type-options'), 'nosniff', 'HTTP shell must send nosniff');
+      assert.equal(response.headers.get('referrer-policy'), 'no-referrer', 'HTTP shell must send a strict referrer policy');
+      assert.equal(response.headers.get('permissions-policy'), 'camera=(), microphone=(), geolocation=(), payment=()',
+        'HTTP shell must deny unnecessary browser capabilities');
+    }
     return response.text();
   }
 

@@ -12,6 +12,7 @@ import { operationLimit } from './OperationsConfig.js?v=20260725-4';
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
 const HARD_MAX_ENTRIES = 240;
+let writesBlockedByFutureVersion = false;
 const MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 
@@ -58,6 +59,13 @@ function readEntries() {
   try {
     const raw = localStorage.getItem(ARCHIVE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
+    const version = Array.isArray(parsed) ? 0 : Number(parsed?.version ?? ARCHIVE_VERSION);
+    if (!Number.isSafeInteger(version) || version < 0 || version > ARCHIVE_VERSION) {
+      writesBlockedByFutureVersion = version > ARCHIVE_VERSION;
+      recordStorageError(new Error(`Unsupported run archive version ${version}`), 'run-archive-version');
+      return [];
+    }
+    writesBlockedByFutureVersion = false;
     const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
     if (!Array.isArray(entries)) return [];
     const seen = new Set();
@@ -73,7 +81,7 @@ function readEntries() {
 }
 
 function writeEntries(entries) {
-  if (!storageWritesAllowed()) return false;
+  if (!storageWritesAllowed() || writesBlockedByFutureVersion) return false;
   try {
     localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
       version: ARCHIVE_VERSION,
@@ -143,6 +151,8 @@ export function recordCompletedRun(raw = {}) {
 
 export function replaceRunArchive(raw) {
   const entries = Array.isArray(raw) ? raw : raw?.entries;
+  const version = Array.isArray(raw) ? 0 : Number(raw?.version ?? ARCHIVE_VERSION);
+  if (!Number.isSafeInteger(version) || version > ARCHIVE_VERSION) return false;
   if (!Array.isArray(entries) || entries.length > HARD_MAX_ENTRIES) return false;
   const seen = new Set();
   const normalized = entries.map(normalizeEntry).filter((entry) => {
@@ -157,6 +167,7 @@ export function clearRunArchive() {
   if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(ARCHIVE_KEY);
+    writesBlockedByFutureVersion = false;
     return true;
   } catch (error) {
     recordStorageError(error, 'run-archive');

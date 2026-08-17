@@ -53,6 +53,13 @@ export class MainMenu {
     this._profileReturnFocus = null;
     this.profileLeaderboardMode = null;
     this.profileLeaderboardDifficulty = null;
+    const launchPreset = GameState.canConfigureRun() && typeof location !== 'undefined'
+      ? GameState.parseLaunchPreset(location.search)
+      : null;
+    this._explicitPeriodSeed = launchPreset?.seed && ['daily', 'weekly'].includes(launchPreset.mode)
+      ? launchPreset.seed
+      : null;
+    GameState.refreshIdlePeriodSeed(new Date(), { preserveSeed: this._explicitPeriodSeed !== null });
     const standalone = window.matchMedia?.('(display-mode: standalone)').matches === true ||
       window.navigator?.standalone === true;
     this.btnExit?.classList.toggle('hidden', !standalone);
@@ -96,7 +103,7 @@ export class MainMenu {
         return;
       }
       if (GameState.isDemoCleared()) GameState.resetRun();
-      GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._requestedSeed());
+      GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._selectedSeed());
       recordProductEvent('run_started', {
         mode: GameState.runConfig.mode,
         difficulty: GameState.runConfig.difficulty,
@@ -109,7 +116,7 @@ export class MainMenu {
       this._requestConfirm('menu.newRunConfirm').then((confirmed) => {
         if (!confirmed) return;
         GameState.resetRun();
-        GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._requestedSeed());
+        GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._selectedSeed());
         recordProductEvent('run_started', {
           mode: GameState.runConfig.mode,
           difficulty: GameState.runConfig.difficulty,
@@ -181,22 +188,34 @@ export class MainMenu {
       GameState.saveSettings();
       setLocale(button.dataset.locale);
     });
-    const updateRunConfig = () => {
+    const updateRunConfig = (source = 'selection') => {
+      const previousMode = GameState.runConfig?.mode;
+      // Periodic modes show a locked date/week seed in the same field used for
+      // custom standard seeds. Clear that display when returning to Standard,
+      // otherwise the old challenge seed silently becomes the new run seed.
+      if (source === 'mode' && this.runMode.value === 'standard' &&
+        ['daily', 'weekly'].includes(previousMode)) {
+        this._explicitPeriodSeed = null;
+        if (this.runSeedInput) this.runSeedInput.value = '';
+      }
       const challenge = GameState.parseRunCode(this.runSeedInput?.value);
       if (challenge) {
         this.runMode.value = challenge.mode;
         this.runDifficulty.value = challenge.difficulty;
+        this._explicitPeriodSeed = ['daily', 'weekly'].includes(challenge.mode) ? challenge.seed : null;
+      } else if (source === 'mode' || source === 'seed') {
+        this._explicitPeriodSeed = null;
       }
       if (GameState.canConfigureRun()) {
-        const requestedSeed = challenge?.seed || (['standard'].includes(this.runMode.value) ? this._requestedSeed() : null);
+        const requestedSeed = challenge?.seed || this._selectedSeed();
         GameState.configureRun(this.runMode.value, this.runDifficulty.value, requestedSeed);
       }
       this.renderRunConfig();
     };
-    this.runMode?.addEventListener('change', updateRunConfig);
-    this.runDifficulty?.addEventListener('change', updateRunConfig);
-    this.runSeedInput?.addEventListener('change', updateRunConfig);
-    this.runSeedInput?.addEventListener('input', updateRunConfig);
+    this.runMode?.addEventListener('change', () => updateRunConfig('mode'));
+    this.runDifficulty?.addEventListener('change', () => updateRunConfig('difficulty'));
+    this.runSeedInput?.addEventListener('change', () => updateRunConfig('seed'));
+    this.runSeedInput?.addEventListener('input', () => updateRunConfig('seed'));
     this.btnCopyRunSeed?.addEventListener('click', async () => {
       const code = GameState.exportRunCode();
       const copied = await copyText(code);
@@ -539,5 +558,10 @@ export class MainMenu {
     const challenge = GameState.parseRunCode(value);
     if (challenge) return challenge.seed;
     return value;
+  }
+
+  _selectedSeed() {
+    if (this.runMode?.value === 'standard') return this._requestedSeed();
+    return this._explicitPeriodSeed;
   }
 }

@@ -113,7 +113,7 @@ export class RobotController {
         this._meltdownAccumulator -= 1.0;
         const heatDmg = Math.round(this.maxHp * 0.05); // 5% max HP
         this.hp = Math.max(0, this.hp - heatDmg);
-        spawnText(this.ctx, this.x, this.y - 0.4, `TEMP -${heatDmg}`, '#ff8000', 11);
+        spawnText(this.ctx, this.x, this.y - 0.4, t('combat.heatDamage', { value: heatDmg }), '#ff8000', 11);
         if (this.hp <= 0 && !this.dead) {
           this.hp = 0; this.dead = true;
           if (this.onDied) this.onDied();
@@ -236,7 +236,7 @@ export class RobotController {
   takeDamage(amount, sourceKind) {
     if (this.dead) return;
     if (this.invulnTimer > 0) {
-      spawnText(this.ctx, this.x, this.y - 0.4, 'DODGE', '#00d2ff', 9);
+      spawnText(this.ctx, this.x, this.y - 0.4, t('combat.dodge'), '#00d2ff', 9);
       return;
     }
     let actual = amount;

@@ -46,8 +46,8 @@ const {
   recordProductEvent,
 } = await import('../src/systems/ProductTelemetry.js?v=20260725-4');
 const { recordBattle, recentBattles, historySummary, clearHistory, replaceHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
-const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
-const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
+const { profileSnapshot, profileRank, resetProfile, replaceProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
+const { challengeSnapshot, recordChallengeBattle, clearChallenges, replaceChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 const { clearRunArchive, leaderboardRuns, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
 const { canonicalRunFacts, runReceipt } = await import('../src/systems/RunVerification.js?v=20260725-4');
 const { combineReplayDigests, replayDigest } = await import('../src/systems/RunReplay.js?v=20260725-4');
@@ -129,17 +129,33 @@ async function verifyOperationsContracts() {
     limits: { recentBattles: 999, archiveEntries: 1, supportErrors: -4 },
   });
   assert.equal(normalized.schemaVersion, 1, 'operations schema must be pinned to the supported version');
-  assert.equal(normalized.season.id, 'foundry_protocol', 'invalid season ids must fall back safely');
-  assert.equal(normalized.season.labelKey, 'ops.seasonFoundry', 'unknown season labels must fall back safely');
-  assert.equal(normalized.features.weeklyGauntlet, false, 'explicitly disabled operations flags must remain disabled');
+  assert.equal(normalized.source, 'default', 'future operations schemas must use a safe default source');
+  assert.equal(normalized.season.id, 'foundry_protocol', 'future operations schemas must use the safe season');
+  assert.equal(normalized.season.labelKey, 'ops.seasonFoundry', 'future operations schemas must use a safe label');
+  assert.equal(normalized.features.weeklyGauntlet, false, 'future operations schemas must disable periodic modes');
+  assert.equal(normalized.features.sandbox, false, 'future operations schemas must disable non-essential entry points');
   assert.equal(normalized.features.unknownFlag, undefined, 'unknown operations flags must not leak into runtime state');
-  assert.equal(normalized.maintenance.enabled, true);
-  assert.deepEqual(normalized.limits, { recentBattles: 12, archiveEntries: 12, supportErrors: 5 });
+  assert.equal(normalized.maintenance.enabled, true, 'future operations schemas must surface maintenance state');
+  assert.deepEqual(normalized.limits, { recentBattles: 4, archiveEntries: 60, supportErrors: 20 });
+  assert.deepEqual(normalizeOperationsConfig({
+    schemaVersion: 1,
+    limits: { recentBattles: 999, archiveEntries: 1, supportErrors: -4 },
+  }).limits, { recentBattles: 12, archiveEntries: 12, supportErrors: 5 },
+  'supported operations schemas must clamp capacity limits to safe bounds');
   assert.equal(featureEnabled('weeklyGauntlet'), true, 'default operations should keep the current weekly mode enabled');
   assert.equal(operationsConfig().schemaVersion, 1, 'runtime operations snapshot must be versioned');
   assert.equal(operationLimit('recentBattles', 1), 4, 'runtime history display must honor the operations manifest');
   assert.equal(operationLimit('archiveEntries', 1), 60, 'run retention must honor the operations manifest');
   assert.equal(operationLimit('unknown', 7), 7, 'unknown live limits must fail closed to a caller-owned fallback');
+  resetOperationsConfigForTests();
+  await loadOperationsConfig({ fetcher: async () => ({
+    ok: true,
+    async json() { return { schemaVersion: 99, features: { weeklyGauntlet: true } }; },
+  }) });
+  assert.equal(featureEnabled('weeklyGauntlet'), false,
+    'future operations manifests must disable periodic modes at runtime');
+  assert.equal(operationsConfig().maintenance.enabled, true,
+    'future operations manifests must surface maintenance at runtime');
   resetOperationsConfigForTests();
   await loadOperationsConfig({ fetcher: async () => ({
     ok: true,
@@ -252,6 +268,27 @@ function verifyLaunchPresetContracts() {
     'invalid explicit seeds must be ignored instead of silently generating a different run');
   assert.equal(GameState.parseLaunchPreset('?release=109cd82'), null,
     'release cache-busting parameters must not alter run configuration');
+
+  GameState.resetRun();
+  GameState.settings.runMode = 'daily';
+  GameState.settings.difficulty = 'veteran';
+  GameState.runConfig = { mode: 'daily', difficulty: 'veteran', seed: 20260816 };
+  assert.equal(GameState.refreshIdlePeriodSeed(new Date('2026-08-17T08:00:00Z')), true,
+    'an idle daily run must roll forward to the current UTC seed');
+  assert.deepEqual(GameState.runConfig, { mode: 'daily', difficulty: 'veteran', seed: 20260817 });
+  GameState.runConfig.seed = 20260816;
+  assert.equal(GameState.refreshIdlePeriodSeed(new Date('2026-08-17T08:00:00Z'), { preserveSeed: true }), false,
+    'explicit archived challenge links must preserve their supplied period seed');
+  assert.equal(GameState.runConfig.seed, 20260816);
+  GameState.settings.runMode = 'weekly';
+  GameState.settings.difficulty = 'standard';
+  GameState.runConfig = { mode: 'weekly', difficulty: 'standard', seed: 202632 };
+  assert.equal(GameState.refreshIdlePeriodSeed(new Date('2026-08-17T08:00:00Z')), true,
+    'an idle weekly run must roll forward when the ISO week changes');
+  assert.equal(GameState.runConfig.seed, GameState.weeklySeed(new Date('2026-08-17T08:00:00Z')));
+  GameState.settings.runMode = 'standard';
+  GameState.settings.difficulty = 'standard';
+  GameState.resetRun();
 }
 
 function verifySaveMigrationContracts() {
@@ -402,6 +439,7 @@ async function verifyGameplayContracts() {
   assert.deepEqual(GameState.parseRunCode(weeklyCode), { mode: 'weekly', difficulty: 'standard', seed: 202633 });
   GameState.configureRun('standard', 'standard');
   assert.equal(Number.isSafeInteger(GameState.runConfig.seed), true, 'standard runs must receive a shareable seed');
+  assert.notEqual(GameState.runConfig.seed, 202633, 'standard mode must not inherit the previous weekly challenge seed');
   GameState.configureRun('standard', 'veteran', 20260816);
   const runCode = GameState.exportRunCode();
   assert.match(runCode, /^OLR1-STANDARD-VETERAN-/);
@@ -482,6 +520,15 @@ async function verifyGameplayContracts() {
   tacticalRobot.energy = 100;
   assert.equal(tacticalExecutor.execute('sidestep'), true);
   assert(tacticalRobot.dashTimer > 0, 'sidestep should create a real evasive dash');
+
+  // A valid rule that is still pursuing an out-of-range target must not grant
+  // Thermal Recycle before the action actually fires.
+  tacticalStats.base.thermal_recycle = 1;
+  tacticalCtx.overlogic.active = true;
+  tacticalCtx.overlogic.value = 90;
+  tacticalCtx.enemies = [{ x: 20, y: 0, dead: false, bodyRadius: 0.3 }];
+  assert.equal(tacticalExecutor.execute('basic_attack'), false);
+  assert.equal(tacticalCtx.overlogic.value, 90, 'failed pursuit must not consume thermal recycle');
 
   const supportTarget = new RepairDroneEnemy();
   supportTarget.init(GameDatabase.getEnemy('repair_drone'), tacticalCtx);
@@ -764,12 +811,20 @@ function verifySaveMigration() {
     { id: 'rule_99', conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 },
   ]));
   assert.equal(GameState.loadLoadout(2).ok, true, 'valid loadouts should load');
+  assert.equal(GameState.saveLoadout(2), true, 'valid loadouts should persist through the versioned envelope');
+  assert.equal(JSON.parse(localStorage.getItem('overlogic_loadout_slot_2')).version, 1,
+    'new loadout writes must carry an explicit version');
   assert.equal(new Set(GameState.rules.map(rule => rule.id)).size, GameState.rules.length, 'loaded rules must have unique IDs');
   assert.equal(GameState.addRule('enemy_nearby', 6, 'basic_attack', 5), true);
   assert.equal(new Set(GameState.rules.map(rule => rule.id)).size, GameState.rules.length, 'new rules must not collide with loaded IDs');
   const undoDepthBeforeMissingDelete = GameState._undoStack.length;
   assert.equal(GameState.removeRule('missing-rule'), false, 'deleting a missing rule must be a no-op');
   assert.equal(GameState._undoStack.length, undoDepthBeforeMissingDelete);
+  localStorage.setItem('overlogic_loadout_slot_3', JSON.stringify({ version: 99, rules: GameState.rules }));
+  assert.equal(GameState.loadLoadout(3), false, 'future loadout envelopes must fail closed');
+  const futureLoadout = localStorage.getItem('overlogic_loadout_slot_3');
+  assert.equal(GameState.saveLoadout(3), false, 'old clients must not overwrite future loadout envelopes');
+  assert.equal(localStorage.getItem('overlogic_loadout_slot_3'), futureLoadout);
 
   GameState.resetRun();
   GameState.rules[0].priority = 91;
@@ -808,6 +863,10 @@ function verifySaveMigration() {
   assert.equal(GameState.importSaveData(JSON.stringify(tamperedSave)), false,
     'integrity-checked portable saves must reject modified payloads');
   assert.equal(GameState.importSaveData('{"product":"other"}'), false, 'foreign save formats must be rejected');
+  const futureSettingsSave = JSON.parse(portableSave);
+  futureSettingsSave.settings.version = 99;
+  assert.equal(GameState.importSaveData(JSON.stringify(futureSettingsSave)), false,
+    'portable saves with future settings must be rejected');
   const supportBundle = JSON.parse(GameState.exportSupportBundle());
   assert.equal(supportBundle.product, 'overlogic');
   assert.equal(supportBundle.operations?.schemaVersion, 1,
@@ -867,6 +926,7 @@ function verifyUiSafetyContracts() {
   const gameManager = fs.readFileSync('src/core/GameManager.js', 'utf8');
   const arenaRenderer = fs.readFileSync('src/render/ArenaRenderer.js', 'utf8');
   const victoryUi = fs.readFileSync('src/ui/VictoryUI.js', 'utf8');
+  const battleHud = fs.readFileSync('src/ui/BattleHUD.js', 'utf8');
   assert(html.includes('id="mission-briefing"'), 'editor should expose launch readiness');
   assert(html.includes('id="setting-reduce-motion"'), 'settings should expose reduced motion');
   assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
@@ -889,6 +949,9 @@ function verifyUiSafetyContracts() {
   assert(html.includes('aria-keyshortcuts="S"'), 'speed control should expose its keyboard shortcut');
   assert(html.includes('id="locale-switcher"'), 'menu should expose a locale switcher');
   assert(html.includes('id="run-mode"') && html.includes('value="weekly"'), 'menu should expose standard, daily, and weekly run modes');
+  assert(html.includes('id="run-mode"') && html.includes('data-i18n-aria-label="menu.mode"') &&
+    html.includes('data-i18n-aria-label="menu.difficulty"'),
+    'menu mode and difficulty controls must expose localized accessible names');
   assert(html.includes('id="run-challenges"'), 'menu should expose daily objectives');
   assert(html.includes('id="profile-overlay"') && menuUi.includes('renderProfileDialog') && menuUi.includes('this._profileReturnFocus'),
     'operator progression must expose an accessible detailed dossier');
@@ -898,16 +961,24 @@ function verifyUiSafetyContracts() {
     'operator leaderboard must separate mode and difficulty before comparing runs');
   assert(menuUi.includes('preventScroll: true') && menuUi.includes('profileCard.scrollTop = 0'),
     'the mobile operator dossier must open at its title without losing keyboard focus containment');
+  assert(mainUi.includes('settingVolume?.focus({ preventScroll: true })') && mainUi.includes('settingsList.scrollTop = 0'),
+    'the settings dialog must open at its title and first control on short viewports');
+  assert(html.indexOf('class="menu-buttons"') < html.indexOf('id="run-profile"'),
+    'the primary launch action must appear before secondary profile and retention panels');
   assert(html.includes('id="victory-receipt"') && victoryUi.includes('runReceipt') && victoryUi.includes('btn-copy-victory-receipt'),
     'victory results must expose a shareable deterministic run receipt');
   assert(victoryUi.includes('combineReplayDigests') && victoryUi.includes('simulationVersion'),
     'victory receipts must include the fixed-step replay facts used by the archive');
+  assert(victoryUi.includes('formatCond') && battleHud.includes('r.negateCondition1') && battleHud.includes('r.negateCondition2'),
+    'combat and victory summaries must faithfully render negated conditions');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');
   assert(html.includes('id="code-overlay"') && html.includes('id="code-textarea"'), 'build sharing must use an accessible themed code dialog');
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(editorUi.includes('panel.inert') && editorUi.includes("aria-hidden"),
     'mobile editor tabs should remove inactive panel controls from the accessibility tree');
+  assert(editorUi.includes("tarSel.setAttribute('aria-hidden', 'true')") && editorUi.includes('tarSel.disabled = true'),
+    'actions without a target must not expose an inert target selector to assistive technology');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
   assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
@@ -947,9 +1018,13 @@ function verifyUiSafetyContracts() {
   assert(mainUi.includes('GameState.markStorageConflict') && gameState.includes('_lastPersistedSerialized'),
     'external storage changes must block stale writes until the current tab reloads');
   assert(menuUi.includes('dailyProtocol') && menuUi.includes('weeklyProtocol') && menuUi.includes('menu.dailyProtocolLabel') && menuUi.includes('menu.weeklyProtocolLabel'), 'periodic modes must disclose their deterministic protocol before launch');
-  assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'), 'background animation must pause with hidden combat and resume on return');
+  assert(mainUi.includes('bgAnim?.stop();\n      arena.setPaused(true)') && mainUi.includes('arena.setPaused(false)') &&
+    !mainUi.includes('bgAnim?.start();\n      arena.setPaused(false)'),
+    'background animation must pause with hidden combat and remain stopped on return');
   assert(arenaRenderer.includes('cacheOx') && arenaRenderer.includes('camera.x * scale'), 'grid cache must follow camera movement');
   const workflow = fs.readFileSync('.github/workflows/verify.yml', 'utf8');
+  const packageJson = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+  assert.equal(packageJson.scripts.check, 'node scripts/check.mjs', 'maintainers should have one sequential release gate');
   assert(workflow.includes('needs: verify'), 'Pages deployment must be gated by verification');
   assert(workflow.includes('npm run balance'), 'CI must gate deployment on balance simulation');
   const buildScript = fs.readFileSync('scripts/build.mjs', 'utf8');
@@ -965,7 +1040,11 @@ function verifyUiSafetyContracts() {
   assert(reportUiSource.includes('_renderIntegrity') && reportUiSource.includes('btnCopyReplay'),
     'failure report should render and copy the per-battle replay digest');
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
+  assert(!/const include = \[[^\]]*(?:README|OPERATIONS|SECURITY|BACKEND_CONTRACT)/.test(buildScript),
+    'Pages artifacts must exclude repository-only documentation');
   assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst') && serviceWorker.includes('versionedNetworkFirst'), 'service worker must use versioned precache, online-fresh modules, and offline navigation fallback');
+  assert(serviceWorker.includes('NAVIGATION_CACHE_KEY') && !serviceWorker.includes('cache.addAll(PRECACHE_URLS).catch'),
+    'navigation caching must be query-bounded and release installation must remain atomic');
   assert(mainUi.includes("updateViaCache: 'none'") && mainUi.includes('sw.js?v='), 'service worker registration must be release-versioned and bypass stale HTTP cache');
   assert(mainUi.includes('refreshAppNoticeCopy') && mainUi.includes("overlogic:localechange"), 'runtime notices must follow locale changes');
   assert(buildScript.includes('collectPrecacheUrls') && buildScript.includes('PRECACHE_URLS'), 'build must inject the complete runtime precache manifest');
@@ -1084,6 +1163,40 @@ function verifyRunHistoryContracts() {
   resetProfile();
   clearChallenges();
   clearRunArchive();
+  GameState.settings.volume = 0.8;
+  localStorage.setItem('overlogic_settings', JSON.stringify({ version: 99, volume: 0.05 }));
+  GameState.loadSettings();
+  assert.equal(GameState.settings.volume, 0.8, 'future settings envelopes must fail closed');
+  assert.equal(GameState.saveSettings(), false, 'old clients must refuse to overwrite future settings envelopes');
+  assert.equal(JSON.parse(localStorage.getItem('overlogic_settings')).version, 99);
+  localStorage.setItem('overlogic_run_history', JSON.stringify({ version: 99, entries: [{ battleId: 'battle_1' }] }));
+  assert.equal(recentBattles().length, 0, 'future history envelopes must fail closed');
+  const futureHistory = localStorage.getItem('overlogic_run_history');
+  assert.equal(replaceHistory([]), false, 'old clients must refuse to overwrite future history envelopes');
+  assert.equal(localStorage.getItem('overlogic_run_history'), futureHistory);
+  clearHistory();
+  localStorage.setItem('overlogic_profile', JSON.stringify({ version: 99, xp: 999999 }));
+  assert.equal(profileSnapshot().xp, 0, 'future profile envelopes must fail closed');
+  const futureProfile = localStorage.getItem('overlogic_profile');
+  assert.equal(replaceProfile({ version: 1, xp: 1 }), false, 'old clients must refuse to overwrite future profile envelopes');
+  assert.equal(localStorage.getItem('overlogic_profile'), futureProfile);
+  resetProfile();
+  localStorage.setItem('overlogic_live_challenges', JSON.stringify({ version: 99, objectives: {} }));
+  assert.equal(challengeSnapshot().version, 1, 'future challenge envelopes must fail closed');
+  const futureChallenges = localStorage.getItem('overlogic_live_challenges');
+  assert.equal(replaceChallenges({ version: 1, objectives: {} }), false,
+    'old clients must refuse to overwrite future challenge envelopes');
+  assert.equal(localStorage.getItem('overlogic_live_challenges'), futureChallenges);
+  clearChallenges();
+  localStorage.setItem('overlogic_run_archive', JSON.stringify({ version: 99, entries: [{ id: 'future_run' }] }));
+  assert.equal(runArchiveSnapshot().entries.length, 0, 'future archive envelopes must fail closed');
+  assert.equal(replaceRunArchive({ version: 99, entries: [] }), false,
+    'future archive imports must be rejected instead of silently downgraded');
+  const futureArchive = localStorage.getItem('overlogic_run_archive');
+  assert.equal(recordCompletedRun({ id: 'run_must_not_replace_future', seed: 1 }).persisted, false,
+    'old clients must refuse to overwrite future run archives');
+  assert.equal(localStorage.getItem('overlogic_run_archive'), futureArchive);
+  clearRunArchive();
   localStorage.setItem('overlogic_run_history', JSON.stringify([{ battleId: '<script>', difficulty: 'admin', won: 'yes', battleTime: 'NaN' }]));
   const sanitized = recentBattles(1)[0];
   assert.equal(sanitized.battleId, 'unknown');
@@ -1187,6 +1300,8 @@ function verifyRunHistoryContracts() {
     _won: true, battle_time: 11.2, _endHp: 68, total_damage_dealt: 200,
     damage_by_source: { repair_drone: 12 },
   });
+  assert.equal(JSON.parse(localStorage.getItem('overlogic_run_history')).version, 1,
+    'new battle history writes must use an explicit versioned envelope');
   const recent = recentBattles(4);
   assert.equal(recent.length, 3);
   assert.equal(recent[0].mode, 'weekly', 'history should preserve weekly mode');

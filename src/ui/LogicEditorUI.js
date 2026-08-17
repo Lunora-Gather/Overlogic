@@ -440,7 +440,9 @@ export class LogicEditorUI {
       const li = document.createElement('li');
       li.innerHTML = `<span class="mod-name">${escapeHtml(entity('condition', id, c.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
         `<span class="mod-desc">${escapeHtml(entity('condition', id, c.description, 'description'))}</span>` +
-        (c.parameterType !== 'none' ? `<span class="mod-meta">param: ${escapeHtml(c.parameterType)}</span>` : '');
+        (c.parameterType !== 'none'
+          ? `<span class="mod-meta">${escapeHtml(t('editor.parameterMeta', { type: c.parameterType }))}</span>`
+          : '');
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'condition';
       li.dataset.tooltipId = id;
@@ -475,7 +477,9 @@ export class LogicEditorUI {
       const li = document.createElement('li');
       li.innerHTML = `<span class="mod-name">${escapeHtml(entity('action', id, a.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
         `<span class="mod-desc">${escapeHtml(entity('action', id, a.description, 'description'))}</span>` +
-        `<span class="mod-meta">cd ${escapeHtml(a.cooldown)}s · e${escapeHtml(a.energyCost)} · r${escapeHtml(a.range)}</span>`;
+        `<span class="mod-meta">${escapeHtml(t('editor.actionMeta', {
+          cooldown: a.cooldown, energy: a.energyCost, range: a.range,
+        }))}</span>`;
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'action';
       li.dataset.tooltipId = id;
@@ -912,6 +916,9 @@ export class LogicEditorUI {
     });
     const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot', 'dash_through'].includes(r.actionId);
     if (!targetsEnemies) {
+      tarSel.disabled = true;
+      tarSel.tabIndex = -1;
+      tarSel.setAttribute('aria-hidden', 'true');
       tarSel.style.visibility = 'hidden';
     }
     row.appendChild(tarSel);
@@ -921,6 +928,9 @@ export class LogicEditorUI {
     if (warnings && warnings.length > 0) {
       const warnSpan = document.createElement('span');
       warnSpan.className = 'rule-warn-icon';
+      warnSpan.tabIndex = 0;
+      warnSpan.setAttribute('role', 'img');
+      warnSpan.setAttribute('aria-label', `${t('brief.warnings', { count: warnings.length })}: ${warnings.join(' ')}`);
       warnSpan.innerHTML = '⚠️';
       warnSpan.style.cursor = 'help';
       warnSpan.style.color = '#ffb938';
@@ -928,28 +938,41 @@ export class LogicEditorUI {
       warnSpan.style.fontSize = '14px';
       warnSpan.style.textShadow = '0 0 6px #ffb938';
       
-      warnSpan.addEventListener('mouseenter', () => {
+      const showWarningTooltip = () => {
         const tooltip = document.getElementById('custom-tooltip');
         if (!tooltip) return;
         tooltip.innerHTML = warnings.map(w => `<div style="margin-bottom: 4px; color: #ffb938; font-weight: bold;">• ${escapeHtml(w)}</div>`).join('');
         tooltip.classList.remove('hidden');
         tooltip.style.display = 'block';
+        tooltip.setAttribute('aria-hidden', 'false');
+        warnSpan.setAttribute('aria-describedby', 'custom-tooltip');
         
         const rect = warnSpan.getBoundingClientRect();
         const tooltipW = tooltip.offsetWidth;
         const tooltipH = tooltip.offsetHeight;
         
-        tooltip.style.left = `${window.scrollX + rect.left - tooltipW / 2 + rect.width / 2}px`;
-        tooltip.style.top = `${window.scrollY + rect.top - tooltipH - 8}px`;
-      });
-      
-      warnSpan.addEventListener('mouseleave', () => {
+        const left = Math.max(10, Math.min(window.innerWidth - tooltipW - 10,
+          rect.left - tooltipW / 2 + rect.width / 2));
+        let top = rect.top - tooltipH - 8;
+        if (top < 10) top = rect.bottom + 8;
+        if (top + tooltipH > window.innerHeight - 10) top = Math.max(10, window.innerHeight - tooltipH - 10);
+        tooltip.style.left = `${left}px`;
+        tooltip.style.top = `${top}px`;
+      };
+      warnSpan.addEventListener('mouseenter', showWarningTooltip);
+      warnSpan.addEventListener('focusin', showWarningTooltip);
+
+      const hideWarningTooltip = () => {
         const tooltip = document.getElementById('custom-tooltip');
         if (tooltip) {
           tooltip.classList.add('hidden');
           tooltip.style.display = 'none';
+          tooltip.setAttribute('aria-hidden', 'true');
         }
-      });
+        warnSpan.removeAttribute('aria-describedby');
+      };
+      warnSpan.addEventListener('mouseleave', hideWarningTooltip);
+      warnSpan.addEventListener('focusout', hideWarningTooltip);
 
       row.appendChild(warnSpan);
     }
@@ -963,6 +986,7 @@ export class LogicEditorUI {
 
     // 7.1 Clone Button
     const clone = document.createElement('button');
+    clone.type = 'button';
     clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = t('editor.duplicate');
     clone.dataset.focusField = 'duplicate';
     clone.setAttribute('aria-label', t('editor.duplicate'));
@@ -1181,14 +1205,14 @@ export class LogicEditorUI {
     };
 
     this.unitStats.innerHTML =
-      `<span class="stat">HP<b>${s.max_hp}</b>${diff('max_hp', d => d)}</span>` +
-      `<span class="stat">EN<b>${s.max_energy}</b>${diff('max_energy', d => d)}</span>` +
-      `<span class="stat">Regen<b>${s.energy_regen.toFixed(1)}/s</b>${diff('energy_regen', d => d.toFixed(1) + '/s')}</span>` +
-      `<span class="stat">SPD<b>${s.move_speed}</b>${diff('move_speed', d => d)}</span>` +
-      `<span class="stat">DMG<b>${s.basic_dmg.toFixed(1)}</b>${diff('basic_dmg', d => d.toFixed(1))}</span>` +
-      `<span class="stat">DashCD<b>${s.dash_cd.toFixed(1)}s</b>${diff('dash_cd', d => d.toFixed(1) + 's', true)}</span>` +
-      `<span class="stat">ShieldCD<b>${s.shield_cd}s</b>${diff('shield_cd', d => d.toFixed(1) + 's', true)}</span>` +
-      `<span class="stat">AP<b>${s.armor_piercing}</b>${diff('armor_piercing', d => d)}</span>`;
+      `<span class="stat">${escapeHtml(t('stats.hp'))}<b>${s.max_hp}</b>${diff('max_hp', d => d)}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.energy'))}<b>${s.max_energy}</b>${diff('max_energy', d => d)}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.regen'))}<b>${s.energy_regen.toFixed(1)}/s</b>${diff('energy_regen', d => d.toFixed(1) + '/s')}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.speed'))}<b>${s.move_speed}</b>${diff('move_speed', d => d)}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.damage'))}<b>${s.basic_dmg.toFixed(1)}</b>${diff('basic_dmg', d => d.toFixed(1))}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.dashCooldown'))}<b>${s.dash_cd.toFixed(1)}s</b>${diff('dash_cd', d => d.toFixed(1) + 's', true)}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.shieldCooldown'))}<b>${s.shield_cd}s</b>${diff('shield_cd', d => d.toFixed(1) + 's', true)}</span>` +
+      `<span class="stat">${escapeHtml(t('stats.armorPiercing'))}<b>${s.armor_piercing}</b>${diff('armor_piercing', d => d)}</span>`;
   }
 
   renderSynergies() {

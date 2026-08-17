@@ -137,7 +137,7 @@ export function drawStatsChart(canvas, report) {
 
       // Dmg text
       g.fillStyle = '#ffffff';
-      g.fillText(`${Math.round(dmg)} DMG`, dmgBarX + 5 + barW, dy);
+      g.fillText(t('chart.damageShort', { value: Math.round(dmg) }), dmgBarX + 5 + barW, dy);
 
       dy += isMobile ? 30 : 36;
     }

@@ -7,7 +7,10 @@ const requestedRelease = String(process.env.GITHUB_SHA || process.env.OVERLOGIC_
 const release = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(requestedRelease)
   ? requestedRelease
   : String(Date.now());
-const include = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', '.nojekyll', 'LICENSE', 'README.md', 'OPERATIONS.md', 'data', 'src'];
+// Publish only runtime assets and the required license. Repository guidance,
+// operational notes, and contributor contracts stay in source control rather
+// than becoming unrelated public Pages payload.
+const include = ['index.html', 'style.css', 'manifest.webmanifest', 'icon.svg', 'sw.js', '.nojekyll', 'LICENSE', 'data', 'src'];
 
 await fs.rm(output, { recursive: true, force: true });
 await fs.mkdir(output, { recursive: true });
@@ -43,7 +46,7 @@ async function collectPrecacheUrls(dir, out = []) {
       continue;
     }
     const relative = path.relative(output, target).split(path.sep).join('/');
-    if (relative === 'release.json' || relative === '.nojekyll' || relative === 'README.md' || relative === 'OPERATIONS.md' || relative === 'LICENSE') continue;
+    if (relative === 'release.json' || relative === '.nojekyll' || relative === 'LICENSE') continue;
     out.push(`./${relative}`);
   }
   return out;

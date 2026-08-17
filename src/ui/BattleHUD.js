@@ -149,7 +149,9 @@ export class BattleHUD {
 
   setCurrentLogic(label, rule, overlogicActive) {
     const txt = t(overlogicActive && rule ? 'combat.overlogicActive' : 'combat.current', { label });
-    this.curLogic.textContent = txt;
+    // Avoid re-announcing the same status every 150 ms. The live region now
+    // speaks only when the visible logic actually changes.
+    if (this.curLogic.textContent !== txt) this.curLogic.textContent = txt;
     this.curLogic.classList.toggle('overlogic', !!overlogicActive && !!rule);
 
     // Highlight executing rule in directives list
@@ -195,10 +197,10 @@ export class BattleHUD {
       li.id = `combat-rule-${r.id}`;
       li.className = 'combat-rule-item';
       
-      const cond1Str = formatCond(r.conditionId, r.conditionValue, GameDatabase);
+      const cond1Str = formatCond(r.conditionId, r.conditionValue, GameDatabase, r.negateCondition1);
       let condStr = cond1Str;
       if (r.operator && r.conditionId2) {
-        const cond2Str = formatCond(r.conditionId2, r.conditionValue2, GameDatabase);
+        const cond2Str = formatCond(r.conditionId2, r.conditionValue2, GameDatabase, r.negateCondition2);
         const opStr = r.operator.toUpperCase();
         condStr = `${cond1Str} ${opStr} ${cond2Str}`;
       }

@@ -16,6 +16,8 @@ const gameState = await fs.readFile(path.join(root, 'src/core/GameState.js'), 'u
 const modifiers = await fs.readFile(path.join(root, 'src/systems/RunModifiers.js'), 'utf8');
 const history = await fs.readFile(path.join(root, 'src/systems/RunHistory.js'), 'utf8');
 const archive = await fs.readFile(path.join(root, 'src/systems/RunArchive.js'), 'utf8');
+const profile = await fs.readFile(path.join(root, 'src/systems/ProfileProgression.js'), 'utf8');
+const challenges = await fs.readFile(path.join(root, 'src/systems/LiveChallenges.js'), 'utf8');
 const i18n = await fs.readFile(path.join(root, 'src/i18n/I18n.js'), 'utf8');
 const arena = await fs.readFile(path.join(root, 'src/core/CombatArena.js'), 'utf8');
 const battleContext = await fs.readFile(path.join(root, 'src/core/BattleContext.js'), 'utf8');
@@ -31,6 +33,8 @@ const productTelemetry = await fs.readFile(path.join(root, 'src/systems/ProductT
 const storageGate = await fs.readFile(path.join(root, 'src/systems/StorageWriteGate.js'), 'utf8');
 const httpAudit = await fs.readFile(path.join(root, 'scripts/audit-http.mjs'), 'utf8');
 const saveMigrations = await fs.readFile(path.join(root, 'src/systems/SaveMigrations.js'), 'utf8');
+const backendContract = await fs.readFile(path.join(root, 'BACKEND_CONTRACT.md'), 'utf8');
+const contributing = await fs.readFile(path.join(root, 'CONTRIBUTING.md'), 'utf8');
 const enemyTable = JSON.parse(await fs.readFile(path.join(root, 'data/enemies.json'), 'utf8'));
 const battleTable = JSON.parse(await fs.readFile(path.join(root, 'data/battles.json'), 'utf8'));
 const operationsTable = JSON.parse(await fs.readFile(path.join(root, 'data/operations.json'), 'utf8'));
@@ -40,6 +44,7 @@ const workflow = await fs.readFile(path.join(root, '.github/workflows/verify.yml
 const codeqlWorkflow = await fs.readFile(path.join(root, '.github/workflows/codeql.yml'), 'utf8');
 const dependabot = await fs.readFile(path.join(root, '.github/dependabot.yml'), 'utf8');
 const manifest = JSON.parse(await fs.readFile(path.join(root, 'manifest.webmanifest'), 'utf8'));
+const packageJson = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
 
 let checks = 0;
 function check(condition, message) {
@@ -66,6 +71,16 @@ for (const id of ['cond-search', 'rules-search', 'act-search', 'data-import-file
 }
 check((i18n.match(/settings\.importFile/g) || []).length >= 3,
   'save-data file input label must exist in every locale dictionary');
+
+for (const match of html.matchAll(/<(?:input|select|textarea)\b([^>]*)>/gi)) {
+  const attributes = match[1];
+  if (/\btype\s*=\s*"hidden"/i.test(attributes)) continue;
+  const id = attributes.match(/\bid="([^"]+)"/i)?.[1];
+  if (!id) continue;
+  const hasInlineName = /(?:aria-label|data-i18n-aria-label|title|placeholder|data-i18n-placeholder)=/i.test(attributes);
+  const hasExplicitLabel = new RegExp(`for="${id}"`, 'i').test(html);
+  check(hasInlineName || hasExplicitLabel, `${id} must expose a visible or localized accessible name`);
+}
 
 const dialogRefs = [...html.matchAll(/role="dialog"[^>]*aria-labelledby="([^"]+)"/gi)].map((match) => match[1]);
 check(dialogRefs.length >= 4, 'all product dialogs should expose labelled titles');
@@ -114,6 +129,9 @@ check(/id="victory-replay-digest"/.test(html) && /btn-copy-victory-replay/.test(
   'victory reports must expose and copy the combined replay digest');
 check(/navigator\.clipboard/.test(clipboardUi) && /execCommand/.test(clipboardUi),
   'shareable integrity codes must retain a manual-copy fallback when clipboard permissions are unavailable');
+check(/id="custom-tooltip"[^>]*role="tooltip"[^>]*aria-hidden="true"/.test(html) &&
+  /hideTooltip/.test(main) && /aria-describedby/.test(main),
+  'dynamic tooltips must expose a hidden semantic target and dismiss cleanly on focus, scroll, resize, or Escape');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
 check(/http-equiv="Permissions-Policy"/.test(html) && /Permissions-Policy/.test(await fs.readFile(path.join(root, 'scripts/serve.mjs'), 'utf8')),
@@ -122,7 +140,14 @@ check(/#screen-editor\s+#mission-briefing\s*\{[\s\S]*?flex:\s*0\s+0\s+auto/.test
   'mobile editor briefing must retain intrinsic height instead of overlapping the synergy panel');
 check(/#screen-editor\s+\.editor-mobile-tabs\s*\{[\s\S]*?width:\s*100%[\s\S]*?align-self:\s*stretch/.test(css),
   'mobile editor tabs must span the content width for touch targets and visual alignment');
+check(/\.editor-footer \.btn,[\s\S]*?\.editor-footer \.sandbox-preset\s*\{[\s\S]*?white-space:\s*nowrap/.test(css),
+  'localized editor footer actions must keep compact labels on one line');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
+const backgroundAnim = await fs.readFile(path.join(root, 'src/systems/BackgroundAnim.js'), 'utf8');
+check(/shouldRun/.test(backgroundAnim) && /visibilityPaused/.test(backgroundAnim) && /if \(this\.shouldRun\) this\.start\(\)/.test(backgroundAnim),
+  'background animation must only resume after visibility changes when the active screen requested it');
+check(!/else if \(!document\.hidden && visibilityPausedCombat\)\s*\{[\s\S]{0,180}bgAnim\?\.start/.test(main),
+  'returning to a paused combat tab must not restart the hidden menu background animation');
 check(/applyLaunchPreset/.test(main) && /parseLaunchPreset/.test(main) && /GameState\.canConfigureRun\(\)/.test(main),
   'shared challenge and PWA launch links must be validated and must not override active runs');
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
@@ -133,6 +158,9 @@ check(/\.overlay\s*\{[\s\S]*?z-index:\s*13000/.test(css) && /\.app-notice\s*\{[\
   'modal overlays must remain clickable above transient app notices');
 check(operationsTable.schemaVersion === 1 && operationsTable.features && operationsTable.limits,
   'operations manifest must declare a versioned feature and limit contract');
+check(/UNSUPPORTED_OPERATIONS/.test(operationsConfig) && /inputVersion/.test(operationsConfig) &&
+  /maintenance:\s*\{ enabled: true \}/.test(operationsConfig),
+  'future operations schemas must fail closed into a visible maintenance-safe mode');
 check(contentTables.every((table) => table.schemaVersion === 1),
   'all simulation content tables must declare the supported schema version');
 check(/normalizeOperationsConfig/.test(operationsConfig) && /loadOperationsConfig/.test(main) && /operationsSnapshot/.test(gameState),
@@ -150,6 +178,12 @@ check(/portableSaveIntegrity/.test(gameState) && /payload\.integrity/.test(gameS
   'portable save exports must carry a tamper-evident integrity envelope');
 check(/migrateRunSave/.test(gameState) && /CURRENT_SAVE_VERSION/.test(saveMigrations) && /unsupported/.test(saveMigrations),
   'run-save version migrations must be explicit and fail closed on future versions');
+check(/HISTORY_VERSION/.test(history) && /Unsupported run history version/.test(history) && /version: HISTORY_VERSION/.test(history) &&
+  /ARCHIVE_VERSION/.test(archive) && /Unsupported run archive version/.test(archive) &&
+  /Unsupported profile version/.test(profile) && /Unsupported daily challenge version/.test(challenges) &&
+  /LOADOUT_VERSION/.test(gameState) && /Unsupported loadout version/.test(gameState) &&
+  /SETTINGS_VERSION/.test(gameState) && /Unsupported settings version/.test(gameState),
+  'local history, archive, profile, challenge, loadout, and settings stores must use explicit versions and reject future envelopes');
 check(/MAX_RECENT\s*=\s*40/.test(productTelemetry) && !/\bfetch\s*\(/.test(productTelemetry) && /clearProductMetrics/.test(productTelemetry),
   'product metrics must remain bounded, local-only, and immediately erasable');
 check(/Consent withdrawal/.test(productTelemetry) &&
@@ -180,6 +214,8 @@ check(battleTable.battles.length >= 13 && battleTable.battles.some((battle) => b
 check(/ShieldRelayEnemy/.test(arena) && /shield_drone/.test(arena), 'combat runtime must instantiate shield relay behavior');
 check(/enemy_shield_mitigation/.test(reportUi) && /report\.timelineShield/.test(reportUi), 'post-battle report must explain shield relay telemetry');
 check(/RULE_TEMPLATES/.test(templates) && /applyRuleTemplate/.test(gameState) && /RULE_TEMPLATES/.test(editor), 'rule templates must use a dedicated data module and state API');
+check(/_applyThermalRecycle/.test(actionExecutor) && /if \(executed\) this\._applyThermalRecycle/.test(actionExecutor),
+  'thermal recycle must only trigger after an action actually executes');
 check(/preventScroll:\s*true/.test(menuUi) && /profileCard\.scrollTop\s*=\s*0/.test(menuUi),
   'long operator dossiers must open at the first section while retaining dialog focus');
 check(/SIMULATION_STEP_SECONDS/.test(arena) && /MAX_CATCH_UP_STEPS/.test(arena) && /simulationAccumulator/.test(arena),
@@ -203,6 +239,18 @@ check(/npm run quality-audit/.test(workflow), 'CI must run the product quality g
 check(/npm run performance-audit/.test(workflow), 'CI must enforce deterministic performance budgets before deployment');
 check(/npm run http-audit/.test(workflow) && /HTTP_AUDIT_OK/.test(httpAudit),
   'CI must smoke-test the built release through a real HTTP server');
+check(packageJson.scripts?.check === 'node scripts/check.mjs' &&
+  /CHECK_STEP/.test(await fs.readFile(path.join(root, 'scripts/check.mjs'), 'utf8')),
+  'maintainers must have a sequential local release gate');
+check(/POST \/v1\/session/.test(backendContract) && /PUT \/v1\/me\/save/.test(backendContract) &&
+  /POST \/v1\/runs\/submit/.test(backendContract) && /entitlements/.test(backendContract) &&
+  /idempotencyKey/.test(backendContract),
+  'backend commercial integration must have an explicit versioned and idempotent contract');
+check(/npm run check/.test(contributing) && /dist\//.test(contributing) && /繁体中文/.test(contributing) &&
+  /未固定 SHA/.test(contributing),
+  'maintainer contribution guidance must preserve release, localization, and supply-chain constraints');
+check(/x-content-type-options/.test(httpAudit) && /permissions-policy/.test(httpAudit),
+  'HTTP smoke tests must enforce the local security response headers');
 check((workflow.match(/uses:\s*actions\/[A-Za-z0-9-]+@[0-9a-f]{40}/g) || []).length >= 7 &&
   !/uses:\s*actions\/[A-Za-z0-9-]+@v\d/.test(workflow),
   'CI actions must be pinned to reviewed commit SHAs');

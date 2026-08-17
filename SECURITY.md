@@ -25,3 +25,9 @@ be reviewed before sharing.
 - Future online services must add server-side authentication, authorization,
   rate limiting, validation, deletion controls, and audit logging before they
   are used for competitive or commercial entitlements.
+- The release shell denies camera, microphone, geolocation, and payment
+  capabilities through `Permissions-Policy`; the local dev server sends the
+  same response header.
+- Versioned local stores reject future envelopes instead of guessing their
+  schema. A future operations manifest enters a visible maintenance-safe mode
+  rather than silently applying unknown semantics.

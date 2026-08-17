@@ -12,6 +12,7 @@ import { runRecords } from '../systems/RunArchive.js?v=20260725-4';
 import { runReceipt } from '../systems/RunVerification.js?v=20260725-4';
 import { combineReplayDigests } from '../systems/RunReplay.js?v=20260725-4';
 import { copyText } from './Clipboard.js?v=20260725-4';
+import { formatCond } from '../logic/LogicRule.js?v=20260725-4';
 
 export class VictoryUI {
   constructor() {
@@ -132,12 +133,17 @@ export class VictoryUI {
       return;
     }
     const items = rules.map(r => {
-      const condition = GameDatabase.getCondition?.(r.conditionId);
       const action = GameDatabase.getAction?.(r.actionId);
-      const cond = entity('condition', r.conditionId, condition?.displayName || r.conditionId || '?');
+      const cond1 = formatCond(r.conditionId, r.conditionValue, GameDatabase, r.negateCondition1);
+      const cond2 = r.operator && r.conditionId2
+        ? formatCond(r.conditionId2, r.conditionValue2, GameDatabase, r.negateCondition2)
+        : '';
+      const cond = cond2 ? `${cond1} ${r.operator.toUpperCase()} ${cond2}` : cond1;
       const act = entity('action', r.actionId, action?.displayName || r.actionId || '?');
-      const op = r.operator && r.conditionId2 ? ` ${r.operator.toUpperCase()} ${entity('condition', r.conditionId2, r.conditionId2)}` : '';
-      return `<li><span class="rule-prio-badge">${escapeHtml(r.priority)}</span> IF <span class="rule-cond">${escapeHtml(cond + op)}</span> → <span class="rule-act">${escapeHtml(act)}</span></li>`;
+      const target = r.targetPriority && r.targetPriority !== 'nearest'
+        ? ` (${t(`target.${r.targetPriority}`)})`
+        : '';
+      return `<li><span class="rule-prio-badge">${escapeHtml(r.priority)}</span> ${escapeHtml(t('combat.if'))} <span class="rule-cond">${escapeHtml(cond)}</span> ${escapeHtml(t('combat.then'))} <span class="rule-act">${escapeHtml(act + target)}</span></li>`;
     }).join('');
     this.rulesEl.innerHTML = `<ul class="victory-rules-list">${items}</ul>`;
   }

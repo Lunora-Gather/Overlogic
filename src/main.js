@@ -71,6 +71,13 @@ function refreshAppNoticeCopy() {
   if (noticeActionKey && appNoticeAction) appNoticeAction.textContent = t(noticeActionKey);
 }
 
+function hideTooltip(tooltip) {
+  if (!tooltip) return;
+  tooltip.classList.add('hidden');
+  tooltip.style.display = 'none';
+  tooltip.setAttribute('aria-hidden', 'true');
+}
+
 function showAppNotice(messageKey, { actionKey = null, onAction = null, autoHide = 0 } = {}) {
   if (!appNotice || !appNoticeMessage || !appNoticeAction) return;
   if (noticeTimer) clearTimeout(noticeTimer);
@@ -344,7 +351,6 @@ async function main() {
       battleHUD.btnStep.classList.remove('hidden');
     } else if (!document.hidden && visibilityPausedCombat) {
       visibilityPausedCombat = false;
-      bgAnim?.start();
       arena.setPaused(false);
       battleHUD.btnPause.textContent = t('combat.pause');
       battleHUD.btnPause.setAttribute('aria-pressed', 'false');
@@ -427,7 +433,9 @@ async function main() {
     }
     settingsOverlay.classList.remove('hidden');
     settingsOverlay.setAttribute('aria-hidden', 'false');
-    btnSettingsSave?.focus();
+    const settingsList = settingsOverlay.querySelector('.settings-list');
+    if (settingsList) settingsList.scrollTop = 0;
+    settingVolume?.focus({ preventScroll: true });
     AudioManager.play('button_click');
   }
 
@@ -530,22 +538,20 @@ async function main() {
 
   btnDataImport?.addEventListener('click', () => dataImportFile?.click());
   dataImportFile?.addEventListener('change', async () => {
-    const file = dataImportFile.files?.[0];
-    dataImportFile.value = '';
-    if (!file || file.size > 1_000_000) {
+    try {
+      const file = dataImportFile.files?.[0];
+      dataImportFile.value = '';
+      if (!file || file.size > 1_000_000) throw new Error('Invalid import file');
+      const imported = GameState.importSaveData(await file.text());
+      if (!imported) throw new Error('Import rejected');
+      refreshSettingsStorageStatus();
+      showAppNotice('notice.saveImported', {
+        actionKey: 'notice.reloadSave',
+        onAction: () => window.location.reload(),
+      });
+    } catch {
       showAppNotice('notice.importFailed');
-      return;
     }
-    const imported = GameState.importSaveData(await file.text());
-    if (!imported) {
-      showAppNotice('notice.importFailed');
-      return;
-    }
-    refreshSettingsStorageStatus();
-    showAppNotice('notice.saveImported', {
-      actionKey: 'notice.reloadSave',
-      onAction: () => window.location.reload(),
-    });
   });
 
   btnDataRestore?.addEventListener('click', () => {
@@ -566,6 +572,7 @@ async function main() {
   document.addEventListener('mouseover', (e) => {
     const el = e.target.closest('[data-tooltip-type]');
     if (!el || !tooltip) return;
+    if (e.relatedTarget && el.contains(e.relatedTarget)) return;
 
     const type = el.dataset.tooltipType;
     const id = el.dataset.tooltipId || el.dataset.nodeId;
@@ -619,6 +626,7 @@ async function main() {
       tooltip.innerHTML = content;
       tooltip.classList.remove('hidden');
       tooltip.style.display = 'block';
+      tooltip.setAttribute('aria-hidden', 'false');
 
       // Position tooltip
       const rect = el.getBoundingClientRect();
@@ -626,13 +634,14 @@ async function main() {
       const tooltipH = tooltip.offsetHeight;
       
       // Center above element
-      let left = window.scrollX + rect.left - tooltipW / 2 + rect.width / 2;
-      let top = window.scrollY + rect.top - tooltipH - 8;
+      let left = rect.left - tooltipW / 2 + rect.width / 2;
+      let top = rect.top - tooltipH - 8;
 
       // Keep inside window bounds
       if (left < 10) left = 10;
       if (left + tooltipW > window.innerWidth - 10) left = window.innerWidth - tooltipW - 10;
-      if (top < 10) top = window.scrollY + rect.bottom + 8; // flip to bottom if it overflows top
+      if (top < 10) top = rect.bottom + 8; // flip to bottom if it overflows top
+      if (top + tooltipH > window.innerHeight - 10) top = Math.max(10, window.innerHeight - tooltipH - 10);
 
       tooltip.style.left = `${left}px`;
       tooltip.style.top = `${top}px`;
@@ -641,10 +650,7 @@ async function main() {
 
   document.addEventListener('mouseout', (e) => {
     const el = e.target.closest('[data-tooltip-type]');
-    if (el && tooltip) {
-      tooltip.classList.add('hidden');
-      tooltip.style.display = 'none';
-    }
+    if (el && tooltip && (!e.relatedTarget || !el.contains(e.relatedTarget))) hideTooltip(tooltip);
   });
 
   // Module and map tooltips are also useful to keyboard and switch-control
@@ -652,11 +658,22 @@ async function main() {
   // visually identical without duplicating positioning logic.
   document.addEventListener('focusin', (e) => {
     const el = e.target.closest?.('[data-tooltip-type]');
-    if (el) el.dispatchEvent(new Event('mouseover', { bubbles: true }));
+    if (el) {
+      el.setAttribute('aria-describedby', 'custom-tooltip');
+      el.dispatchEvent(new Event('mouseover', { bubbles: true }));
+    }
   });
   document.addEventListener('focusout', (e) => {
     const el = e.target.closest?.('[data-tooltip-type]');
-    if (el) el.dispatchEvent(new Event('mouseout', { bubbles: true }));
+    if (el) {
+      el.removeAttribute('aria-describedby');
+      el.dispatchEvent(new Event('mouseout', { bubbles: true }));
+    }
+  });
+  window.addEventListener('scroll', () => hideTooltip(tooltip), true);
+  window.addEventListener('resize', () => hideTooltip(tooltip));
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') hideTooltip(tooltip);
   });
 
   // Global Hover Audio Feedback Delegator

@@ -62,7 +62,7 @@ export class Projectile {
           if (this.kind === 'basic' && r && r.stats && r.stats.stat('heavy_impact', 0) > 0) {
             if ((this.ctx.random || Math.random)() < 0.25) {
               e.stunTimer = 0.8;
-              spawnText(this.ctx, e.x, e.y - e.bodyRadius - 0.2, 'STUN', '#ffda79', 11);
+              spawnText(this.ctx, e.x, e.y - e.bodyRadius - 0.2, t('combat.stunned'), '#ffda79', 11);
               if (this.ctx && this.ctx.hud) {
                 this.ctx.hud.logConsole(t('log.heavyImpact'), 'success');
               }

@@ -9,6 +9,7 @@ import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const CHALLENGE_KEY = 'overlogic_live_challenges';
 const CHALLENGE_VERSION = 1;
+let writesBlockedByFutureVersion = false;
 
 const POOLS = Object.freeze({
   wins: [
@@ -99,7 +100,16 @@ function normalizeState(raw, date = utcDate()) {
 function readState(date = utcDate()) {
   try {
     const raw = localStorage.getItem(CHALLENGE_KEY);
-    return normalizeState(raw ? JSON.parse(raw) : null, date);
+    const parsed = raw ? JSON.parse(raw) : null;
+    const version = parsed && typeof parsed === 'object' && !Array.isArray(parsed)
+      ? Number(parsed.version ?? CHALLENGE_VERSION) : CHALLENGE_VERSION;
+    if (!Number.isSafeInteger(version) || version < 0 || version > CHALLENGE_VERSION) {
+      writesBlockedByFutureVersion = version > CHALLENGE_VERSION;
+      recordStorageError(new Error(`Unsupported daily challenge version ${version}`), 'daily-challenges-version');
+      return emptyState(date);
+    }
+    writesBlockedByFutureVersion = false;
+    return normalizeState(parsed, date);
   } catch (error) {
     recordStorageError(error, 'daily-challenges-read');
     return emptyState(date);
@@ -107,7 +117,7 @@ function readState(date = utcDate()) {
 }
 
 function writeState(state) {
-  if (!storageWritesAllowed()) return false;
+  if (!storageWritesAllowed() || writesBlockedByFutureVersion) return false;
   try {
     localStorage.setItem(CHALLENGE_KEY, JSON.stringify(state));
     return true;
@@ -142,6 +152,8 @@ export function challengeSnapshot(date = new Date()) {
 
 export function replaceChallenges(raw) {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return false;
+  const version = Number(raw.version ?? CHALLENGE_VERSION);
+  if (!Number.isSafeInteger(version) || version > CHALLENGE_VERSION) return false;
   return writeState(normalizeState(raw));
 }
 
@@ -187,6 +199,7 @@ export function clearChallenges() {
   if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(CHALLENGE_KEY);
+    writesBlockedByFutureVersion = false;
     return true;
   } catch (error) {
     recordStorageError(error, 'daily-challenges');

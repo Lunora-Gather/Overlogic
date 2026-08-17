@@ -75,6 +75,19 @@ export class ActionExecutor {
     }
   }
 
+  _applyThermalRecycle() {
+    // Thermal Recycle only pays out after a real action. A pursuing rule may
+    // be valid but still fail because its target is out of range; charging the
+    // passive in that case creates a free Overlogic/energy exploit.
+    if (!this.ctx?.overlogic?.active || this.stats.stat('thermal_recycle', 0) <= 0) return;
+    this.ctx.overlogic.value = Math.max(0, this.ctx.overlogic.value - 10);
+    this.ctx.overlogic._checkState();
+    if (this.stats.hasSynergy('thermal_grid')) {
+      this.robot.energy = Math.min(this.robot.maxEnergy, this.robot.energy + 4);
+    }
+    this.ctx.hud?.logConsole(t('log.thermalRecycle'), 'success');
+  }
+
   // Returns true if action actually executed.
   execute(actionId, rule = null) {
     if (this.isOnCooldown(actionId)) return false;
@@ -82,33 +95,24 @@ export class ActionExecutor {
     if (this.robot.energy < cost) return false;
     if (this.unavailableReason(actionId)) return false;
 
-    // Thermal Recycle: actions executed during Meltdown cool CPU temp by -10°C
-    if (this.ctx && this.ctx.overlogic && this.ctx.overlogic.active && this.stats.stat('thermal_recycle', 0) > 0) {
-      this.ctx.overlogic.value = Math.max(0, this.ctx.overlogic.value - 10);
-      this.ctx.overlogic._checkState();
-      if (this.stats.hasSynergy('thermal_grid')) {
-        this.robot.energy = Math.min(this.robot.maxEnergy, this.robot.energy + 4);
-      }
-      if (this.ctx.hud) {
-        this.ctx.hud.logConsole(t('log.thermalRecycle'), 'success');
-      }
-    }
-
+    let executed = false;
     switch (actionId) {
-      case 'basic_attack':    return this._basicAttack(rule);
-      case 'dash_toward':     return this._dash(true, rule);
-      case 'dash_away':       return this._dash(false, rule);
-      case 'sidestep':        return this._sidestep();
-      case 'shield':          return this._shield();
-      case 'interrupt_shot':  return this._interruptShot(rule);
-      case 'overdrive':       return this._overdrive();
-      case 'repair':          return this._repair();
-      case 'drop_mine':       this._dropMine(); return true;
-      case 'emp_burst':       return this._empBurst();
-      case 'energy_transfer': return this._energyTransfer();
-      case 'dash_through':    return this._dashThrough(rule);
+      case 'basic_attack':    executed = this._basicAttack(rule); break;
+      case 'dash_toward':     executed = this._dash(true, rule); break;
+      case 'dash_away':       executed = this._dash(false, rule); break;
+      case 'sidestep':        executed = this._sidestep(); break;
+      case 'shield':          executed = this._shield(); break;
+      case 'interrupt_shot':  executed = this._interruptShot(rule); break;
+      case 'overdrive':       executed = this._overdrive(); break;
+      case 'repair':          executed = this._repair(); break;
+      case 'drop_mine':       this._dropMine(); executed = true; break;
+      case 'emp_burst':       executed = this._empBurst(); break;
+      case 'energy_transfer': executed = this._energyTransfer(); break;
+      case 'dash_through':    executed = this._dashThrough(rule); break;
       default: return false;
     }
+    if (executed) this._applyThermalRecycle();
+    return executed;
   }
 
   _resolveTarget(priority, candidates = null) {

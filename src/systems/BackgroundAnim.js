@@ -12,6 +12,8 @@ export class BackgroundAnim {
     this.running = false;
     this.rafId = null;
     this.reduceMotion = false;
+    this.shouldRun = false;
+    this.visibilityPaused = false;
     this.init();
     this.loop = this.loop.bind(this);
   }
@@ -20,8 +22,13 @@ export class BackgroundAnim {
     this.resize();
     window.addEventListener('resize', () => this.resize());
     document.addEventListener('visibilitychange', () => {
-      if (document.hidden) this.stop();
-      else this.start();
+      if (document.hidden) {
+        this.visibilityPaused = true;
+        this._stopFrameLoop();
+      } else {
+        this.visibilityPaused = false;
+        if (this.shouldRun) this.start();
+      }
     });
 
     // Spawn initial grid-aligned particles
@@ -69,7 +76,8 @@ export class BackgroundAnim {
   }
 
   start() {
-    if (this.running) return;
+    this.shouldRun = true;
+    if (this.visibilityPaused || this.running) return;
     this.running = true;
     if (this.reduceMotion) {
       this.g.clearRect(0, 0, this.width, this.height);
@@ -81,6 +89,11 @@ export class BackgroundAnim {
   }
 
   stop() {
+    this.shouldRun = false;
+    this._stopFrameLoop();
+  }
+
+  _stopFrameLoop() {
     this.running = false;
     if (this.rafId !== null) cancelAnimationFrame(this.rafId);
     this.rafId = null;
@@ -93,7 +106,10 @@ export class BackgroundAnim {
   }
 
   loop() {
-    if (!this.running || document.hidden) return;
+    if (!this.running || document.hidden) {
+      if (document.hidden) this._stopFrameLoop();
+      return;
+    }
     this.g.clearRect(0, 0, this.width, this.height);
     this.update();
     this.draw();

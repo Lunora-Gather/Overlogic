@@ -22,9 +22,11 @@ const RUN_TEMP_KEY = 'overlogic_run_save_pending';
 const RUN_MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
+const SETTINGS_VERSION = 1;
 const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'support', 'boss']);
 const MAX_RULES = 40;
 const LOADOUT_SLOTS = 3;
+const LOADOUT_VERSION = 1;
 const MAX_PORTABLE_ARCHIVE_ENTRIES = 240;
 const RUN_CODE_PREFIX = 'OLR1';
 const MIN_TEACH_NODE = 1;
@@ -122,6 +124,7 @@ class GameStateClass {
     this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._ruleCounter = 0;
     this.settings = {
+      version: SETTINGS_VERSION,
       volume: 0.8,
       mute: false,
       screenShake: true,
@@ -135,6 +138,8 @@ class GameStateClass {
     // simple pub/sub for UI re-render
     this.storageStatus = { available: true, restoredFromBackup: false, conflict: false, lastError: null };
     this._lastPersistedSerialized = null;
+    this._settingsWriteBlocked = false;
+    this._blockedLoadoutSlots = new Set();
     this._listeners = { rules: [], stats: [], progress: [], storage: [] };
     this.loadSettings();
     if (!this.loadFromStorage()) {
@@ -150,6 +155,14 @@ class GameStateClass {
       const raw = localStorage.getItem('overlogic_settings');
       if (raw) {
         const parsed = JSON.parse(raw);
+        const version = Number(parsed?.version ?? SETTINGS_VERSION);
+        if (!Number.isSafeInteger(version) || version < 0 || version > SETTINGS_VERSION) {
+          this._settingsWriteBlocked = version > SETTINGS_VERSION;
+          recordStorageError(new Error(`Unsupported settings version ${version}`), 'settings-version');
+          return;
+        }
+        this._settingsWriteBlocked = false;
+        this.settings.version = SETTINGS_VERSION;
         const volume = Number(parsed.volume);
         this.settings.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.8;
         this.settings.mute = parsed.mute === true;
@@ -162,7 +175,7 @@ class GameStateClass {
         this.settings.language = LANGUAGES.has(parsed.language) ? parsed.language : 'en';
         this.settings.runMode = RUN_MODES.has(parsed.runMode) ? parsed.runMode : 'standard';
         this.settings.difficulty = DIFFICULTIES.has(parsed.difficulty) ? parsed.difficulty : 'standard';
-      }
+      } else this._settingsWriteBlocked = false;
       // Apply to AudioManager
       AudioManager.volumeVal = this.settings.volume;
       AudioManager.muted = this.settings.mute;
@@ -173,9 +186,10 @@ class GameStateClass {
   }
 
   saveSettings() {
-    if (!storageWritesAllowed()) return false;
+    if (!storageWritesAllowed() || this._settingsWriteBlocked) return false;
     try {
       const volume = Number(this.settings.volume);
+      this.settings.version = SETTINGS_VERSION;
       this.settings.volume = Number.isFinite(volume) ? Math.max(0, Math.min(1, volume)) : 0.8;
       this.settings.mute = this.settings.mute === true;
       this.settings.screenShake = this.settings.screenShake !== false;
@@ -513,6 +527,18 @@ class GameStateClass {
     return null;
   }
 
+  refreshIdlePeriodSeed(date = new Date(), { preserveSeed = false } = {}) {
+    if (preserveSeed || !this.canConfigureRun()) return false;
+    const mode = RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard';
+    const seed = this.periodSeed(mode, date);
+    if (!seed) return false;
+    const difficulty = DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard';
+    if (this.runConfig?.mode === mode && this.runConfig?.difficulty === difficulty &&
+      Number(this.runConfig?.seed) === seed) return false;
+    this.configureRun(mode, difficulty, seed);
+    return Number(this.runConfig?.seed) === seed;
+  }
+
   hasRunProgress() {
     return this.currentMapColumn > 0 || this.runStats.battlesWon > 0;
   }
@@ -598,7 +624,7 @@ class GameStateClass {
     const seed = rawSeed === null ? null : normalizeRunSeed(rawSeed);
     if (!RUN_MODES.has(mode) || !DIFFICULTIES.has(difficulty)) return null;
     if (rawSeed !== null && seed === null) return null;
-    return { mode, difficulty, seed: normalizeRunSeed(seed) };
+    return { mode, difficulty, seed };
   }
 
   pushUndoState() {
@@ -1109,6 +1135,8 @@ class GameStateClass {
     for (const key of keys) {
       try {
         localStorage.removeItem(key);
+        const loadoutMatch = /^overlogic_loadout_slot_(\d+)$/.exec(key);
+        if (loadoutMatch) this._blockedLoadoutSlots.delete(Number(loadoutMatch[1]));
       } catch (error) {
         cleared = false;
         recordStorageError(error, `reset:${key}`);
@@ -1158,7 +1186,14 @@ class GameStateClass {
     for (let slot = 1; slot <= 3; slot += 1) {
       try {
         const raw = localStorage.getItem(`overlogic_loadout_slot_${slot}`);
-        if (raw) loadouts[slot] = JSON.parse(raw);
+        if (!raw) continue;
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) loadouts[slot] = parsed;
+        else if (parsed && Number(parsed.version ?? LOADOUT_VERSION) <= LOADOUT_VERSION && Array.isArray(parsed.rules)) {
+          loadouts[slot] = parsed.rules;
+        } else {
+          recordStorageError(new Error('Unsupported loadout version'), `loadout-${slot}-export`);
+        }
       } catch (error) { recordStorageError(error, `loadout-${slot}-export`); }
     }
     const payload = {
@@ -1237,6 +1272,12 @@ class GameStateClass {
       )) return false;
       if (!payload.run || typeof payload.run !== 'object' || Array.isArray(payload.run)) return false;
       if (!Array.isArray(payload.run.rules) || payload.run.rules.length > MAX_RULES) return false;
+      if (payload.settings !== undefined &&
+        (!payload.settings || typeof payload.settings !== 'object' || Array.isArray(payload.settings))) return false;
+      if (payload.settings !== undefined) {
+        const settingsVersion = Number(payload.settings.version ?? SETTINGS_VERSION);
+        if (!Number.isSafeInteger(settingsVersion) || settingsVersion > SETTINGS_VERSION) return false;
+      }
       if (payload.battleHistory !== undefined &&
         (!Array.isArray(payload.battleHistory) || payload.battleHistory.length > 60)) return false;
       if (payload.profile !== undefined &&
@@ -1265,9 +1306,15 @@ class GameStateClass {
         this.loadSettings();
       }
       for (let slot = 1; slot <= 3; slot += 1) {
-        const rules = payload.loadouts?.[slot];
+        const rawLoadout = payload.loadouts?.[slot];
+        const rules = Array.isArray(rawLoadout) ? rawLoadout
+          : (rawLoadout && Number(rawLoadout.version ?? LOADOUT_VERSION) <= LOADOUT_VERSION && Array.isArray(rawLoadout.rules)
+            ? rawLoadout.rules : null);
+        if (payload.loadouts !== undefined && rawLoadout !== undefined && rules === null) {
+          throw new Error(`Unsupported loadout version for slot ${slot}`);
+        }
         if (Array.isArray(rules) && rules.length <= MAX_RULES) {
-          localStorage.setItem(`overlogic_loadout_slot_${slot}`, JSON.stringify(rules));
+          localStorage.setItem(`overlogic_loadout_slot_${slot}`, JSON.stringify({ version: LOADOUT_VERSION, rules }));
         } else if (payload.loadouts !== undefined) {
           localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
         }
@@ -1328,9 +1375,12 @@ class GameStateClass {
 
   saveLoadout(slotIndex) {
     if (!validLoadoutSlot(slotIndex)) return false;
-    if (!storageWritesAllowed()) return false;
+    if (!storageWritesAllowed() || this._blockedLoadoutSlots.has(slotIndex)) return false;
     try {
-      localStorage.setItem(`overlogic_loadout_slot_${slotIndex}`, JSON.stringify(this.rules));
+      localStorage.setItem(`overlogic_loadout_slot_${slotIndex}`, JSON.stringify({
+        version: LOADOUT_VERSION,
+        rules: this.rules,
+      }));
       return true;
     } catch (e) {
       recordStorageError(e, `loadout-${slotIndex}`);
@@ -1344,7 +1394,15 @@ class GameStateClass {
     try {
       const raw = localStorage.getItem(`overlogic_loadout_slot_${slotIndex}`);
       if (!raw) return false;
-      const loadedRules = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      const version = Array.isArray(parsed) ? 0 : Number(parsed?.version ?? LOADOUT_VERSION);
+      if (!Number.isSafeInteger(version) || version < 0 || version > LOADOUT_VERSION) {
+        if (version > LOADOUT_VERSION) this._blockedLoadoutSlots.add(slotIndex);
+        recordStorageError(new Error(`Unsupported loadout version ${version}`), `loadout-${slotIndex}-version`);
+        return false;
+      }
+      this._blockedLoadoutSlots.delete(slotIndex);
+      const loadedRules = Array.isArray(parsed) ? parsed : parsed?.rules;
       if (!Array.isArray(loadedRules)) return false;
       const availConds = this.availableConditionIds();
       const availActs = this.availableActionIds();
@@ -1399,7 +1457,20 @@ class GameStateClass {
   hasLoadout(slotIndex) {
     if (!validLoadoutSlot(slotIndex)) return false;
     try {
-      return localStorage.getItem(`overlogic_loadout_slot_${slotIndex}`) !== null;
+      const raw = localStorage.getItem(`overlogic_loadout_slot_${slotIndex}`);
+      if (raw === null) {
+        this._blockedLoadoutSlots.delete(slotIndex);
+        return false;
+      }
+      const parsed = JSON.parse(raw);
+      const version = Array.isArray(parsed) ? 0 : Number(parsed?.version ?? LOADOUT_VERSION);
+      if (!Number.isSafeInteger(version) || version < 0 || version > LOADOUT_VERSION) {
+        if (version > LOADOUT_VERSION) this._blockedLoadoutSlots.add(slotIndex);
+        recordStorageError(new Error(`Unsupported loadout version ${version}`), `loadout-${slotIndex}-version`);
+        return false;
+      }
+      this._blockedLoadoutSlots.delete(slotIndex);
+      return Array.isArray(parsed) || Array.isArray(parsed?.rules);
     } catch (e) {
       recordStorageError(e, `loadout-${slotIndex}`);
       return false;

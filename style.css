@@ -319,7 +319,7 @@ body {
 }
 
 .logo {
-  font-family: var(--font-display);
+  font-family: 'Outfit', 'Rajdhani', var(--font-display);
   font-size: clamp(48px, 8vw, 96px);
   letter-spacing: clamp(6px, 1.45vw, 18px);
   font-weight: 900;
@@ -3216,7 +3216,7 @@ input[type="number"] {
 
 /* ===== Custom Cyberpunk Tooltip ===== */
 .custom-tooltip {
-  position: absolute;
+  position: fixed;
   background: rgba(12, 18, 38, 0.95);
   border: 1px solid var(--warn2);
   color: var(--txt);
@@ -3228,7 +3228,9 @@ input[type="number"] {
   pointer-events: none;
   box-shadow: 0 0 15px rgba(255, 157, 62, 0.25);
   z-index: 1000;
-  max-width: 320px;
+  max-width: min(320px, calc(100vw - 20px));
+  max-height: min(280px, calc(100vh - 20px));
+  overflow-y: auto;
   transition: opacity 0.15s ease-out;
   backdrop-filter: blur(8px);
 }
@@ -4132,6 +4134,32 @@ html.high-contrast .history-meta {
   background: rgba(255, 255, 255, 0.025);
 }
 
+/* Footer controls are compact actions, not prose. Keep localized labels on a
+   single visual line and let the whole control row wrap as a unit at tablet
+   widths instead of squeezing individual buttons into awkward two-line pills. */
+.editor-footer > div:last-child {
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.editor-footer .btn,
+.editor-footer .sandbox-preset {
+  white-space: nowrap;
+}
+
+@media (max-width: 1250px) and (min-width: 761px) {
+  .editor-footer {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .editor-footer > div:last-child {
+    width: 100%;
+  }
+}
+
 .menu-buttons {
   width: min(360px, calc(100vw - 40px));
   gap: 12px;
@@ -4279,6 +4307,9 @@ html.high-contrast .history-meta {
   padding: 32px 34px 28px;
   border-color: var(--border-mid);
   box-shadow: 0 32px 90px rgba(0, 0, 0, 0.56), inset 0 1px rgba(255, 255, 255, 0.04);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .confirm-card {
@@ -4357,6 +4388,16 @@ html.high-contrast .history-meta {
   width: 100% !important;
   max-width: none !important;
   margin: 0 !important;
+  min-height: 0;
+  padding-right: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+
+.settings-card > h2,
+.settings-card > .settings-actions {
+  flex: 0 0 auto;
 }
 
 .settings-group {
@@ -4593,6 +4634,20 @@ html.high-contrast .history-meta {
 }
 
 @media (max-width: 760px) {
+  #screen-main .title-block {
+    padding-top: 42px;
+  }
+
+  #screen-main .logo {
+    font-size: clamp(42px, 12.5vw, 54px);
+    letter-spacing: clamp(4px, 1.7vw, 7px);
+  }
+
+  #screen-main .subtitle {
+    font-size: 12px;
+    line-height: 1.7;
+  }
+
   .overlay {
     padding: 14px;
   }
@@ -4801,6 +4856,6 @@ html.high-contrast .history-meta {
     grid-column: 1 / -1 !important;
     width: 100% !important;
     writing-mode: horizontal-tb !important;
-    white-space: normal !important;
+    white-space: nowrap !important;
   }
 }

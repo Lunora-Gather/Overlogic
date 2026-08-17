@@ -7,6 +7,7 @@ import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
 const PROFILE_KEY = 'overlogic_profile';
 const PROFILE_VERSION = 1;
+let writesBlockedByFutureVersion = false;
 
 export const ACHIEVEMENTS = Object.freeze([
   { id: 'first_battle', titleKey: 'achievement.firstBattle', descriptionKey: 'achievement.firstBattleDesc', xp: 25 },
@@ -37,6 +38,13 @@ function readProfile() {
     const raw = localStorage.getItem(PROFILE_KEY);
     const parsed = raw ? JSON.parse(raw) : null;
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return defaultProfile();
+    const version = Number(parsed.version ?? PROFILE_VERSION);
+    if (!Number.isSafeInteger(version) || version < 0 || version > PROFILE_VERSION) {
+      writesBlockedByFutureVersion = version > PROFILE_VERSION;
+      recordStorageError(new Error(`Unsupported profile version ${version}`), 'profile-version');
+      return defaultProfile();
+    }
+    writesBlockedByFutureVersion = false;
     const profile = { ...defaultProfile(), ...parsed };
     profile.xp = Math.max(0, Number(profile.xp) || 0);
     profile.totalBattles = Math.max(0, Number(profile.totalBattles) || 0);
@@ -56,7 +64,7 @@ function readProfile() {
 }
 
 function writeProfile(profile) {
-  if (!storageWritesAllowed()) return false;
+  if (!storageWritesAllowed() || writesBlockedByFutureVersion) return false;
   try {
     localStorage.setItem(PROFILE_KEY, JSON.stringify(profile));
     return true;
@@ -72,6 +80,8 @@ export function profileSnapshot() {
 
 export function replaceProfile(profile) {
   if (!profile || typeof profile !== 'object' || Array.isArray(profile)) return false;
+  const version = Number(profile.version ?? PROFILE_VERSION);
+  if (!Number.isSafeInteger(version) || version > PROFILE_VERSION) return false;
   const normalized = { ...defaultProfile(), ...profile, version: PROFILE_VERSION };
   normalized.achievements = profile.achievements && typeof profile.achievements === 'object'
     ? profile.achievements : {};
@@ -120,5 +130,12 @@ export function recordProfileBattle(entry = {}, bonusXp = 0) {
 
 export function resetProfile() {
   if (!storageWritesAllowed()) return false;
-  return writeProfile(defaultProfile());
+  try {
+    localStorage.removeItem(PROFILE_KEY);
+    writesBlockedByFutureVersion = false;
+    return true;
+  } catch (error) {
+    recordStorageError(error, 'profile-reset');
+    return false;
+  }
 }

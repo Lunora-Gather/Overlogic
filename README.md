@@ -159,6 +159,7 @@ npm run serve
 | `npm run http-audit` | 启动本地静态服务器，冒烟验证发布资源的 HTTP 状态码、MIME、版本化模块与数据加载 |
 | `npm run quality-audit` | 检查静态壳层的可访问性、对话框、PWA 元数据与运行时安全钩子 |
 | `npm run performance-audit` | 对发布文件数、总大小、JS、CSS、HTML、JSON 和最大模块执行性能预算 |
+| `npm run check` | 串行执行完整本地发布门禁，避免构建与发布审计并发竞态 |
 
 也可以使用任何支持 ES Modules 与 JSON MIME 类型的静态服务器运行源码。
 
@@ -179,6 +180,8 @@ Overlogic/
 │  └─ i18n/              # 简中、繁中与英文文本
 ├─ scripts/              # 本地服务、构建、验证与平衡模拟
 ├─ OPERATIONS.md         # 运营清单、功能开关与后端接入边界
+├─ BACKEND_CONTRACT.md   # 账号、云存档、排行榜、重放与权益接口契约
+├─ CONTRIBUTING.md       # 本地验证、提交和发布协作规范
 ├─ index.html            # 应用结构
 ├─ style.css             # 响应式视觉系统
 ├─ manifest.webmanifest  # 可安装 Web App 元数据

@@ -54,14 +54,14 @@
     </div>
     <div class="run-config-panel">
       <label><span data-i18n="menu.mode">Run Mode</span>
-        <select id="run-mode">
+        <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
           <option value="standard" data-i18n="mode.standard">Standard</option>
           <option value="daily" data-i18n="mode.daily">Daily Seed</option>
           <option value="weekly" data-i18n="mode.weekly">Weekly Gauntlet</option>
         </select>
       </label>
       <label><span data-i18n="menu.difficulty">Difficulty</span>
-        <select id="run-difficulty">
+        <select id="run-difficulty" aria-label="Difficulty" data-i18n-aria-label="menu.difficulty">
           <option value="casual" data-i18n="difficulty.casual">Casual</option>
           <option value="standard" data-i18n="difficulty.standard">Standard</option>
           <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
@@ -82,9 +82,6 @@
       <strong id="run-season-name">Foundry Protocol</strong>
       <small id="run-season-status">Active</small>
     </section>
-    <section id="run-profile" class="run-profile" aria-live="polite"></section>
-    <section id="run-challenges" class="run-challenges" aria-live="polite"></section>
-    <section id="run-history" class="run-history" aria-live="polite"></section>
     <div class="menu-buttons">
       <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
       <button type="button" id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
@@ -94,6 +91,9 @@
       <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
       <button type="button" id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
     </div>
+    <section id="run-profile" class="run-profile" aria-live="polite"></section>
+    <section id="run-challenges" class="run-challenges" aria-live="polite"></section>
+    <section id="run-history" class="run-history" aria-live="polite"></section>
     <div id="how-overlay" class="overlay hidden" aria-hidden="true">
       <div class="overlay-card how-card" role="dialog" aria-modal="true" aria-labelledby="how-title">
         <h2 id="how-title" data-i18n="how.title">How to Play</h2>
@@ -457,7 +457,7 @@
   </div>
 
 </div>
-<div id="custom-tooltip" class="custom-tooltip hidden"></div>
+<div id="custom-tooltip" class="custom-tooltip hidden" role="tooltip" aria-hidden="true"></div>
 <script type="module" src="src/main.js?v=20260725-4"></script>
 </body>
 </html>

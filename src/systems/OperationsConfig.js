@@ -43,11 +43,28 @@ const DEFAULT_OPERATIONS = freezeDeep({
   limits: { recentBattles: 4, archiveEntries: 60, supportErrors: 20 },
 });
 
+const UNSUPPORTED_OPERATIONS = freezeDeep({
+  schemaVersion: 1,
+  source: 'default',
+  season: { id: 'foundry_protocol', labelKey: 'ops.seasonFoundry' },
+  features: {
+    dailyChallenges: false,
+    weeklyGauntlet: false,
+    sandbox: false,
+    ruleTemplates: false,
+    shieldRelay: false,
+  },
+  maintenance: { enabled: true },
+  limits: { recentBattles: 4, archiveEntries: 60, supportErrors: 20 },
+});
+
 let activeConfig = DEFAULT_OPERATIONS;
 let loaded = false;
 
 export function normalizeOperationsConfig(raw, source = 'manifest') {
   const input = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+  const inputVersion = Number(input.schemaVersion ?? 1);
+  if (!Number.isSafeInteger(inputVersion) || inputVersion !== 1) return UNSUPPORTED_OPERATIONS;
   const features = {};
   for (const key of FEATURE_KEYS) features[key] = input.features?.[key] !== false;
   return freezeDeep({

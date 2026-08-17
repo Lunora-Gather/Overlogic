@@ -10,7 +10,9 @@ import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 import { operationLimit } from './OperationsConfig.js?v=20260725-4';
 
 const HISTORY_KEY = 'overlogic_run_history';
+const HISTORY_VERSION = 1;
 const MAX_ENTRIES = 60;
+let writesBlockedByFutureVersion = false;
 
 function cleanNumber(value, fallback = 0) {
   const numeric = Number(value);
@@ -21,8 +23,18 @@ function readHistory() {
   try {
     const raw = localStorage.getItem(HISTORY_KEY);
     const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
-    return parsed
+    // Version 0 was a bare array. Keep reading it, but write the explicit
+    // envelope below so future fields can migrate without guessing shape.
+    const version = Array.isArray(parsed) ? 0 : Number(parsed?.version ?? HISTORY_VERSION);
+    if (!Number.isSafeInteger(version) || version < 0 || version > HISTORY_VERSION) {
+      writesBlockedByFutureVersion = version > HISTORY_VERSION;
+      recordStorageError(new Error(`Unsupported run history version ${version}`), 'run-history-version');
+      return [];
+    }
+    writesBlockedByFutureVersion = false;
+    const entries = Array.isArray(parsed) ? parsed : parsed?.entries;
+    if (!Array.isArray(entries)) return [];
+    return entries
       .filter((entry) => entry && typeof entry === 'object' && !Array.isArray(entry))
       .slice(0, MAX_ENTRIES)
       .map(normalizeHistoryEntry);
@@ -33,9 +45,12 @@ function readHistory() {
 }
 
 function writeHistory(entries) {
-  if (!storageWritesAllowed()) return false;
+  if (!storageWritesAllowed() || writesBlockedByFutureVersion) return false;
   try {
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(entries.slice(0, MAX_ENTRIES)));
+    localStorage.setItem(HISTORY_KEY, JSON.stringify({
+      version: HISTORY_VERSION,
+      entries: entries.slice(0, MAX_ENTRIES),
+    }));
     return true;
   } catch (error) {
     recordStorageError(error, 'run-history');
@@ -123,6 +138,7 @@ export function clearHistory() {
   if (!storageWritesAllowed()) return false;
   try {
     localStorage.removeItem(HISTORY_KEY);
+    writesBlockedByFutureVersion = false;
     return true;
   } catch (error) {
     recordStorageError(error, 'run-history');

@@ -2,6 +2,7 @@
 // gets a fresh cache while an already-open tab can finish on its old assets.
 const CACHE_NAME = 'overlogic-__RELEASE__';
 const APP_SHELL = ['./', './index.html', './style.css', './manifest.webmanifest', './icon.svg'];
+const NAVIGATION_CACHE_KEY = './index.html';
 // The build injects every runtime module/data URL here. The source fallback
 // keeps the unbuilt development service worker valid.
 const PRECACHE_URLS = /*__PRECACHE_URLS__*/APP_SHELL;
@@ -13,7 +14,10 @@ async function putCacheSafe(cache, request, response) {
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then((cache) => cache.addAll(PRECACHE_URLS).catch(() => cache.addAll(APP_SHELL)))
+      // Keep installation atomic. If a release artifact is missing or quota is
+      // exhausted, the current verified worker stays active instead of being
+      // replaced by a shell that cannot boot offline.
+      .then((cache) => cache.addAll(PRECACHE_URLS))
       .then(() => self.skipWaiting()),
   );
 });
@@ -33,7 +37,10 @@ async function networkFirst(request) {
     const response = await fetch(request);
     if (response.ok) {
       const cache = await caches.open(CACHE_NAME);
-      await putCacheSafe(cache, request, response.clone());
+      // Challenge and release query strings all serve the same app shell.
+      // Canonicalize the cache key so shared links cannot create an unbounded
+      // number of duplicate HTML entries within one release cache.
+      await putCacheSafe(cache, NAVIGATION_CACHE_KEY, response.clone());
       return response;
     }
     return (await caches.match(request, { ignoreSearch: true })) || response;

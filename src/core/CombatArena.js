@@ -18,7 +18,6 @@ import { BossProtocolWarden } from '../enemies/BossProtocolWarden.js?v=20260725-
 import { EmpDroneEnemy } from '../enemies/EmpDroneEnemy.js?v=20260725-4';
 import { RepairDroneEnemy } from '../enemies/RepairDroneEnemy.js?v=20260725-4';
 import { ShieldRelayEnemy } from '../enemies/ShieldRelayEnemy.js?v=20260725-4';
-import { spawnBurst } from '../vfx/ParticleSystem.js?v=20260725-4';
 import { HazardTile } from '../vfx/HazardTile.js?v=20260725-4';
 import { recordBattle } from '../systems/RunHistory.js?v=20260725-4';
 import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
@@ -72,11 +71,9 @@ export class CombatArena {
     this.battleTime = 0;
     this._rafId = 0;
     this._finished = false;
-    this._noEnemyTime = 0;     // for overlogic OOC decay
     this.onFinished = null;    // callback(won)
     this._phaseToastTimer = 0;
     this._waveClearTimer = 0;
-    this.simulationAccumulator = 0;
     this.random = Math.random;
   }
 
@@ -97,7 +94,6 @@ export class CombatArena {
     });
     this._finished = false;
     this.battleTime = 0;
-    this._noEnemyTime = 0;
     this.paused = false;
     this.speed = 1;
     this.currentWave = 0;
@@ -182,9 +178,7 @@ export class CombatArena {
     }
     this.totalWaves = Object.keys(waves).length;
     this.pendingWaves = [];
-    let waveNum = 0;
     for (const w of Object.keys(waves).sort((a, b) => +a - +b)) {
-      waveNum += 1;
       this.pendingWaves.push({ wave: +w, spawns: waves[w] });
     }
 
@@ -218,7 +212,6 @@ export class CombatArena {
   _update(dt) {
     this.battleTime += dt;
     this.ctx.time = this.battleTime;
-    this.ctx.timeSpeed = this.speed;
 
     // Deploy the first wave immediately. Later waves arrive only after the
     // current wave is cleared, giving rule changes readable tactical pacing.
@@ -261,7 +254,6 @@ export class CombatArena {
     // Tracker time + overlogic
     this.ctx.tracker.tick(dt);
     const inCombat = this.ctx.liveEnemies() > 0;
-    if (!inCombat) this._noEnemyTime += dt; else this._noEnemyTime = 0;
     this.ctx.overlogic.tick(dt, inCombat);
     this.hud.setOverlogic(this.ctx.overlogic.value, this.ctx.overlogic.active);
 
