@@ -9,7 +9,7 @@ import { challengeSnapshot, clearChallenges, replaceChallenges } from '../system
 import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
 import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
-import { featureEnabled, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
+import { featureEnabled, operationLimit, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
 import { clearProductMetrics, productMetricsSnapshot, recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { combineReplayDigests, MAX_REPLAY_EVENTS } from '../systems/RunReplay.js?v=20260725-4';
 import { markStorageWriteConflict, resetStorageWriteGate, storageWritesAllowed } from '../systems/StorageWriteGate.js?v=20260725-4';
@@ -25,6 +25,7 @@ const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
 const TARGET_PRIORITIES = new Set(['nearest', 'lowest_hp', 'caster', 'support', 'boss']);
 const MAX_RULES = 40;
 const LOADOUT_SLOTS = 3;
+const MAX_PORTABLE_ARCHIVE_ENTRIES = 240;
 const RUN_CODE_PREFIX = 'OLR1';
 const MIN_TEACH_NODE = 1;
 const MAX_TEACH_NODE = 4;
@@ -585,6 +586,21 @@ class GameStateClass {
     if (!Number.isSafeInteger(seed) || seed <= 0 || seed > 0xffffffff) return null;
     return { mode, difficulty, seed };
   }
+
+  parseLaunchPreset(search = '') {
+    const params = new URLSearchParams(String(search || ''));
+    const sharedCode = params.get('challenge') || params.get('run') || params.get('code');
+    const parsedCode = sharedCode ? this.parseRunCode(sharedCode) : null;
+    if (sharedCode && !parsedCode) return null;
+    const mode = parsedCode?.mode || params.get('mode') || params.get('launch');
+    const difficulty = parsedCode?.difficulty || params.get('difficulty') || 'standard';
+    const rawSeed = parsedCode ? parsedCode.seed : params.get('seed');
+    const seed = rawSeed === null ? null : normalizeRunSeed(rawSeed);
+    if (!RUN_MODES.has(mode) || !DIFFICULTIES.has(difficulty)) return null;
+    if (rawSeed !== null && seed === null) return null;
+    return { mode, difficulty, seed: normalizeRunSeed(seed) };
+  }
+
   pushUndoState() {
     this._pushState();
   }
@@ -1166,6 +1182,8 @@ class GameStateClass {
 
   exportSupportBundle() {
     const release = globalThis.__OVERLOGIC_RELEASE__ || 'dev';
+    const recentBattleLimit = operationLimit('recentBattles', 4);
+    const supportErrorLimit = operationLimit('supportErrors', 20);
     return JSON.stringify({
       product: 'overlogic',
       supportVersion: 1,
@@ -1190,11 +1208,11 @@ class GameStateClass {
         battlesWon: this.runStats?.battlesWon || 0,
       },
       lastReport: this.lastReport,
-      battleHistory: allBattles().slice(0, 12),
+      battleHistory: allBattles().slice(0, recentBattleLimit),
       profile: profileSnapshot(),
       challenges: challengeSnapshot(),
       runArchive: runArchiveSnapshot(),
-      runtimeDiagnostics: runtimeDiagnosticsSnapshot(),
+      runtimeDiagnostics: runtimeDiagnosticsSnapshot({ maxErrors: supportErrorLimit }),
     }, null, 2);
   }
 
@@ -1227,7 +1245,7 @@ class GameStateClass {
         (!payload.challenges || typeof payload.challenges !== 'object' || Array.isArray(payload.challenges))) return false;
       if (payload.runArchive !== undefined &&
         (!payload.runArchive || typeof payload.runArchive !== 'object' || Array.isArray(payload.runArchive) ||
-          !Array.isArray(payload.runArchive.entries) || payload.runArchive.entries.length > 40)) return false;
+          !Array.isArray(payload.runArchive.entries) || payload.runArchive.entries.length > MAX_PORTABLE_ARCHIVE_ENTRIES)) return false;
       previousPrimary = localStorage.getItem(RUN_SAVE_KEY);
       previousBackup = localStorage.getItem(RUN_BACKUP_KEY);
       previousSettings = localStorage.getItem('overlogic_settings');

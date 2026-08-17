@@ -390,7 +390,7 @@ export class MainMenu {
   renderHistory() {
     if (!this.runHistory) return;
     const summary = historySummary();
-    const entries = recentBattles(4);
+    const entries = recentBattles();
     if (entries.length === 0) {
       this.runHistory.innerHTML = `<div class="history-empty">${t('menu.historyEmpty')}</div>`;
       return;

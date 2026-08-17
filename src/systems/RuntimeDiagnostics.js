@@ -62,7 +62,11 @@ export function markBootComplete(durationMs) {
   if (Number.isFinite(value) && value >= 0 && value <= 120_000) bootDurationMs = Math.round(value);
 }
 
-export function runtimeDiagnosticsSnapshot() {
+export function runtimeDiagnosticsSnapshot({ maxErrors = MAX_ERRORS, maxEvents = MAX_EVENTS } = {}) {
+  const errorLimit = Number.isSafeInteger(maxErrors)
+    ? Math.max(0, Math.min(MAX_ERRORS, maxErrors)) : MAX_ERRORS;
+  const eventLimit = Number.isSafeInteger(maxEvents)
+    ? Math.max(0, Math.min(MAX_EVENTS, maxEvents)) : MAX_EVENTS;
   return {
     version: 1,
     release: boundedText(globalThis.__OVERLOGIC_RELEASE__ || 'dev', 48),
@@ -74,8 +78,8 @@ export function runtimeDiagnosticsSnapshot() {
       lastMs: frameCount > 0 ? Number(lastFrameMs.toFixed(2)) : null,
       longFrameCount,
     },
-    errors: errors.map((entry) => ({ ...entry })),
-    events: events.map((entry) => ({ ...entry })),
+    errors: errors.slice(0, errorLimit).map((entry) => ({ ...entry })),
+    events: events.slice(0, eventLimit).map((entry) => ({ ...entry })),
   };
 }
 

@@ -6,10 +6,28 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "minimal-ui"],
+  "id": "./",
   "orientation": "any",
   "background_color": "#030509",
   "theme_color": "#07111f",
+  "categories": ["games", "education", "productivity"],
+  "prefer_related_applications": false,
   "icons": [
     { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Start standard simulation",
+      "short_name": "Standard",
+      "url": "./?launch=standard&difficulty=standard",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Open weekly challenge",
+      "short_name": "Weekly",
+      "url": "./?launch=weekly&difficulty=standard",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
   ]
 }

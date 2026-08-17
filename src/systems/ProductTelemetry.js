@@ -109,8 +109,9 @@ export function productMetricsSnapshot() {
 }
 
 export function clearProductMetrics() {
-  if (!storageWritesAllowed()) return false;
   try {
+    // Consent withdrawal is a privacy action, not a gameplay write. It must
+    // remain possible even after another tab has tripped the stale-write gate.
     localStorage.removeItem(METRICS_KEY);
     return true;
   } catch (error) {

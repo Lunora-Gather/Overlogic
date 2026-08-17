@@ -20,7 +20,7 @@ const { RobotStats } = await import('../src/robot/RobotStats.js?v=20260725-4');
 const { ActionExecutor } = await import('../src/logic/ActionExecutor.js?v=20260725-4');
 const { ConditionEvaluator } = await import('../src/logic/ConditionEvaluator.js?v=20260725-4');
 const { ruleTemplateById } = await import('../src/logic/RuleTemplates.js?v=20260725-4');
-const { resetStorageWriteGate } = await import('../src/systems/StorageWriteGate.js?v=20260725-4');
+const { markStorageWriteConflict, resetStorageWriteGate } = await import('../src/systems/StorageWriteGate.js?v=20260725-4');
 const { OverlogicSystem } = await import('../src/systems/OverlogicSystem.js?v=20260725-4');
 const { ChargerEnemy } = await import('../src/enemies/ChargerEnemy.js?v=20260725-4');
 const { CrawlerEnemy } = await import('../src/enemies/CrawlerEnemy.js?v=20260725-4');
@@ -30,7 +30,14 @@ const { escapeHtml } = await import('../src/ui/safeHtml.js?v=20260725-4');
 const { entity, setLocale, t, translationDiagnostics } = await import('../src/i18n/I18n.js?v=20260725-4');
 const { difficultyModifiers, dailyProtocol, weeklyProtocol, runModifiers } = await import('../src/systems/RunModifiers.js?v=20260725-4');
 const { activeSynergyIds, synergyState } = await import('../src/systems/ProtocolSynergies.js?v=20260725-4');
-const { normalizeOperationsConfig, featureEnabled, operationsConfig } = await import('../src/systems/OperationsConfig.js?v=20260725-4');
+const {
+  featureEnabled,
+  loadOperationsConfig,
+  normalizeOperationsConfig,
+  operationLimit,
+  operationsConfig,
+  resetOperationsConfigForTests,
+} = await import('../src/systems/OperationsConfig.js?v=20260725-4');
 const {
   clearProductMetrics,
   configureProductMetrics,
@@ -38,7 +45,7 @@ const {
   productMetricsSnapshot,
   recordProductEvent,
 } = await import('../src/systems/ProductTelemetry.js?v=20260725-4');
-const { recordBattle, recentBattles, historySummary, clearHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
+const { recordBattle, recentBattles, historySummary, clearHistory, replaceHistory } = await import('../src/systems/RunHistory.js?v=20260725-4');
 const { profileSnapshot, profileRank, resetProfile } = await import('../src/systems/ProfileProgression.js?v=20260725-4');
 const { challengeSnapshot, recordChallengeBattle, clearChallenges } = await import('../src/systems/LiveChallenges.js?v=20260725-4');
 const { clearRunArchive, leaderboardRuns, recordCompletedRun, replaceRunArchive, runArchiveSnapshot, runRecords } = await import('../src/systems/RunArchive.js?v=20260725-4');
@@ -113,7 +120,7 @@ function verifyDataContracts() {
     'support targeting must be backed by an explicit data-authored condition');
 }
 
-function verifyOperationsContracts() {
+async function verifyOperationsContracts() {
   const normalized = normalizeOperationsConfig({
     schemaVersion: 999,
     season: { id: 'INVALID!', labelKey: 'ops.unknown' },
@@ -130,6 +137,50 @@ function verifyOperationsContracts() {
   assert.deepEqual(normalized.limits, { recentBattles: 12, archiveEntries: 12, supportErrors: 5 });
   assert.equal(featureEnabled('weeklyGauntlet'), true, 'default operations should keep the current weekly mode enabled');
   assert.equal(operationsConfig().schemaVersion, 1, 'runtime operations snapshot must be versioned');
+  assert.equal(operationLimit('recentBattles', 1), 4, 'runtime history display must honor the operations manifest');
+  assert.equal(operationLimit('archiveEntries', 1), 60, 'run retention must honor the operations manifest');
+  assert.equal(operationLimit('unknown', 7), 7, 'unknown live limits must fail closed to a caller-owned fallback');
+  resetOperationsConfigForTests();
+  await loadOperationsConfig({ fetcher: async () => ({
+    ok: true,
+    async json() {
+      return {
+        schemaVersion: 1,
+        season: { id: 'foundry_protocol', labelKey: 'ops.seasonFoundry' },
+        features: {},
+        maintenance: { enabled: false },
+        limits: { recentBattles: 7, archiveEntries: 24, supportErrors: 8 },
+      };
+    },
+  }) });
+  assert.deepEqual({
+    recentBattles: operationLimit('recentBattles'),
+    archiveEntries: operationLimit('archiveEntries'),
+    supportErrors: operationLimit('supportErrors'),
+  }, { recentBattles: 7, archiveEntries: 24, supportErrors: 8 },
+  'normalized manifest limits must remain live after loading');
+  assert.equal(replaceHistory(Array.from({ length: 10 }, (_, index) => ({
+    id: `history-${index}`,
+    timestamp: new Date(2026, 0, index + 1).toISOString(),
+    battleId: 'battle_1',
+    won: true,
+  }))), true);
+  assert.equal(recentBattles().length, 7, 'main-menu history must use the loaded display limit');
+  assert.equal(replaceRunArchive({ entries: Array.from({ length: 30 }, (_, index) => ({
+    id: `run_limit_${String(index).padStart(2, '0')}`,
+    completedAt: new Date(2026, 0, index + 1).toISOString(),
+    seed: index + 1,
+    totalBattleTime: 100 + index,
+  })) }), true);
+  assert.equal(runArchiveSnapshot().entries.length, 24, 'run archive persistence must use the loaded retention limit');
+  resetRuntimeDiagnostics();
+  for (let index = 0; index < 12; index += 1) recordRuntimeError(`operations-error-${index}`, 'operations-test');
+  assert.equal(JSON.parse(GameState.exportSupportBundle()).runtimeDiagnostics.errors.length, 8,
+    'support bundle diagnostics must use the loaded error-export limit');
+  clearHistory();
+  clearRunArchive();
+  resetRuntimeDiagnostics();
+  resetOperationsConfigForTests();
 }
 
 function verifyProductTelemetryContracts() {
@@ -156,9 +207,12 @@ function verifyProductTelemetryContracts() {
   assert.equal(durationBucket(9.9), 'under_10');
   assert.equal(durationBucket(30), '30_59');
   assert.equal(durationBucket(120), '60_plus');
+  markStorageWriteConflict();
   configureProductMetrics(false);
   assert.equal(productMetricsSnapshot().enabled, false);
-  assert.equal(localStorage.getItem('overlogic_product_metrics'), null, 'disabling metrics must delete stored events');
+  assert.equal(localStorage.getItem('overlogic_product_metrics'), null,
+    'withdrawing metrics consent must delete stored events even after a cross-tab conflict');
+  resetStorageWriteGate();
 }
 
 function verifyRunReceiptContracts() {
@@ -183,6 +237,21 @@ function verifyRunReceiptContracts() {
   assert.match(combineReplayDigests([replay]), /^RPL1-[0-9A-F]{8}$/);
   assert.equal(canonicalRunFacts({ ...facts, seed: 'not-a-seed' }).startsWith('v1|weekly|veteran|1|'), true,
     'run receipt facts must clamp malformed values before hashing');
+}
+
+function verifyLaunchPresetContracts() {
+  assert.deepEqual(GameState.parseLaunchPreset('?launch=weekly&difficulty=veteran&seed=202633'), {
+    mode: 'weekly', difficulty: 'veteran', seed: 202633,
+  });
+  assert.deepEqual(GameState.parseLaunchPreset('?challenge=OLR1-WEEKLY-VETERAN-4CCP'), {
+    mode: 'weekly', difficulty: 'veteran', seed: 202633,
+  });
+  assert.equal(GameState.parseLaunchPreset('?challenge=not-a-code'), null,
+    'invalid shared launch codes must be ignored');
+  assert.equal(GameState.parseLaunchPreset('?launch=weekly&seed=not-a-seed'), null,
+    'invalid explicit seeds must be ignored instead of silently generating a different run');
+  assert.equal(GameState.parseLaunchPreset('?release=109cd82'), null,
+    'release cache-busting parameters must not alter run configuration');
 }
 
 function verifySaveMigrationContracts() {
@@ -718,7 +787,8 @@ function verifySaveMigration() {
   assert.equal(resetProfile(), false, 'conflicted tabs must not reset operator progression');
   assert.equal(clearChallenges(), false, 'conflicted tabs must not clear daily challenge progress');
   assert.equal(clearRunArchive(), false, 'conflicted tabs must not clear completed run records');
-  assert.equal(clearProductMetrics(), false, 'conflicted tabs must not clear local metrics');
+  assert.equal(clearProductMetrics(), true,
+    'withdrawing local metrics consent must remain possible while gameplay writes are conflicted');
   assert.equal(GameState.clearStorage(), false, 'conflicted tabs must not clear another tab\'s progress');
   localStorage.setItem('overlogic_run_save', persistedBeforeConflict);
   assert.equal(GameState.loadFromStorage(), true, 'reloading the authoritative save must release conflict state');
@@ -774,6 +844,10 @@ function verifyRuntimeDiagnosticsContracts() {
   assert.equal(snapshot.frames.longFrameCount, 1);
   assert.equal(snapshot.events.length, 1);
   assert.equal(snapshot.errors.length, 20, 'runtime errors must use a bounded ring buffer');
+  assert.equal(runtimeDiagnosticsSnapshot({ maxErrors: 5 }).errors.length, 5,
+    'support diagnostics must honor the live-operations export limit');
+  assert.equal(runtimeDiagnosticsSnapshot({ maxEvents: 0 }).events.length, 0,
+    'support diagnostics must allow privacy-preserving event suppression');
   assert(!snapshot.errors.some((entry) => entry.message.includes('https://') || entry.message.includes('C:\\Users')),
     'support diagnostics must redact URLs and local paths');
   resetRuntimeDiagnostics();
@@ -798,8 +872,12 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="setting-high-contrast"') && mainUi.includes('high-contrast'), 'settings should expose a persistent high-contrast preset');
   assert(html.includes('id="setting-product-metrics"') && mainUi.includes('configureProductMetrics'), 'settings should expose explicit local metrics consent');
   assert(html.includes('rel="manifest"') && html.includes('id="boot-status"') && html.includes('data-i18n="boot.loading"'), 'release shell should expose localized install metadata and boot status');
+  const manifest = JSON.parse(fs.readFileSync('manifest.webmanifest', 'utf8'));
+  assert.equal(manifest.id, './');
+  assert.equal(manifest.shortcuts.length >= 2, true, 'PWA should expose direct standard and weekly launch shortcuts');
   assert(html.includes('name="mobile-web-app-capable"') && html.includes('inputmode="text"') && html.includes('autocapitalize="characters"'), 'install shell and challenge-code input must be mobile-friendly');
   assert(html.includes('http-equiv="Content-Security-Policy"') && html.includes('name="referrer" content="no-referrer"'), 'release shell must declare browser-enforced security and referrer policies');
+  assert(html.includes('http-equiv="Permissions-Policy"'), 'release shell must deny unnecessary browser capabilities');
   assert(html.includes('for="setting-volume"'), 'volume control must be associated with its label');
   assert(html.includes('for="setting-mute"'), 'mute control must be associated with its label');
   assert(html.includes('for="setting-shake"'), 'camera shake control must be associated with its label');
@@ -863,6 +941,8 @@ function verifyUiSafetyContracts() {
   assert(backgroundAnim.includes('setTransform(1, 0, 0, 1, 0, 0)'), 'background resize must reset the canvas transform before scaling');
   assert(mainUi.includes("new Event('mouseover'"), 'tooltips must be reachable from keyboard focus');
   assert(mainUi.includes("setLocale(GameState.settings.language") && mainUi.includes("t('boot.offlineDetail')"), 'boot shell must honor saved locale and localize recovery copy');
+  assert(mainUi.includes('applyLaunchPreset') && mainUi.includes('parseLaunchPreset') && mainUi.includes('canConfigureRun'),
+    'PWA shortcuts and shared challenge links must use the validated run preset path');
   assert(mainUi.includes('overlogic_run_archive') && mainUi.includes('overlogic_product_metrics') && mainUi.includes('event.key !== null'), 'external tabs must surface changes across all persistent data stores');
   assert(mainUi.includes('GameState.markStorageConflict') && gameState.includes('_lastPersistedSerialized'),
     'external storage changes must block stale writes until the current tab reloads');
@@ -1204,9 +1284,10 @@ function verifySimulation() {
 verifySyntax();
 await verifyImportGraph();
 verifyDataContracts();
-verifyOperationsContracts();
+await verifyOperationsContracts();
 verifyProductTelemetryContracts();
 verifyRunReceiptContracts();
+verifyLaunchPresetContracts();
 verifySaveMigrationContracts();
 verifyRepairDroneContracts();
 verifyShieldRelayContracts();

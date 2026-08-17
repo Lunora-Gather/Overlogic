@@ -116,11 +116,15 @@ check(/navigator\.clipboard/.test(clipboardUi) && /execCommand/.test(clipboardUi
   'shareable integrity codes must retain a manual-copy fallback when clipboard permissions are unavailable');
 
 check(/prefers-reduced-motion\s*:\s*reduce/.test(css), 'CSS must honor prefers-reduced-motion');
+check(/http-equiv="Permissions-Policy"/.test(html) && /Permissions-Policy/.test(await fs.readFile(path.join(root, 'scripts/serve.mjs'), 'utf8')),
+  'release and local HTTP surfaces must deny unnecessary browser capabilities');
 check(/#screen-editor\s+#mission-briefing\s*\{[\s\S]*?flex:\s*0\s+0\s+auto/.test(css),
   'mobile editor briefing must retain intrinsic height instead of overlapping the synergy panel');
 check(/#screen-editor\s+\.editor-mobile-tabs\s*\{[\s\S]*?width:\s*100%[\s\S]*?align-self:\s*stretch/.test(css),
   'mobile editor tabs must span the content width for touch targets and visual alignment');
 check(/reduceMotion/.test(main) && /visibilitychange/.test(main), 'runtime must wire motion settings and visibility pausing');
+check(/applyLaunchPreset/.test(main) && /parseLaunchPreset/.test(main) && /GameState\.canConfigureRun\(\)/.test(main),
+  'shared challenge and PWA launch links must be validated and must not override active runs');
 check(/addEventListener\(['"]error['"]/.test(main) && /unhandledrejection/.test(main), 'runtime errors must be contained and diagnosed');
 check(/addEventListener\(['"]online['"]/.test(main) && /addEventListener\(['"]offline['"]/.test(main), 'offline/online transitions must be surfaced');
 check(/refreshAppNoticeCopy/.test(main) && /overlogic:localechange/.test(main), 'dynamic runtime notices must refresh when the locale changes');
@@ -133,6 +137,9 @@ check(contentTables.every((table) => table.schemaVersion === 1),
   'all simulation content tables must declare the supported schema version');
 check(/normalizeOperationsConfig/.test(operationsConfig) && /loadOperationsConfig/.test(main) && /operationsSnapshot/.test(gameState),
   'operations manifest must be normalized at boot and included in support diagnostics');
+check(/operationLimit/.test(operationsConfig) && /operationLimit\('recentBattles'/.test(history) &&
+  /operationLimit\('archiveEntries'/.test(archive) && /operationLimit\('supportErrors'/.test(gameState),
+  'live-operations retention limits must drive history, archive, and support exports');
 check(/id="setting-product-metrics"/.test(html) && /productMetrics:\s*false/.test(gameState),
   'local product metrics must require explicit opt-in consent');
 check(/id="run-season"/.test(html) && /renderSeason/.test(menuUi) && /operationsConfig/.test(menuUi) && /menu\.seasonMaintenance/.test(i18n),
@@ -145,6 +152,9 @@ check(/migrateRunSave/.test(gameState) && /CURRENT_SAVE_VERSION/.test(saveMigrat
   'run-save version migrations must be explicit and fail closed on future versions');
 check(/MAX_RECENT\s*=\s*40/.test(productTelemetry) && !/\bfetch\s*\(/.test(productTelemetry) && /clearProductMetrics/.test(productTelemetry),
   'product metrics must remain bounded, local-only, and immediately erasable');
+check(/Consent withdrawal/.test(productTelemetry) &&
+  !/export function clearProductMetrics\(\)\s*\{\s*if \(!storageWritesAllowed\(\)\)/.test(productTelemetry),
+  'withdrawing product-metrics consent must bypass stale gameplay write protection');
 check(/storageWritesAllowed/.test(storageGate) && /markStorageWriteConflict/.test(storageGate) && /markStorageConflict/.test(main),
   'cross-tab storage conflicts must stop stale tabs from continuing to write');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
@@ -153,6 +163,9 @@ check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['
 check(manifest.name && manifest.short_name && manifest.start_url && manifest.scope, 'PWA manifest core metadata is incomplete');
 check(manifest.display === 'standalone', 'PWA must remain installable as a standalone app');
 check(Array.isArray(manifest.icons) && manifest.icons.length > 0, 'PWA manifest must declare an icon');
+check(manifest.id === './' && Array.isArray(manifest.shortcuts) && manifest.shortcuts.length >= 2 &&
+  manifest.shortcuts.every((shortcut) => typeof shortcut.url === 'string' && shortcut.url.includes('launch=')),
+  'PWA must expose stable identity and direct standard/weekly launch shortcuts');
 check(/rel="manifest"/.test(html) && /name="theme-color"/.test(html) && /name="mobile-web-app-capable"/.test(html), 'install shell metadata is incomplete');
 
 check(/value="weekly"/.test(html), 'the shell must expose the weekly challenge mode');

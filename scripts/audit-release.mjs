@@ -53,6 +53,7 @@ for (const match of indexSource.matchAll(/https?:\/\/([^/\s"');]+)/gi)) {
 }
 for (const requiredMeta of [
   'http-equiv="Content-Security-Policy"', 'name="referrer" content="no-referrer"',
+  'http-equiv="Permissions-Policy"',
   'name="viewport"', 'name="description"', 'name="theme-color"', 'rel="manifest"', 'name="overlogic-release"',
 ]) {
   if (!indexSource.includes(requiredMeta)) throw new Error(`release shell metadata missing: ${requiredMeta}`);

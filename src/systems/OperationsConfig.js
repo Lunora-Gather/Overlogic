@@ -89,6 +89,11 @@ export function featureEnabled(feature) {
   return activeConfig.features[feature] === true;
 }
 
+export function operationLimit(name, fallback = 0) {
+  const value = activeConfig.limits?.[name];
+  return Number.isSafeInteger(value) && value >= 0 ? value : fallback;
+}
+
 export function operationsSnapshot() {
   return JSON.parse(JSON.stringify(activeConfig));
 }
@@ -99,4 +104,3 @@ export function resetOperationsConfigForTests() {
   activeConfig = DEFAULT_OPERATIONS;
   loaded = false;
 }
-

@@ -207,10 +207,17 @@ function setupInstallPrompt() {
   });
 }
 
+function applyLaunchPreset() {
+  if (typeof location === 'undefined' || !GameState.canConfigureRun()) return;
+  const preset = GameState.parseLaunchPreset(location.search);
+  if (preset) GameState.configureRun(preset.mode, preset.difficulty, preset.seed);
+}
+
 async function main() {
   const bootStartedAt = Date.now();
   const operations = await loadOperationsConfig();
   configureProductMetrics(GameState.settings.productMetrics);
+  applyLaunchPreset();
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
   setLocale(GameState.settings.language, { notify: false });

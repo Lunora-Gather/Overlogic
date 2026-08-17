@@ -7,6 +7,7 @@ import { recordProfileBattle } from './ProfileProgression.js?v=20260725-4';
 import { recordChallengeBattle } from './LiveChallenges.js?v=20260725-4';
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
+import { operationLimit } from './OperationsConfig.js?v=20260725-4';
 
 const HISTORY_KEY = 'overlogic_run_history';
 const MAX_ENTRIES = 60;
@@ -90,8 +91,9 @@ export function recordBattle(report = {}) {
   return { ...entry, challenges, progression: recordProfileBattle(entry, challenges.bonusXp) };
 }
 
-export function recentBattles(limit = 4) {
-  return readHistory().slice(0, Math.max(0, Math.min(12, limit | 0)));
+export function recentBattles(limit = null) {
+  const requested = limit === null ? operationLimit('recentBattles', 4) : limit;
+  return readHistory().slice(0, Math.max(0, Math.min(12, requested | 0)));
 }
 
 export function allBattles() {

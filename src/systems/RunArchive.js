@@ -7,12 +7,17 @@
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { runReceipt } from './RunVerification.js?v=20260725-4';
 import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
+import { operationLimit } from './OperationsConfig.js?v=20260725-4';
 
 const ARCHIVE_KEY = 'overlogic_run_archive';
 const ARCHIVE_VERSION = 1;
-const MAX_ENTRIES = 40;
+const HARD_MAX_ENTRIES = 240;
 const MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
+
+function archiveLimit() {
+  return Math.max(12, Math.min(HARD_MAX_ENTRIES, operationLimit('archiveEntries', 40)));
+}
 
 function finiteNumber(value, min = 0, max = 1_000_000_000) {
   const numeric = Number(value);
@@ -60,7 +65,7 @@ function readEntries() {
       if (seen.has(entry.id)) return false;
       seen.add(entry.id);
       return true;
-    }).sort((a, b) => Date.parse(b.completedAt) - Date.parse(a.completedAt)).slice(0, MAX_ENTRIES);
+    }).sort((a, b) => Date.parse(b.completedAt) - Date.parse(a.completedAt)).slice(0, archiveLimit());
   } catch (error) {
     recordStorageError(error, 'run-archive-read');
     return [];
@@ -72,7 +77,7 @@ function writeEntries(entries) {
   try {
     localStorage.setItem(ARCHIVE_KEY, JSON.stringify({
       version: ARCHIVE_VERSION,
-      entries: entries.slice(0, MAX_ENTRIES),
+      entries: entries.slice(0, archiveLimit()),
     }));
     return true;
   } catch (error) {
@@ -126,7 +131,7 @@ export function recordCompletedRun(raw = {}) {
   const entry = normalizeEntry({ ...raw, completedAt: raw.completedAt || new Date().toISOString() });
   const existing = entries.find((item) => item.id === entry.id);
   if (existing) return { entry: existing, isNew: false, persisted: true, records: runRecords(entries) };
-  const next = [entry, ...entries];
+  const next = [entry, ...entries].slice(0, archiveLimit());
   const persisted = writeEntries(next);
   return {
     entry,
@@ -138,7 +143,7 @@ export function recordCompletedRun(raw = {}) {
 
 export function replaceRunArchive(raw) {
   const entries = Array.isArray(raw) ? raw : raw?.entries;
-  if (!Array.isArray(entries) || entries.length > MAX_ENTRIES) return false;
+  if (!Array.isArray(entries) || entries.length > HARD_MAX_ENTRIES) return false;
   const seen = new Set();
   const normalized = entries.map(normalizeEntry).filter((entry) => {
     if (seen.has(entry.id)) return false;

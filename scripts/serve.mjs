@@ -31,6 +31,7 @@ const server = createServer(async (request, response) => {
       'Content-Type': types[extname(file)] || 'application/octet-stream',
       'X-Content-Type-Options': 'nosniff',
       'Referrer-Policy': 'no-referrer',
+      'Permissions-Policy': 'camera=(), microphone=(), geolocation=(), payment=()',
       'Cache-Control': 'no-store',
     });
     createReadStream(file).pipe(response);
