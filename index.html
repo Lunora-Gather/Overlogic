@@ -9,6 +9,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="description" content="Program a robot's combat logic, simulate the battle, inspect the result, and refine its brain.">
 <meta name="application-name" content="Overlogic">
+<meta name="format-detection" content="telephone=no">
 <meta name="overlogic-release" content="__RELEASE__">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
@@ -19,6 +20,12 @@
 <meta property="og:description" content="Design a robot's logic, observe the battle, and debug the build.">
 <meta property="og:url" content="https://lunora-gather.github.io/Overlogic/">
 <meta property="og:image" content="https://lunora-gather.github.io/Overlogic/icon.svg">
+<meta property="og:locale" content="en_US">
+<meta property="og:locale:alternate" content="zh_CN">
+<meta property="og:locale:alternate" content="zh_TW">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Overlogic — Program the Brain">
+<meta name="twitter:description" content="Design a robot's logic, observe the battle, and debug the build.">
 <link rel="canonical" href="https://lunora-gather.github.io/Overlogic/">
 <meta name="theme-color" content="#07111f">
 <meta name="color-scheme" content="dark">
@@ -33,6 +40,12 @@
 <canvas id="bg-canvas"></canvas>
 <div id="app">
   <div id="boot-status" class="boot-status" role="status" aria-live="polite" data-i18n="boot.loading">INITIALIZING LOGIC CORE…</div>
+  <noscript>
+    <div class="noscript-card" role="alert">
+      <strong>JavaScript is required to run Overlogic.</strong>
+      <span>Overlogic 需要启用 JavaScript 才能运行。Overlogic 需要啟用 JavaScript 才能執行。</span>
+    </div>
+  </noscript>
   <div id="app-notice" class="app-notice hidden" role="status" aria-live="polite">
     <span id="app-notice-message"></span>
     <div class="app-notice-actions">

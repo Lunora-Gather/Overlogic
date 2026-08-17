@@ -53,6 +53,7 @@ export class MainMenu {
     this._profileReturnFocus = null;
     this.profileLeaderboardMode = null;
     this.profileLeaderboardDifficulty = null;
+    this._lastClockRefresh = 0;
     const launchPreset = GameState.canConfigureRun() && typeof location !== 'undefined'
       ? GameState.parseLaunchPreset(location.search)
       : null;
@@ -67,6 +68,21 @@ export class MainMenu {
     trapDialogFocus(this.confirmOverlay);
     trapDialogFocus(this.profileOverlay);
     this._bind();
+    // A tab can stay open across UTC midnight or an ISO-week rollover while
+    // its timers are throttled in the background. Refresh the visible menu
+    // when the document becomes interactive again so daily/weekly labels and
+    // seeds never remain stale until the player changes another control.
+    const refreshClock = () => {
+      if (document.hidden || GameManager.state !== 'main') return;
+      const now = Date.now();
+      if (now - this._lastClockRefresh < 500) return;
+      this._lastClockRefresh = now;
+      GameState.refreshIdlePeriodSeed(new Date());
+      this.render();
+    };
+    window.addEventListener('focus', refreshClock, { passive: true });
+    window.addEventListener('pageshow', refreshClock, { passive: true });
+    document.addEventListener('visibilitychange', refreshClock, { passive: true });
     this.render();
   }
 

@@ -308,7 +308,7 @@ async function main() {
     };
     const sandboxBattle = {
       id: `sandbox_${preset}`,
-      displayName: 'Sandbox Test Simulation',
+      displayName: t(`sandbox.${preset}`),
       enemySpawns: scenarios[preset] || scenarios.mixed,
       hazardPattern: preset === 'swarm' || preset === 'boss' ? 'cross' : null,
       arenaType: 'standard_20x20',

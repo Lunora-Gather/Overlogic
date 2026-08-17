@@ -136,6 +136,28 @@ body {
   letter-spacing: 0;
 }
 
+.noscript-card {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  top: 50%;
+  display: grid;
+  gap: 8px;
+  width: min(520px, calc(100vw - 40px));
+  padding: 22px 24px;
+  transform: translate(-50%, -50%);
+  border: 1px solid rgba(255, 185, 56, 0.55);
+  border-radius: var(--radius-md, 11px);
+  background: rgba(8, 13, 27, 0.96);
+  color: var(--txt);
+  font: 13px/1.55 var(--font-ui);
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), 0 0 26px rgba(255, 185, 56, 0.12);
+}
+
+.noscript-card strong { color: #ffd27b; }
+.noscript-card span { color: var(--muted); }
+
 .app-notice {
   position: fixed;
   z-index: 12000;

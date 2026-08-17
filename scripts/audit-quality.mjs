@@ -172,6 +172,8 @@ check(/id="setting-product-metrics"/.test(html) && /productMetrics:\s*false/.tes
   'local product metrics must require explicit opt-in consent');
 check(/id="run-season"/.test(html) && /renderSeason/.test(menuUi) && /operationsConfig/.test(menuUi) && /menu\.seasonMaintenance/.test(i18n),
   'the active operations season and maintenance state must be visible and localized in the main menu');
+check(/refreshIdlePeriodSeed/.test(menuUi) && /visibilitychange/.test(menuUi) && /pageshow/.test(menuUi),
+  'daily and weekly menu state must refresh after a background tab crosses a period boundary');
 check(/id="settings-storage-status"/.test(html) && /refreshSettingsStorageStatus/.test(main) && /settings\.storageConflict/.test(i18n),
   'settings must expose localized, actionable save-health state');
 check(/portableSaveIntegrity/.test(gameState) && /payload\.integrity/.test(gameState),
@@ -201,6 +203,8 @@ check(manifest.id === './' && Array.isArray(manifest.shortcuts) && manifest.shor
   manifest.shortcuts.every((shortcut) => typeof shortcut.url === 'string' && shortcut.url.includes('launch=')),
   'PWA must expose stable identity and direct standard/weekly launch shortcuts');
 check(/rel="manifest"/.test(html) && /name="theme-color"/.test(html) && /name="mobile-web-app-capable"/.test(html), 'install shell metadata is incomplete');
+check(/property="og:locale"/.test(html) && /name="twitter:card"/.test(html) && /class="noscript-card"/.test(html),
+  'public shell metadata and no-script fallback are required for discoverability and graceful failure');
 
 check(/value="weekly"/.test(html), 'the shell must expose the weekly challenge mode');
 check(/weeklyIdentity/.test(gameState) && /weeklySeed/.test(gameState) && /OLR1/.test(gameState), 'weekly mode must use a stable challenge seed and share code');
@@ -208,6 +212,8 @@ check(/weeklyProtocol/.test(modifiers) && /mode === 'weekly'/.test(modifiers), '
 check(/weekly/.test(history) && /weekly/.test(archive), 'history and archive must preserve weekly mode');
 check(/weeklyProtocol/.test(i18n) && /mode\.weekly/.test(i18n), 'weekly mode must be localized in every dictionary');
 check(/battle_11/.test(i18n) && /battle_12/.test(i18n) && /battle_13/.test(i18n), 'post-boss campaign battles must have localized entity names');
+check(/sandbox_mixed/.test(i18n) && /sandbox_support/.test(i18n) && /displayName:\s*t\(`sandbox\.\$\{preset\}`\)/.test(main),
+  'sandbox scenarios must keep their battle names localized in every supported language');
 check(enemyTable.enemies.some((enemy) => enemy.id === 'shield_drone' && enemy.behaviorType === 'shield_support'), 'content must include a shield relay support enemy');
 check(battleTable.battles.some((battle) => battle.enemySpawns?.some((spawn) => spawn.enemyId === 'shield_drone')), 'a campaign battle must exercise the shield relay');
 check(battleTable.battles.length >= 13 && battleTable.battles.some((battle) => battle.id === 'battle_13'), 'campaign must include the post-boss ascension and final core content');

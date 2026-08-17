@@ -887,6 +887,11 @@ function verifyTranslationContracts() {
     assert.deepEqual(result.placeholderMismatch, [], `${locale} placeholders must match English`);
     assert.deepEqual(result.simplifiedLeaks, [], `${locale} must not leak simplified-only characters into Traditional Chinese`);
   }
+  setLocale('zh-CN', { notify: false });
+  assert.equal(entity('battle', 'sandbox_support', 'Sandbox Test Simulation'), '支援协议');
+  setLocale('zh-TW', { notify: false });
+  assert.equal(entity('battle', 'sandbox_support', 'Sandbox Test Simulation'), '支援協議');
+  setLocale('en', { notify: false });
 }
 
 function verifyRuntimeDiagnosticsContracts() {

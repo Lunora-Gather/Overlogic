@@ -953,6 +953,8 @@ const ENTITY_ZH_CN = {
     battle_5: ['暗影电网', ''], battle_6: ['钢铁浪潮', ''], battle_7: ['混合协议', ''], battle_8: ['熔炉', ''],
     battle_9: ['协议守卫', ''], battle_10: ['巅峰协议守卫', ''], battle_11: ['中继灾变', ''],
     battle_12: ['虚空圣堂', ''], battle_13: ['奇点核心', ''],
+    sandbox_mixed: ['混合测试', ''], sandbox_projectiles: ['弹幕矩阵', ''],
+    sandbox_swarm: ['虫群压力', ''], sandbox_boss: ['首领实验室', ''], sandbox_support: ['支援协议', ''],
   },
 };
 
