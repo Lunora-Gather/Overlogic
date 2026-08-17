@@ -3,6 +3,7 @@ const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继�
 
 const EN = {
   'menu.subtitle': '// design the brain, not the hands',
+  'menu.logicCore': 'LOGIC CORE // 01',
   'menu.start': 'Start Simulation',
   'menu.continue': 'Continue Run',
   'menu.resumeReward': 'Resume Reward',
@@ -410,6 +411,7 @@ const EN = {
 const ZH_CN = {
   ...EN,
   'menu.subtitle': '// 设计大脑，而非操控双手',
+  'menu.logicCore': '逻辑核心 // 01',
   'menu.start': '开始模拟',
   'menu.continue': '继续当前模拟',
   'menu.resumeReward': '继续领取奖励',
@@ -741,7 +743,7 @@ function toTraditional(value) {
 
 const ZH_TW = {
   ...Object.fromEntries(Object.entries(ZH_CN).map(([key, value]) => [key, toTraditional(value)])),
-  'menu.subtitle': '// 設計大腦，而非操控雙手', 'menu.start': '開始模擬', 'menu.how': '玩法說明',
+  'menu.subtitle': '// 設計大腦，而非操控雙手', 'menu.logicCore': '邏輯核心 // 01', 'menu.start': '開始模擬', 'menu.how': '玩法說明',
   'menu.continue': '繼續目前模擬', 'menu.resumeReward': '繼續領取獎勵', 'menu.replay': '再來一局', 'menu.newRun': '開始新模擬',
   'menu.newRunConfirm': '確定開始新模擬並覆蓋目前進度嗎？',
   'menu.activeRun': '{mode} · {difficulty} · 路線 {progress}/{total}',

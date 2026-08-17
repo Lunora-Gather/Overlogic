@@ -56,57 +56,71 @@
 
   <!-- ===== Main Menu ===== -->
   <section id="screen-main" class="screen">
-    <div class="title-block">
-      <h1 class="logo">OVERLOGIC</h1>
-      <p class="subtitle" data-i18n="menu.subtitle">// design the brain, not the hands</p>
-    </div>
-    <div class="locale-switcher" id="locale-switcher" aria-label="Language" data-i18n-aria-label="menu.language">
-      <button type="button" data-locale="en">EN</button>
-      <button type="button" data-locale="zh-CN">简中</button>
-      <button type="button" data-locale="zh-TW">繁中</button>
-    </div>
-    <div class="run-config-panel">
-      <label><span data-i18n="menu.mode">Run Mode</span>
-        <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
-          <option value="standard" data-i18n="mode.standard">Standard</option>
-          <option value="daily" data-i18n="mode.daily">Daily Seed</option>
-          <option value="weekly" data-i18n="mode.weekly">Weekly Gauntlet</option>
-        </select>
-      </label>
-      <label><span data-i18n="menu.difficulty">Difficulty</span>
-        <select id="run-difficulty" aria-label="Difficulty" data-i18n-aria-label="menu.difficulty">
-          <option value="casual" data-i18n="difficulty.casual">Casual</option>
-          <option value="standard" data-i18n="difficulty.standard">Standard</option>
-          <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
-        </select>
-      </label>
-      <span id="period-seed-label" class="period-seed-label hidden"></span>
-      <div class="run-seed-row">
-        <label for="run-seed-input" class="run-seed-field">
-          <span data-i18n="menu.seed">Challenge Seed</span>
-          <input id="run-seed-input" type="text" inputmode="text" autocapitalize="characters" enterkeyhint="go" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.seedPlaceholder" data-i18n-aria-label="menu.seed" placeholder="Seed or OLR1 challenge code">
-        </label>
-        <button id="btn-copy-run-seed" type="button" class="btn ghost small" data-i18n="menu.copySeed">Copy</button>
+    <header class="home-header">
+      <div class="title-block">
+        <div class="brand-line"><span class="brand-mark" aria-hidden="true">/</span><span class="brand-code" data-i18n="menu.logicCore">LOGIC CORE // 01</span></div>
+        <h1 class="logo">OVERLOGIC</h1>
+        <p class="subtitle" data-i18n="menu.subtitle">// design the brain, not the hands</p>
       </div>
-      <p id="run-config-hint" class="run-config-hint"></p>
+      <div class="locale-switcher" id="locale-switcher" aria-label="Language" data-i18n-aria-label="menu.language">
+        <span class="locale-label" data-i18n="menu.language">Language</span>
+        <div class="locale-options">
+          <button type="button" data-locale="en">EN</button>
+          <button type="button" data-locale="zh-CN">简中</button>
+          <button type="button" data-locale="zh-TW">繁中</button>
+        </div>
+      </div>
+    </header>
+    <div class="home-shell">
+      <main class="home-launch-column">
+        <div class="home-column-heading"><span class="eyebrow">01</span><span data-i18n="menu.mode">Run Mode</span><span class="heading-line"></span></div>
+        <div class="run-config-panel">
+          <label><span data-i18n="menu.mode">Run Mode</span>
+            <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
+              <option value="standard" data-i18n="mode.standard">Standard</option>
+              <option value="daily" data-i18n="mode.daily">Daily Seed</option>
+              <option value="weekly" data-i18n="mode.weekly">Weekly Gauntlet</option>
+            </select>
+          </label>
+          <label><span data-i18n="menu.difficulty">Difficulty</span>
+            <select id="run-difficulty" aria-label="Difficulty" data-i18n-aria-label="menu.difficulty">
+              <option value="casual" data-i18n="difficulty.casual">Casual</option>
+              <option value="standard" data-i18n="difficulty.standard">Standard</option>
+              <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
+            </select>
+          </label>
+          <span id="period-seed-label" class="period-seed-label hidden"></span>
+          <div class="run-seed-row">
+            <label for="run-seed-input" class="run-seed-field">
+              <span data-i18n="menu.seed">Challenge Seed</span>
+              <input id="run-seed-input" type="text" inputmode="text" autocapitalize="characters" enterkeyhint="go" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.seedPlaceholder" data-i18n-aria-label="menu.seed" placeholder="Seed or OLR1 challenge code">
+            </label>
+            <button id="btn-copy-run-seed" type="button" class="btn ghost small" data-i18n="menu.copySeed">Copy</button>
+          </div>
+          <p id="run-config-hint" class="run-config-hint"></p>
+        </div>
+        <section id="run-season" class="run-season" aria-live="polite">
+          <span data-i18n="menu.seasonLabel">LIVE PROTOCOL</span>
+          <strong id="run-season-name">Foundry Protocol</strong>
+          <small id="run-season-status">Active</small>
+        </section>
+        <div class="menu-buttons">
+          <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
+          <button type="button" id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
+          <button type="button" id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
+          <button type="button" id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
+          <button type="button" id="btn-install" class="btn ghost hidden" data-i18n="menu.install">Install App</button>
+          <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
+          <button type="button" id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
+        </div>
+      </main>
+      <aside class="home-dashboard" aria-label="Operator Profile" data-i18n-aria-label="menu.profileTitle">
+        <div class="home-column-heading"><span class="eyebrow">02</span><span data-i18n="menu.profileTitle">Operator Profile</span><span class="heading-line"></span></div>
+        <section id="run-profile" class="run-profile" aria-live="polite"></section>
+        <section id="run-challenges" class="run-challenges" aria-live="polite"></section>
+        <section id="run-history" class="run-history" aria-live="polite"></section>
+      </aside>
     </div>
-    <section id="run-season" class="run-season" aria-live="polite">
-      <span data-i18n="menu.seasonLabel">LIVE PROTOCOL</span>
-      <strong id="run-season-name">Foundry Protocol</strong>
-      <small id="run-season-status">Active</small>
-    </section>
-    <div class="menu-buttons">
-      <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
-      <button type="button" id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
-      <button type="button" id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
-      <button type="button" id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
-      <button type="button" id="btn-install" class="btn ghost hidden" data-i18n="menu.install">Install App</button>
-      <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
-      <button type="button" id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
-    </div>
-    <section id="run-profile" class="run-profile" aria-live="polite"></section>
-    <section id="run-challenges" class="run-challenges" aria-live="polite"></section>
-    <section id="run-history" class="run-history" aria-live="polite"></section>
     <div id="how-overlay" class="overlay hidden" aria-hidden="true">
       <div class="overlay-card how-card" role="dialog" aria-modal="true" aria-labelledby="how-title">
         <h2 id="how-title" data-i18n="how.title">How to Play</h2>
