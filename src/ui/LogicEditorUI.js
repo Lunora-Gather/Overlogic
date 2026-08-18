@@ -43,6 +43,7 @@ export class LogicEditorUI {
     this.unitStats = document.getElementById('unit-stats');
     this.btnRun = document.getElementById('btn-run');
     this.btnSandbox = document.getElementById('btn-sandbox');
+    this.btnEditorMenu = document.getElementById('btn-editor-menu');
     this.mapNodesContainer = document.getElementById('map-nodes');
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
@@ -1267,8 +1268,13 @@ export class LogicEditorUI {
         const btnSave = document.getElementById(`btn-save-${slot}`);
         if (btnSave) btnSave.click();
       }
-      // Enter or Space to Run Simulation (when not focused on text inputs, dropdowns, or buttons)
-      if (e.key === 'Enter' || (e.key === ' ' && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'SELECT' && document.activeElement.tagName !== 'BUTTON')) {
+      // Enter or Space to Run Simulation only from the editor canvas itself.
+      // Interactive controls (including DIV-based map nodes and tabs) own
+      // those keys; letting the document handler see them causes accidental
+      // launches while editing or navigating by keyboard.
+      const activeElement = document.activeElement;
+      const isInteractive = activeElement?.matches?.('input, textarea, select, button, a, [role="button"], [role="tab"], [contenteditable="true"]');
+      if (!isInteractive && (e.key === 'Enter' || e.key === ' ')) {
         // Allow default enter behavior in rule form submit
         if (e.key === 'Enter' && this.ruleForm && !this.ruleForm.classList.contains('hidden')) {
           return;
@@ -1323,6 +1329,10 @@ export class LogicEditorUI {
     this.btnRun.addEventListener('click', () => {
       AudioManager.play('button_click');
       GameManager.goCombat();
+    });
+    this.btnEditorMenu?.addEventListener('click', () => {
+      AudioManager.play('button_click');
+      GameManager.goMainMenu();
     });
     if (this.btnSandbox) {
       this.btnSandbox.addEventListener('click', () => {

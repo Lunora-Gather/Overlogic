@@ -167,8 +167,8 @@
 
   <!-- ===== Logic Editor ===== -->
   <section id="screen-editor" class="screen hidden">
-    <header class="editor-header" style="flex-direction: column; align-items: stretch; gap: 12px; padding: 16px 24px;">
-      <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+    <header class="editor-header">
+      <div class="editor-header-top">
         <div class="battle-info">
           <span class="label" data-i18n="editor.nextBattle">Next Battle</span>
           <span id="ed-battle-name" class="value">—</span>
@@ -179,9 +179,9 @@
           <span id="ed-teach" class="value">1</span>
         </div>
       </div>
-      <div class="map-panel" style="border-top: 1px solid var(--line); padding-top: 8px; width: 100%;">
-        <span class="label" data-i18n="editor.chooseRoute" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">// CHOOSE PROTOCOL ROUTE</span>
-        <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap" style="display: flex; justify-content: space-between; align-items: center; margin-top: 6px; gap: 12px;"></div>
+      <div class="map-panel">
+        <span class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
+        <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
       </div>
     </header>
 
@@ -208,7 +208,7 @@
       </aside>
 
       <main class="panel panel-rules" id="panel-rules" role="tabpanel" aria-labelledby="editor-tab-rules">
-        <h3 style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; width: 100%;"><span data-i18n="editor.activeRules">Active Rules</span>
+        <h3 class="rules-toolbar"><span data-i18n="editor.activeRules">Active Rules</span>
           <button type="button" id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
           <button type="button" id="btn-undo" class="btn small ghost" style="padding:2px 8px;" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
           <button type="button" id="btn-redo" class="btn small ghost" style="padding:2px 8px;" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
@@ -284,8 +284,9 @@
 
     <footer class="editor-footer">
       <div id="unit-stats" class="unit-stats"></div>
-      <div style="display: flex; gap: 12px; align-items: center;">
-        <button type="button" id="btn-editor-settings" class="btn ghost" style="padding: 14px 18px; display: flex; align-items: center; justify-content: center; min-height: 48px;" title="Settings" data-i18n-title="common.settings" aria-label="Settings" data-i18n-aria-label="common.settings">⚙️</button>
+      <div class="editor-footer-actions">
+        <button type="button" id="btn-editor-settings" class="btn ghost" title="Settings" data-i18n-title="common.settings" aria-label="Settings" data-i18n-aria-label="common.settings">⚙️</button>
+        <button type="button" id="btn-editor-menu" class="btn ghost" data-i18n="editor.menu">Command Center</button>
         <button type="button" id="btn-import-rules" class="btn ghost" data-i18n="editor.importRules">Import</button>
         <button type="button" id="btn-export-rules" class="btn ghost" data-i18n="editor.exportRules">Share</button>
         <select id="sandbox-preset" class="sandbox-preset" aria-label="Sandbox scenario" data-i18n-aria-label="editor.sandboxScenario">
@@ -295,7 +296,7 @@
           <option value="boss" data-i18n="sandbox.boss">Boss Lab</option>
           <option value="support" data-i18n="sandbox.support">Support Protocol</option>
         </select>
-        <button type="button" id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox" style="border-color: #ffb938; color: #ffb938; text-shadow: 0 0 8px rgba(255, 185, 56, 0.45);">Sandbox Test ⚙️</button>
+        <button type="button" id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox">Sandbox Test ⚙️</button>
         <button type="button" id="btn-run" class="btn primary big" data-i18n="editor.run">Run Simulation ▶</button>
       </div>
     </footer>
