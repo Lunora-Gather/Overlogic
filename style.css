@@ -1,4 +1,4 @@
-/* Overlogic — Premium Sci-Fi Cybernetic UI */
+
 :root {
   --bg: #030509;
   --bg-gradient: linear-gradient(135deg, #020306 0%, #060917 100%);
@@ -50,14 +50,13 @@ body {
 }
 
 body {
-  background: 
+  background:
     radial-gradient(circle at 50% 0%, rgba(0, 210, 255, 0.12), transparent 50%),
     radial-gradient(circle at 0% 100%, rgba(181, 92, 255, 0.08), transparent 40%),
     var(--bg-gradient);
   background-attachment: fixed;
 }
 
-/* Custom Cyber Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -333,7 +332,6 @@ body {
   display: none !important;
 }
 
-/* ===== Menu Screen ===== */
 .title-block {
   text-align: center;
   margin-bottom: 32px;
@@ -380,7 +378,6 @@ body {
   z-index: 5;
 }
 
-/* ===== Buttons ===== */
 .btn {
   font-family: inherit;
   font-size: 14px;
@@ -471,7 +468,6 @@ input:focus-visible {
   box-shadow: none;
 }
 
-/* Overlay How to Play */
 .overlay {
   position: fixed;
   inset: 0;
@@ -480,9 +476,7 @@ input:focus-visible {
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Modal surfaces must sit above transient app notices.  A notice can be
-     present during boot/update checks; leaving it above the modal makes the
-     bottom action row look enabled while intercepting pointer input. */
+
   z-index: 13000;
   opacity: 1;
   transition: all 0.3s;
@@ -539,7 +533,6 @@ input:focus-visible {
   font-weight: bold;
 }
 
-/* ===== Logic Editor Screen ===== */
 #screen-editor {
   justify-content: flex-start;
   gap: 12px;
@@ -558,7 +551,6 @@ input:focus-visible {
   box-shadow: var(--glow-shadow);
 }
 
-/* ===== Tactical release refinement ===== */
 .run-config-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
@@ -1226,7 +1218,6 @@ input:focus-visible {
   border-left: 2px solid rgba(75, 225, 255, 0.62);
 }
 
-/* Build-composition strip: compact enough to scan without displacing the editor. */
 .synergy-panel {
   display: grid;
   grid-template-columns: minmax(150px, 0.7fr) minmax(0, 3fr);
@@ -1632,7 +1623,6 @@ input[type="range"] {
   }
 }
 
-/* v1.1 editor navigation and touch-safe rule controls */
 .editor-mobile-tabs {
   display: none;
 }
@@ -2157,7 +2147,6 @@ html[data-locale^="zh"] h3 {
   font-weight: 600;
 }
 
-/* Rule rows list */
 .rule-list {
   list-style: none;
   display: flex;
@@ -2265,7 +2254,7 @@ html[data-locale^="zh"] h3 {
   border-radius: 4px;
   outline: none;
   transition: border-color 0.2s, box-shadow 0.2s;
-  min-width: 0; /* allows element to shrink within grid column */
+  min-width: 0;
 }
 
 .rule-row select, .rule-form select {
@@ -2276,7 +2265,7 @@ html[data-locale^="zh"] h3 {
   background-repeat: no-repeat;
   background-position: right 8px center;
   background-size: 12px;
-  padding-right: 24px !important; /* leave space for the custom arrow */
+  padding-right: 24px !important;
 }
 
 .rule-row input[type="checkbox"] {
@@ -2328,7 +2317,6 @@ html[data-locale^="zh"] h3 {
   box-shadow: 0 0 8px rgba(0, 210, 255, 0.25);
 }
 
-/* Hide number input spinners for clean digital look */
 input[type="number"]::-webkit-outer-spin-button,
 input[type="number"]::-webkit-inner-spin-button {
   -webkit-appearance: none;
@@ -2399,7 +2387,6 @@ input[type="number"] {
   white-space: nowrap;
 }
 
-/* Rule add form */
 .rule-form {
   display: flex;
   gap: 10px;
@@ -2515,7 +2502,6 @@ input[type="number"] {
   cursor: not-allowed;
 }
 
-/* ===== Combat Screen ===== */
 #screen-combat {
   justify-content: flex-start;
   padding: 12px;
@@ -2685,7 +2671,6 @@ input[type="number"] {
   100% { background: transparent; }
 }
 
-/* glitch: use only transform (no skew) + will-change to keep on compositor layer */
 .current-logic.overlogic {
   color: var(--overlogic);
   text-shadow: 0 0 15px rgba(181, 92, 255, 0.8);
@@ -2983,7 +2968,6 @@ input[type="number"] {
   100% { opacity: 0; transform: translate(-50%, -30px) scale(0.95); filter: blur(5px); }
 }
 
-/* ===== Reward Screen ===== */
 #screen-reward h2 {
   color: var(--accent);
   letter-spacing: 8px;
@@ -3058,7 +3042,6 @@ input[type="number"] {
   line-height: 1.5;
 }
 
-/* ===== Report Screen ===== */
 #screen-report {
   justify-content: flex-start;
   padding: 40px;
@@ -3193,7 +3176,6 @@ input[type="number"] {
   }
 }
 
-/* ===== Victory Screen ===== */
 #screen-victory .logo {
   font-size: clamp(32px, 5vw, 64px);
   letter-spacing: 12px;
@@ -3203,7 +3185,6 @@ input[type="number"] {
   text-shadow: 0 0 30px rgba(62, 255, 157, 0.4);
 }
 
-/* ===== Media Queries ===== */
 @media (max-width: 1250px) {
   .editor-grid {
     grid-template-columns: 1fr;
@@ -3236,7 +3217,6 @@ input[type="number"] {
   transform: none !important;
 }
 
-/* ===== Custom Cyberpunk Tooltip ===== */
 .custom-tooltip {
   position: fixed;
   background: rgba(12, 18, 38, 0.95);
@@ -3278,7 +3258,6 @@ input[type="number"] {
   100% { opacity: 1; filter: drop-shadow(0 0 8px rgba(255, 185, 56, 0.8)); }
 }
 
-/* ===== Empty Rule List Guide Card ===== */
 .rule-empty-guide {
   display: flex;
   flex-direction: column;
@@ -3337,7 +3316,6 @@ input[type="number"] {
   border-radius: 4px;
 }
 
-/* ===== Victory Screen Run Stats Grid ===== */
 .victory-stats-grid {
   display: flex;
   gap: 16px;
@@ -3437,7 +3415,6 @@ input[type="number"] {
   }
 }
 
-/* ===== Victory Rules List Replay ===== */
 .victory-rules-list {
   list-style: none;
   display: flex;
@@ -3485,7 +3462,6 @@ input[type="number"] {
   color: var(--accent2);
 }
 
-/* ===== Reward UI Enhancements ===== */
 .reward-summary-bar {
   display: flex;
   align-items: center;
@@ -3538,7 +3514,6 @@ input[type="number"] {
   transform: translateY(-4px) scale(1.02);
 }
 
-/* ===== Screen-Victory layout fix ===== */
 #screen-victory {
   display: flex;
   flex-direction: column;
@@ -3547,7 +3522,6 @@ input[type="number"] {
   overflow-y: auto;
 }
 
-/* ===== Settings Overlay ===== */
 .settings-card {
   max-width: 400px !important;
   border-color: rgba(0, 210, 255, 0.4);
@@ -3565,7 +3539,6 @@ input[type="number"] {
   text-align: center;
 }
 
-/* Customize Range Slider to match Sci-Fi theme */
 input[type="range"] {
   -webkit-appearance: none;
   width: 100%;
@@ -3591,7 +3564,6 @@ input[type="range"]::-webkit-slider-thumb:hover {
   background: var(--accent2);
 }
 
-/* Success flash state for loadout slot saving feedback */
 .btn.success-flash {
   background: linear-gradient(90deg, rgba(62, 255, 157, 0.3), rgba(62, 255, 157, 0.1)) !important;
   border-color: #3eff9d !important;
@@ -3634,9 +3606,6 @@ select:focus-visible,
   transition-duration: 0.001ms !important;
 }
 
-/* User-selectable accessibility contrast preset. Keep the cyberpunk palette,
-   but remove translucency ambiguity and lift secondary copy to readable
-   contrast for low-vision and bright-room play. */
 html.high-contrast {
   --bg: #000208;
   --bg-gradient: linear-gradient(135deg, #000208 0%, #071321 100%);
@@ -3690,7 +3659,6 @@ html.high-contrast .history-meta {
   }
 }
 
-/* ===== Responsive polish pass ===== */
 @media (max-width: 760px) {
   html, body {
     overflow: hidden;
@@ -4055,7 +4023,6 @@ html.high-contrast .history-meta {
   }
 }
 
-/* ===== Visual system refinement ===== */
 :root {
   --surface-1: rgba(8, 13, 27, 0.88);
   --surface-2: rgba(12, 20, 38, 0.82);
@@ -4156,9 +4123,6 @@ html.high-contrast .history-meta {
   background: rgba(255, 255, 255, 0.025);
 }
 
-/* Footer controls are compact actions, not prose. Keep localized labels on a
-   single visual line and let the whole control row wrap as a unit at tablet
-   widths instead of squeezing individual buttons into awkward two-line pills. */
 .editor-footer > div:last-child {
   min-width: 0;
   display: flex;
@@ -4733,7 +4697,6 @@ html.high-contrast .history-meta {
   }
 }
 
-/* Tactical refinements intentionally finish the cascade. */
 .run-config-panel {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   align-items: end;
@@ -4836,16 +4799,13 @@ html.high-contrast .history-meta {
   }
 }
 
-/* Keep mobile editor overrides last so legacy breakpoint rules cannot supersede them. */
 @media (max-width: 760px) {
   #screen-editor .editor-mobile-tabs { display: grid; }
   #screen-editor .editor-mobile-tabs {
     width: 100%;
     align-self: stretch;
   }
-  /* The editor is a vertical flex layout on touch devices.  Keep the
-     briefing at its intrinsic grid height so its checks/actions can never
-     collapse underneath the synergy panel when the viewport is short. */
+
   #screen-editor #mission-briefing {
     flex: 0 0 auto;
     min-height: 0;
@@ -4882,8 +4842,6 @@ html.high-contrast .history-meta {
   }
 }
 
-/* Final homepage overrides. Keep this small lock at EOF while the older
-   cascade remains intact for the editor, combat, reward, and report screens. */
 #screen-main,
 #screen-main .home-header,
 #screen-main .home-shell,
@@ -4968,7 +4926,6 @@ html[data-locale^="zh"] #screen-main .home-column-heading { letter-spacing:.04em
 
 #screen-main { align-items: start; }
 
-/* Editor workstation: a visible route-to-rules flow with a stable footer. */
 #screen-editor {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
@@ -5287,10 +5244,8 @@ html[data-locale^="zh"] #screen-main .home-column-heading { letter-spacing:.04em
   #screen-editor .editor-footer-actions { grid-template-columns: 38px minmax(0, 1fr) minmax(0, 1fr); }
 }
 
-/* The editor geometry is important, but screen state still wins over it. */
 #screen-editor.hidden { display: none !important; }
 
-/* Disabled controls should read as unavailable, not broken or clickable. */
 .btn:disabled,
 button[aria-disabled="true"],
 select:disabled,
@@ -5303,10 +5258,8 @@ input:disabled {
 }
 
 .btn:disabled::before { display: none; }
+.editor-mobile-run { display: none; }
 
-/* ===== Art direction 2.0: tactical operating system =====
-   This final layer intentionally owns the visual language across the launch,
-   editor, and combat screens while keeping the existing component logic. */
 :root {
   --bg: #04070d;
   --bg-gradient: linear-gradient(145deg, #02050a 0%, #07101c 48%, #050713 100%);
@@ -5348,7 +5301,7 @@ body::before {
   mask-image: linear-gradient(to bottom, rgba(0,0,0,.75), transparent 88%);
 }
 #bg-canvas { opacity: .42; filter: saturate(.82); }
-/* Launch */
+
 #screen-main {
   width: min(100%, 1280px);
   max-width: 1280px;
@@ -5611,7 +5564,7 @@ body::before {
 }
 #screen-main .run-challenges::before { background: linear-gradient(90deg, var(--accent2), transparent); }
 #screen-main .run-history::before { background: linear-gradient(90deg, var(--accent), transparent); }
-/* Editor */
+
 #screen-editor { background: radial-gradient(circle at 50% -18%, rgba(var(--accent-rgb), .08), transparent 42%); }
 #screen-editor .editor-header,
 #screen-editor .editor-footer,
@@ -5634,7 +5587,7 @@ body::before {
 #screen-editor .module-list li:hover { transform: translateX(2px); border-color: var(--border-mid); }
 #screen-editor .rule-row { border-left: 2px solid rgba(var(--accent2-rgb), .32); background: rgba(255,255,255,.018); }
 #screen-editor .editor-footer { border-top-color: rgba(var(--accent-rgb), .28); }
-/* Combat */
+
 #screen-combat {
   gap: 10px;
   padding: 12px 16px;
@@ -5761,6 +5714,7 @@ body::before {
   #screen-main .home-shell { grid-template-columns: 1fr; gap: 20px; }
   #screen-main .home-dashboard { padding-top: 20px; border-top: 1px solid var(--border-soft); }
   #screen-main .home-run-intro { min-height: 64px; }
+  #screen-editor .editor-mobile-run { display: flex; position: sticky; top: 8px; z-index: 35; flex: 0 0 auto; width: 100%; min-height: 46px; border-color: rgba(var(--accent2-rgb), .45); background: linear-gradient(105deg, rgba(37, 139, 172, .94), rgba(45, 139, 112, .92)); box-shadow: 0 12px 28px rgba(0, 0, 0, .36), 0 0 18px rgba(var(--accent-rgb), .12); }
   .combat-top { display: flex; min-height: 0; }
   .hud-left { display: grid; grid-template-columns: 1fr; width: 100%; }
   .arena-frame { padding: 28px 10px 10px; border-radius: var(--radius-md); }
@@ -5779,4 +5733,24 @@ body::before {
 @media (prefers-reduced-motion: reduce) {
   #screen-main .core-orbit,
   #screen-main .status-pulse { animation: none; }
+}
+
+@media (min-width: 761px) and (max-height: 780px) {
+  #screen-main { grid-template-rows: auto auto; gap: 12px; padding: 16px 24px 24px; }
+  #screen-main .home-header { min-height: 0; padding: 0 0 12px; gap: 24px; }
+  #screen-main .logo { font-size: clamp(58px, 6.2vw, 78px); letter-spacing: clamp(5px, .7vw, 10px); }
+  #screen-main .home-lead { display: none; }
+  #screen-main .home-loop { margin-top: 11px; }
+  #screen-main .home-hero-console { height: 154px; }
+  #screen-main .core-schematic { transform: scale(.84); transform-origin: left bottom; }
+  #screen-main .home-run-intro { min-height: 56px; padding: 10px 14px; }
+  #screen-main .home-run-intro small { display: none; }
+  #screen-main .run-config-panel { gap: 9px 12px; padding: 12px; }
+  #screen-main .run-config-panel select,
+  #screen-main .run-seed-field input { min-height: 36px; }
+  #screen-main .run-config-hint { min-height: 28px; padding: 6px 10px; }
+  #screen-main .run-season { min-height: 46px; padding: 9px 12px; }
+  #screen-main .menu-buttons #btn-start,
+  #screen-main .menu-buttons #btn-new-run { min-height: 52px; }
+  #screen-main .menu-buttons .btn:not(#btn-start):not(#btn-new-run) { min-height: 36px; }
 }

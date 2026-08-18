@@ -42,6 +42,7 @@ export class LogicEditorUI {
     this.edTeach = document.getElementById('ed-teach');
     this.unitStats = document.getElementById('unit-stats');
     this.btnRun = document.getElementById('btn-run');
+    this.btnMobileRun = document.getElementById('btn-mobile-run');
     this.btnSandbox = document.getElementById('btn-sandbox');
     this.btnEditorMenu = document.getElementById('btn-editor-menu');
     this.mapNodesContainer = document.getElementById('map-nodes');
@@ -1330,6 +1331,7 @@ export class LogicEditorUI {
       AudioManager.play('button_click');
       GameManager.goCombat();
     });
+    this.btnMobileRun?.addEventListener('click', () => this.btnRun.click());
     this.btnEditorMenu?.addEventListener('click', () => {
       AudioManager.play('button_click');
       GameManager.goMainMenu();
