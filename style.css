@@ -1920,7 +1920,7 @@ html[data-locale^="zh"] h3 {
   .locale-switcher button { padding: 6px 8px; }
   .title-block { margin-bottom: 12px; }
   .run-config-panel { grid-template-columns: 1fr; }
-  #period-seed-label { grid-column: 1; }
+  #period-seed-label { display: none; }
 }
 
 .mission-briefing {
@@ -5776,7 +5776,7 @@ body::before {
   #screen-main .run-config-panel select,
   #screen-main .run-seed-field input,
   #screen-main .run-seed-row > .btn { min-height: 38px; }
-  #screen-main .run-season { min-height: 48px; padding: 9px 12px; }
+  #screen-main .run-season { min-height: 46px; padding: 7px 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
   #screen-main .core-orbit,
