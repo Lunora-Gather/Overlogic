@@ -925,6 +925,12 @@ export class LogicEditorUI {
     }
     row.appendChild(tarSel);
 
+    // Keep diagnostics and row actions in one grid cell. Rendering the
+    // warning as a separate child creates an implicit second grid row and can
+    // push duplicate/delete controls outside the rule card at compact heights.
+    const actionsContainer = document.createElement('span');
+    actionsContainer.className = 'rule-row-actions';
+
     // Warnings alert icon
     const warnings = this._activeWarnings && this._activeWarnings.get(r.id);
     if (warnings && warnings.length > 0) {
@@ -936,7 +942,6 @@ export class LogicEditorUI {
       warnSpan.innerHTML = '⚠️';
       warnSpan.style.cursor = 'help';
       warnSpan.style.color = '#ffb938';
-      warnSpan.style.marginRight = '8px';
       warnSpan.style.fontSize = '14px';
       warnSpan.style.textShadow = '0 0 6px #ffb938';
       
@@ -976,16 +981,10 @@ export class LogicEditorUI {
       warnSpan.addEventListener('mouseleave', hideWarningTooltip);
       warnSpan.addEventListener('focusout', hideWarningTooltip);
 
-      row.appendChild(warnSpan);
+      actionsContainer.appendChild(warnSpan);
     }
     
     // 7. Actions Container (Duplicate + Delete)
-    const actionsContainer = document.createElement('span');
-    actionsContainer.style.display = 'flex';
-    actionsContainer.style.alignItems = 'center';
-    actionsContainer.style.justifyContent = 'center';
-    actionsContainer.style.gap = '8px';
-
     // 7.1 Clone Button
     const clone = document.createElement('button');
     clone.type = 'button';
