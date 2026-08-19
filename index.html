@@ -209,7 +209,7 @@
         </div>
       </div>
       <div class="map-panel">
-        <span class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
+        <span id="map-route-label" class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
         <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
       </div>
     </header>
@@ -383,9 +383,9 @@
 
   <!-- ===== Reward ===== -->
   <section id="screen-reward" class="screen hidden">
-    <h2 data-i18n="reward.title">Protocol Upgrade</h2>
-    <p class="muted" data-i18n="reward.choose">Choose One</p>
-    <div id="reward-options" class="reward-grid"></div>
+    <h2 id="reward-title" data-i18n="reward.title">Protocol Upgrade</h2>
+    <p id="reward-instructions" class="muted" data-i18n="reward.choose">Choose one · press 1–3</p>
+    <div id="reward-options" class="reward-grid" role="group" aria-labelledby="reward-title" aria-describedby="reward-instructions"></div>
   </section>
 
   <!-- ===== Post Battle Report ===== -->

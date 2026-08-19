@@ -5181,10 +5181,10 @@ html[data-locale^="zh"] #screen-main .home-column-heading { letter-spacing:.04em
 #screen-editor .rule-row { flex: 0 0 auto; min-height: 58px; padding: 7px 9px; gap: 6px; border-radius: 8px; font-size: 10px; }
 #screen-editor .rule-row select,
 #screen-editor .rule-row input { height: 24px; font-size: 9px; }
-#screen-editor .rule-row-actions { display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
-#screen-editor .rule-row-actions .rule-warn-icon { flex: 0 0 15px; width: 15px; margin: 0 !important; font-size: 12px !important; }
+#screen-editor .rule-row-actions { position: relative; display: flex; align-items: center; justify-content: center; gap: 2px; min-width: 0; }
+#screen-editor .rule-row-actions .rule-warn-icon { position: absolute; top: -9px; right: -2px; width: 15px; margin: 0 !important; font-size: 11px !important; }
 #screen-editor .rule-row-actions .clone-btn,
-#screen-editor .rule-row-actions .del { width: 17px; min-width: 17px; padding: 0 !important; font-size: 11px !important; }
+#screen-editor .rule-row-actions .del { width: 25px; min-width: 25px; min-height: 28px; padding: 0 !important; font-size: 12px !important; }
 
 #screen-editor .editor-footer {
   display: grid;
@@ -5475,7 +5475,7 @@ body::before {
   background: rgba(3, 8, 17, .7);
 }
 #screen-main .locale-label { font-size: 8px; }
-#screen-main .locale-switcher button { min-height: 30px; font-size: 10px; }
+#screen-main .locale-switcher button { min-height: 34px; font-size: 10px; }
 #screen-main .core-schematic {
   position: absolute;
   left: 20px;

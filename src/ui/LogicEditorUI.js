@@ -26,6 +26,8 @@ export class LogicEditorUI {
     this.btnAddRule = document.getElementById('btn-add-rule');
     this.btnUndo = document.getElementById('btn-undo');
     this.btnRedo = document.getElementById('btn-redo');
+    this.btnUndo.setAttribute('aria-keyshortcuts', 'Control+Z');
+    this.btnRedo.setAttribute('aria-keyshortcuts', 'Control+Y');
     this.ruleForm = document.getElementById('rule-form');
     this.fCond = document.getElementById('f-cond');
     this.fCondParam = document.getElementById('f-cond-param');
@@ -46,6 +48,7 @@ export class LogicEditorUI {
     this.btnSandbox = document.getElementById('btn-sandbox');
     this.btnEditorMenu = document.getElementById('btn-editor-menu');
     this.mapNodesContainer = document.getElementById('map-nodes');
+    this.mapRouteLabel = document.getElementById('map-route-label');
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
     this.synergyList = document.getElementById('synergy-list');
@@ -132,7 +135,23 @@ export class LogicEditorUI {
     this.renderAll();
     // Each transition back to the editor should land on its primary action,
     // especially after a confirmation dialog or a reward selection.
-    this.btnAddRule?.focus();
+    this.btnAddRule?.focus({ preventScroll: true });
+  }
+
+  _followCurrentMapColumn(restoreFocus = false) {
+    window.cancelAnimationFrame(this._mapFollowFrame);
+    this._mapFollowFrame = window.requestAnimationFrame(() => {
+      const current = this.mapNodesContainer.querySelector(`[data-map-column="${GameState.currentMapColumn}"]`);
+      if (!current) return;
+      const selected = current.querySelector('.map-node.selected') || current.querySelector('.map-node.unlocked');
+      if (restoreFocus && selected instanceof HTMLElement) selected.focus({ preventScroll: true });
+      const maxScroll = Math.max(0, this.mapNodesContainer.scrollWidth - this.mapNodesContainer.clientWidth);
+      const target = Math.max(0, Math.min(maxScroll,
+        current.offsetLeft - (this.mapNodesContainer.clientWidth - current.offsetWidth) / 2));
+      if (Math.abs(this.mapNodesContainer.scrollLeft - target) < 4) return;
+      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+      this.mapNodesContainer.scrollTo({ left: target, behavior: reducedMotion ? 'auto' : 'smooth' });
+    });
   }
 
   _flashButton(button, label) {
@@ -175,6 +194,7 @@ export class LogicEditorUI {
   }
 
   renderHeader() {
+    const restoreMapFocus = this.mapNodesContainer.contains(document.activeElement);
     const battle = GameState.getActiveBattle();
     if (battle) {
       this.edBattleName.textContent = entity('battle', battle.id, battle.displayName);
@@ -191,12 +211,20 @@ export class LogicEditorUI {
       }
     }
     this.edTeach.textContent = GameState.teachNode;
+    const routeCurrent = Math.min(GameState.currentMapColumn + 1, GameState.mapNodes.length);
+    const routeTotal = GameState.mapNodes.length;
+    const routeProgress = `${String(routeCurrent).padStart(2, '0')} / ${String(routeTotal).padStart(2, '0')}`;
+    if (this.mapRouteLabel) this.mapRouteLabel.textContent = `${t('editor.chooseRoute')} · ${routeProgress}`;
+    this.mapNodesContainer.setAttribute('aria-label', `${t('editor.routeMap')} · ${t('editor.routeProgress', {
+      current: routeCurrent, total: routeTotal,
+    })}`);
 
     // Render Map Tree
     this.mapNodesContainer.innerHTML = '';
     GameState.mapNodes.forEach((col, colIdx) => {
       const colDiv = document.createElement('div');
       colDiv.className = 'map-col';
+      colDiv.dataset.mapColumn = String(colIdx);
       colDiv.setAttribute('role', 'listitem');
 
       col.forEach(node => {
@@ -243,6 +271,7 @@ export class LogicEditorUI {
       });
       this.mapNodesContainer.appendChild(colDiv);
     });
+    this._followCurrentMapColumn(restoreMapFocus);
   }
 
   _formatBattlePreview(battle) {

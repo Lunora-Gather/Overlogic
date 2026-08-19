@@ -21,6 +21,14 @@ export class RewardUI {
     this.el = document.getElementById('screen-reward');
     this.optionsEl = document.getElementById('reward-options');
     this._currentOptions = [];
+    this.el.addEventListener('keydown', (event) => {
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (!/^[1-3]$/.test(event.key)) return;
+      const card = this.optionsEl.querySelectorAll('.reward-card')[Number(event.key) - 1];
+      if (!card) return;
+      event.preventDefault();
+      card.click();
+    });
     window.addEventListener('overlogic:localechange', () => {
       if (!this.el.classList.contains('hidden')) this._render();
     });
@@ -77,7 +85,7 @@ export class RewardUI {
       return;
     }
 
-    for (const rid of this._currentOptions) {
+    for (const [index, rid] of this._currentOptions.entries()) {
       const r = GameDatabase.getReward(rid);
       if (!r) continue;
       const card = document.createElement('div');
@@ -85,14 +93,18 @@ export class RewardUI {
       card.tabIndex = 0;
       card.setAttribute('role', 'button');
       card.setAttribute('aria-label', rewardDisplayName(r));
+      card.setAttribute('aria-keyshortcuts', String(index + 1));
       const icon = TYPE_ICONS[r.rewardType] || '✦';
       const typeLabel = t(`rewardType.${r.rewardType}`);
       const impact = this._impactPreview(r);
+      const descriptionId = `reward-option-${index + 1}-description`;
+      const impactId = `reward-option-${index + 1}-impact`;
+      card.setAttribute('aria-describedby', impact ? `${descriptionId} ${impactId}` : descriptionId);
       card.innerHTML =
-        `<span class="r-type">${icon} ${escapeHtml(typeLabel)}</span>` +
+        `<span class="r-type"><span aria-hidden="true">[${index + 1}]</span> ${icon} ${escapeHtml(typeLabel)}</span>` +
         `<span class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
-        `<span class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
-        (impact ? `<span class="r-impact">${escapeHtml(impact)}</span>` : '') +
+        `<span id="${descriptionId}" class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
+        (impact ? `<span id="${impactId}" class="r-impact">${escapeHtml(impact)}</span>` : '') +
         `<span class="r-pick-hint">${escapeHtml(t('reward.select'))}</span>`;
       const choose = () => {
         AudioManager.play('rule_add');
@@ -100,9 +112,19 @@ export class RewardUI {
       };
       card.addEventListener('click', choose);
       card.addEventListener('keydown', (e) => {
-        if (e.key !== 'Enter' && e.key !== ' ') return;
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          choose();
+          return;
+        }
+        if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault();
-        choose();
+        const cards = [...this.optionsEl.querySelectorAll('.reward-card')];
+        const current = cards.indexOf(card);
+        const next = e.key === 'Home' ? 0
+          : e.key === 'End' ? cards.length - 1
+            : (current + (['ArrowRight', 'ArrowDown'].includes(e.key) ? 1 : -1) + cards.length) % cards.length;
+        cards[next]?.focus({ preventScroll: true });
       });
       this.optionsEl.appendChild(card);
     }

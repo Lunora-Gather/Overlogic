@@ -29,6 +29,9 @@ export class BattleHUD {
     this.bossName = document.getElementById('boss-name');
     this.bossFill = document.getElementById('boss-fill');
     this.phaseToast = document.getElementById('phase-toast');
+    this.btnPause.setAttribute('aria-keyshortcuts', 'P');
+    this.btnStep.setAttribute('aria-keyshortcuts', '.');
+    this.btnSpeed.setAttribute('aria-keyshortcuts', 'S');
     this._lastRuleId = null;
     this._lastMeltdownState = false;
     this._bind();
