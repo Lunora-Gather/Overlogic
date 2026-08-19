@@ -240,8 +240,8 @@
       <main class="panel panel-rules" id="panel-rules" role="tabpanel" aria-labelledby="editor-tab-rules">
         <h3 class="rules-toolbar"><span data-i18n="editor.activeRules">Active Rules</span>
           <button type="button" id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
-          <button type="button" id="btn-undo" class="btn small ghost" style="padding:2px 8px;" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
-          <button type="button" id="btn-redo" class="btn small ghost" style="padding:2px 8px;" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
+          <button type="button" id="btn-undo" class="btn small ghost compact-tool" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
+          <button type="button" id="btn-redo" class="btn small ghost compact-tool" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
           <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
         </h3>
         
@@ -344,6 +344,7 @@
         <div id="current-logic" class="current-logic" aria-live="polite">Current Logic: —</div>
         <div id="wave-info" class="wave-info">Wave 1/2</div>
         <div id="combat-timer" class="muted">0.0s</div>
+        <div id="combat-sr-summary" class="sr-only" aria-live="polite"></div>
       </div>
       <div class="hud-right">
         <button type="button" id="btn-combat-settings" class="btn small" title="Settings" data-i18n-title="common.settings" aria-label="Combat settings" data-i18n-aria-label="common.settings">⚙️</button>
@@ -368,11 +369,11 @@
         <canvas id="arena" width="720" height="720" role="img" aria-label="Combat arena" data-i18n-aria-label="combat.arena"></canvas>
       </div>
       <aside class="panel combat-rules-panel">
-        <div class="directives-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
+        <div class="directives-section combat-panel-section">
           <h3 data-i18n="combat.directives">Active Directives</h3>
-          <ul id="combat-rules-list" class="combat-rules-list" style="flex: 1; overflow-y: auto;"></ul>
+          <ul id="combat-rules-list" class="combat-rules-list"></ul>
         </div>
-        <div class="console-section" style="flex: 1; display: flex; flex-direction: column; overflow: hidden; border-top: 1px solid var(--line); padding-top: 12px; margin-top: 12px;">
+        <div class="console-section combat-panel-section combat-console-section">
           <h3 data-i18n="combat.console">Console Log</h3>
           <div id="combat-console-log" class="combat-console-log" role="log" aria-live="polite" aria-relevant="additions"></div>
         </div>
@@ -408,7 +409,7 @@
       </div>
       <div class="report-card" style="grid-column: span 3; display: flex; flex-direction: column; align-items: center;">
         <h3 data-i18n="report.performance">Performance Analysis</h3>
-        <canvas id="chart-report" width="680" height="200" role="img" aria-label="Battle performance chart" data-i18n-aria-label="chart.reportAlt" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
+        <canvas id="chart-report" class="report-chart" width="680" height="200" role="img" aria-label="Battle performance chart" data-i18n-aria-label="chart.reportAlt"></canvas>
       </div>
     </div>
     <div class="report-actions">

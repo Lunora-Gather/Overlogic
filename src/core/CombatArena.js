@@ -99,6 +99,7 @@ export class CombatArena {
     this.currentWave = 0;
     this._waveClearTimer = 0;
     this.random = GameState.randomFor(`arena:${battle.id}:${GameState.currentMapColumn}`);
+    this.camera.random = this.random;
 
     // Fresh context + robot + brain
     this.ctx = new BattleContext();

@@ -42,7 +42,7 @@ export class CrawlerEnemy extends EnemyBase {
           const next = this.ctx.clampToArena({ x: this.x + dirX * this.moveSpeed * dt, y: this.y + dirY * this.moveSpeed * dt });
           this.x = next.x; this.y = next.y;
           
-          if (Math.random() < 0.18) {
+          if ((this.ctx.random || Math.random)() < 0.18) {
             const [cr, cg, cb] = this.color;
             spawnEngineTrail(this.ctx, this.x, this.y, `rgba(${cr*255|0},${cg*255|0},${cb*255|0},0.2)`, 0.08);
           }

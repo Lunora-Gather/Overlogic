@@ -116,7 +116,7 @@ export class ChargerEnemy extends EnemyBase {
     g.shadowBlur = 0;
     if (this.chargeState === 'charging' || this.chargeState === 'casting') {
       g.fillStyle = '#ff7a2c';
-      const flameLen = rPx * (0.8 + Math.random() * 0.7);
+      const flameLen = rPx * (0.8 + (this.ctx?.random || Math.random)() * 0.7);
       g.beginPath();
       g.moveTo(-rPx * 0.8, -rPx * 0.35);
       g.lineTo(-rPx * 0.8 - flameLen, 0);

@@ -17,8 +17,23 @@ class GameManagerClass {
   }
 
   _show(id) {
-    for (const s of document.querySelectorAll('.screen')) s.classList.add('hidden');
-    document.getElementById('screen-' + id).classList.remove('hidden');
+    const target = document.getElementById('screen-' + id);
+    if (!target) return;
+    for (const screen of document.querySelectorAll('.screen')) {
+      const active = screen === target;
+      screen.classList.toggle('hidden', !active);
+      screen.setAttribute('aria-hidden', active ? 'false' : 'true');
+      screen.inert = !active;
+    }
+    target.dataset.enteredAt = String(Date.now());
+    if (typeof window?.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
+      window.dispatchEvent(new CustomEvent('overlogic:screenchange', { detail: { id } }));
+    }
+    const scheduleFocus = globalThis.requestAnimationFrame || ((fn) => setTimeout(fn, 0));
+    scheduleFocus(() => {
+      const preferred = target.querySelector('[data-autofocus], .screen-primary, #btn-new-run, #btn-continue, #btn-add-rule, #btn-pause, #btn-retry');
+      if (preferred && typeof preferred.focus === 'function' && !preferred.disabled) preferred.focus({ preventScroll: true });
+    });
   }
 
   goMainMenu()    { this.state = State.MainMenu;        this._show('main'); }

@@ -7,6 +7,10 @@ function reducedMotion() {
   return GameState.settings?.reduceMotion === true;
 }
 
+function randomFor(ctx) {
+  return typeof ctx?.random === 'function' ? ctx.random : Math.random;
+}
+
 export class Particle {
   constructor(x, y, vx, vy, life, color, size, type = 'spark', text = '') {
     this.x = x; this.y = y; this.vx = vx; this.vy = vy;
@@ -118,10 +122,11 @@ export function spawnBurst(ctx, x, y, color, count = 8, speed = 4, life = 0.3, s
     life *= 0.55;
   }
   if (ctx.particles.length > 300) ctx.particles.splice(0, ctx.particles.length - 300);
+  const random = randomFor(ctx);
   for (let i = 0; i < count; i++) {
-    const a = (i / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.4;
-    const sp = speed * (0.4 + Math.random() * 0.6);
-    ctx.particles.push(new Particle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, life * (0.8 + Math.random()*0.4), color, size, 'spark'));
+    const a = (i / count) * Math.PI * 2 + (random() - 0.5) * 0.4;
+    const sp = speed * (0.4 + random() * 0.6);
+    ctx.particles.push(new Particle(x, y, Math.cos(a) * sp, Math.sin(a) * sp, life * (0.8 + random()*0.4), color, size, 'spark'));
   }
 }
 
@@ -130,12 +135,13 @@ export function spawnEngineTrail(ctx, x, y, color, size = 0.25) {
   if (reducedMotion()) return;
   if (ctx.particles.length > 300) ctx.particles.splice(0, ctx.particles.length - 300);
   // slight drift backward/random
-  const angle = Math.random() * Math.PI * 2;
-  const speed = 0.2 + Math.random() * 0.3;
+  const random = randomFor(ctx);
+  const angle = random() * Math.PI * 2;
+  const speed = 0.2 + random() * 0.3;
   ctx.particles.push(new Particle(
     x, y, 
     Math.cos(angle) * speed, Math.sin(angle) * speed, 
-    0.3 + Math.random() * 0.2, 
+    0.3 + random() * 0.2,
     color, 
     size, 
     'engine'
@@ -151,8 +157,9 @@ export function spawnShockwave(ctx, x, y, color, maxRadius = 2.0, life = 0.4) {
 export function spawnText(ctx, x, y, text, color, size = 12) {
   if (!ctx || !ctx.particles) return;
   // float upward with a bit of random horizontal sway
-  const vx = (Math.random() - 0.5) * 0.6;
-  const vy = -1.5 - Math.random() * 0.5;
+  const random = randomFor(ctx);
+  const vx = (random() - 0.5) * 0.6;
+  const vy = -1.5 - random() * 0.5;
   ctx.particles.push(new Particle(x, y, vx, vy, 0.8, color, size, 'text', text));
 }
 

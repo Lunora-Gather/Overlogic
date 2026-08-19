@@ -4,6 +4,7 @@ export class Camera {
   constructor() {
     this.x = 0; this.y = 0;          // look-at point in world units
     this.shakeTime = 0; this.shakeMag = 0;
+    this.random = Math.random;
   }
   follow(robot, dt, maxOffset = 3) {
     // Light follow: clamp target within ±maxOffset of origin
@@ -21,7 +22,7 @@ export class Camera {
   tick(dt) { if (this.shakeTime > 0) this.shakeTime -= dt; }
   offset() {
     if (this.shakeTime <= 0) return { x: 0, y: 0 };
-    return { x: (Math.random() - 0.5) * this.shakeMag, y: (Math.random() - 0.5) * this.shakeMag };
+    return { x: (this.random() - 0.5) * this.shakeMag, y: (this.random() - 0.5) * this.shakeMag };
   }
 }
 function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }

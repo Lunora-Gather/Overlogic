@@ -70,7 +70,7 @@ export class RewardUI {
         <span class="reward-summary-stat">🎯 ${t('reward.damage', { value: Math.round(report.total_damage_dealt || 0) })}</span>
         <span class="reward-summary-stat">⚙️ ${t('reward.actions', { value: actionCount })}</span>
       ` : ''}
-      <span class="reward-summary-stat" style="color: #a0a0a0; font-size: 10px;">
+      <span class="reward-summary-stat reward-summary-extra">
         ${t('reward.extraModules', { actions: GameState.unlockedActionIds.length, conditions: GameState.unlockedConditionIds.length })}
       </span>
     `;
@@ -88,11 +88,10 @@ export class RewardUI {
     for (const [index, rid] of this._currentOptions.entries()) {
       const r = GameDatabase.getReward(rid);
       if (!r) continue;
-      const card = document.createElement('div');
+      const card = document.createElement('button');
+      card.type = 'button';
       card.className = 'reward-card';
-      card.tabIndex = 0;
-      card.setAttribute('role', 'button');
-      card.setAttribute('aria-label', rewardDisplayName(r));
+      card.setAttribute('aria-label', `${index + 1}. ${rewardDisplayName(r)}`);
       card.setAttribute('aria-keyshortcuts', String(index + 1));
       const icon = TYPE_ICONS[r.rewardType] || '✦';
       const typeLabel = t(`rewardType.${r.rewardType}`);
@@ -112,11 +111,7 @@ export class RewardUI {
       };
       card.addEventListener('click', choose);
       card.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          choose();
-          return;
-        }
+        if (e.key === 'Enter' || e.key === ' ') return;
         if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(e.key)) return;
         e.preventDefault();
         const cards = [...this.optionsEl.querySelectorAll('.reward-card')];

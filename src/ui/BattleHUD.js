@@ -21,6 +21,7 @@ export class BattleHUD {
     this.curLogic = document.getElementById('current-logic');
     this.waveInfo = document.getElementById('wave-info');
     this.timerEl = document.getElementById('combat-timer');
+    this.srSummary = document.getElementById('combat-sr-summary');
     this.btnPause = document.getElementById('btn-pause');
     this.btnStep  = document.getElementById('btn-step');
     this.btnSpeed = document.getElementById('btn-speed');
@@ -34,6 +35,8 @@ export class BattleHUD {
     this.btnSpeed.setAttribute('aria-keyshortcuts', 'S');
     this._lastRuleId = null;
     this._lastMeltdownState = false;
+    this._lastSummaryText = '';
+    this._lastSummaryAt = 0;
     this._bind();
     window.addEventListener('overlogic:localechange', () => {
       this.renderRulesPanel();
@@ -87,7 +90,8 @@ export class BattleHUD {
     });
     document.addEventListener('keydown', (event) => {
       if (document.getElementById('screen-combat')?.classList.contains('hidden')) return;
-      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || event.target?.isContentEditable) return;
       if (event.key.toLowerCase() === 'p') {
         event.preventDefault();
         this.btnPause.click();
@@ -113,6 +117,8 @@ export class BattleHUD {
     this.renderRulesPanel();
     this._lastRuleId = null;
     this._lastMeltdownState = false;
+    this._lastSummaryText = '';
+    this._lastSummaryAt = 0;
     const consoleEl = document.getElementById('combat-console-log');
     if (consoleEl) consoleEl.innerHTML = '';
     this.logConsole(t('log.initialized'), 'success');
@@ -124,6 +130,7 @@ export class BattleHUD {
     const track = this.hpFill.parentElement;
     track?.setAttribute('aria-valuemax', String(Math.max(0, mx)));
     track?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(mx, hp))));
+    this._updateLiveSummary();
   }
   setEnergy(en, mx) {
     this.enFill.style.width = `${Math.max(0, (en / mx) * 100)}%`;
@@ -131,6 +138,7 @@ export class BattleHUD {
     const track = this.enFill.parentElement;
     track?.setAttribute('aria-valuemax', String(Math.max(0, mx)));
     track?.setAttribute('aria-valuenow', String(Math.max(0, Math.min(mx, en))));
+    this._updateLiveSummary();
   }
   setOverlogic(val, active) {
     this.olFill.style.width = `${Math.max(0, Math.min(100, val))}%`;
@@ -146,6 +154,23 @@ export class BattleHUD {
       this.logConsole(t('log.recovered'), 'success');
     }
     this._lastMeltdownState = activeBool;
+    this._updateLiveSummary();
+  }
+
+  _updateLiveSummary() {
+    if (!this.srSummary || !this.arena?.robot) return;
+    const robot = this.arena.robot;
+    const next = t('combat.statusSummary', {
+      hp: Math.max(0, robot.hp | 0), maxHp: robot.maxHp | 0,
+      energy: Math.max(0, robot.energy | 0), maxEnergy: robot.maxEnergy | 0,
+      temperature: this.olText?.textContent || '0',
+      wave: t('combat.wave', { current: this.arena.currentWave, total: this.arena.totalWaves }),
+    });
+    const now = performance.now();
+    if (next === this._lastSummaryText || now - this._lastSummaryAt < 1200) return;
+    this._lastSummaryText = next;
+    this._lastSummaryAt = now;
+    this.srSummary.textContent = next;
   }
   setShield(on)    { /* visual handled in renderer */ }
   setOverdrive(on) { /* visual handled in renderer */ }
@@ -294,6 +319,7 @@ export class BattleHUD {
   setWave(cur, total) {
     this.waveInfo.textContent = t('combat.wave', { current: cur, total });
     this.waveInfo.classList.remove('incoming');
+    this._updateLiveSummary();
   }
   setWaveIncoming(cur, total, seconds) {
     this.waveInfo.textContent = t('combat.incoming', {

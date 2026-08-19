@@ -271,8 +271,9 @@ export class BossProtocolWarden extends EnemyBase {
       let cx = 0;
       g.moveTo(0, 0);
       while (cx < beamW) {
-        cx += 15 + Math.random() * 20;
-        const cy = (Math.random() - 0.5) * beamH * 0.35;
+        const random = this.ctx?.random || Math.random;
+        cx += 15 + random() * 20;
+        const cy = (random() - 0.5) * beamH * 0.35;
         g.lineTo(cx, cy);
       }
       g.stroke();

@@ -71,7 +71,12 @@ function baseStats() {
 }
 
 function createRunId() {
-  return `run_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+  try {
+    const values = new Uint32Array(2);
+    globalThis.crypto?.getRandomValues?.(values);
+    if (values[0] || values[1]) return `run_${values[0].toString(36)}_${values[1].toString(36)}`;
+  } catch {}
+  return `run_${Date.now().toString(36)}_${hashString(`${Date.now()}:${performance.now()}`).toString(36).slice(0, 8)}`;
 }
 
 function isoWeekIdentity(date = new Date()) {
@@ -1730,7 +1735,7 @@ function createRunSeed() {
     globalThis.crypto?.getRandomValues?.(values);
     if (values[0]) return values[0];
   } catch {}
-  return (hashString(`${Date.now()}:${Math.random()}`) || 1) >>> 0;
+  return (hashString(`${Date.now()}:${performance.now()}`) || 1) >>> 0;
 }
 
 function normalizeRunSeed(value) {

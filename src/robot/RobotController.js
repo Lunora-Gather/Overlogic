@@ -170,7 +170,7 @@ export class RobotController {
     this.x = next.x; this.y = next.y;
 
     // Spawn thruster trail particles when moving
-    if (Math.hypot(vx, vy) > 0.1 && Math.random() < 0.45) {
+    if (Math.hypot(vx, vy) > 0.1 && (this.ctx?.random || Math.random)() < 0.45) {
       const trailColor = this.overdriveTimer > 0 ? 'rgba(255, 184, 77, 0.45)' : 'rgba(0, 210, 255, 0.35)';
       spawnEngineTrail(this.ctx, this.x, this.y, trailColor, this.overdriveTimer > 0 ? 0.16 : 0.12);
     }
