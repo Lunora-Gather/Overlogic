@@ -155,6 +155,9 @@ class GameStateClass {
   on(evt, fn) { this._listeners[evt].push(fn); }
   _emit(evt) { for (const fn of this._listeners[evt]) fn(); }
 
+  canUndo() { return Array.isArray(this._undoStack) && this._undoStack.length > 0; }
+  canRedo() { return Array.isArray(this._redoStack) && this._redoStack.length > 0; }
+
   loadSettings() {
     try {
       const raw = localStorage.getItem('overlogic_settings');

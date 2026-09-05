@@ -267,9 +267,13 @@ async function main() {
 
   GameManager.goCombat = () => {
     bgAnim?.stop();
-    origGoCombat();
     const battle = GameState.getActiveBattle();
-    if (!battle) { console.error('No active battle found'); return; }
+    if (!battle) {
+      console.error('No active battle found');
+      GameManager.goLogicEdit();
+      return;
+    }
+    origGoCombat();
     if (arena) arena.stop();
     arena = new CombatArena(canvas, battleHUD);
     battleHUD.arena = arena;

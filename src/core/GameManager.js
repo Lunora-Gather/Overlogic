@@ -14,6 +14,7 @@ class GameManagerClass {
     this.state = State.MainMenu;
     this.lastBattleWon = false;
     this.isUpgradeReward = false;
+    this._cancelPendingFocus = null;
   }
 
   _show(id) {
@@ -26,11 +27,27 @@ class GameManagerClass {
       screen.inert = !active;
     }
     target.dataset.enteredAt = String(Date.now());
-    if (typeof window?.dispatchEvent === 'function' && typeof CustomEvent === 'function') {
-      window.dispatchEvent(new CustomEvent('overlogic:screenchange', { detail: { id } }));
+    const browserWindow = globalThis.window;
+    if (typeof browserWindow?.dispatchEvent === 'function' && typeof globalThis.CustomEvent === 'function') {
+      browserWindow.dispatchEvent(new globalThis.CustomEvent('overlogic:screenchange', { detail: { id } }));
     }
-    const scheduleFocus = globalThis.requestAnimationFrame || ((fn) => setTimeout(fn, 0));
+
+    // A fast route change can queue multiple animation frames. Cancel the old
+    // focus job so a hidden screen never steals focus back from the new one.
+    this._cancelPendingFocus?.();
+    const scheduleFocus = typeof globalThis.requestAnimationFrame === 'function'
+      ? (fn) => {
+        const id = globalThis.requestAnimationFrame(fn);
+        this._cancelPendingFocus = () => globalThis.cancelAnimationFrame?.(id);
+        return id;
+      }
+      : (fn) => {
+        const id = globalThis.setTimeout(fn, 0);
+        this._cancelPendingFocus = () => globalThis.clearTimeout?.(id);
+        return id;
+      };
     scheduleFocus(() => {
+      this._cancelPendingFocus = null;
       const preferred = target.querySelector('[data-autofocus], .screen-primary, #btn-new-run, #btn-continue, #btn-add-rule, #btn-pause, #btn-retry');
       if (preferred && typeof preferred.focus === 'function' && !preferred.disabled) preferred.focus({ preventScroll: true });
     });

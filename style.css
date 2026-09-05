@@ -4526,7 +4526,7 @@ html[data-locale^="zh"] #screen-main .home-column-heading { letter-spacing:.04em
   gap: 7px !important;
   min-width: 0;
 }
-#screen-editor .editor-footer-actions .btn { min-height: 38px; padding: 0 11px; font-size: 9px; }
+#screen-editor .editor-footer-actions .btn { min-width: 0; min-height: 38px; padding: 0 11px; overflow: hidden; text-overflow: ellipsis; font-size: 9px; }
 #screen-editor #btn-editor-settings { width: 38px; min-height: 38px; padding: 0 !important; }
 #screen-editor #sandbox-preset { min-width: 0; min-height: 38px; height: 38px; padding: 0 26px 0 9px; font-size: 9px; }
 #screen-editor #btn-sandbox { min-height: 42px; padding: 0 12px; border-color: #ffb938; color: #ffb938; text-shadow: 0 0 8px rgba(255, 185, 56, .45); }
@@ -4979,7 +4979,8 @@ body::before {
 .hud-center { min-width: 0; }
 .current-logic { min-height: 34px; padding: 8px 12px; border-radius: 9px; font-size: 12px; }
 .wave-info { margin-top: 5px; font-size: 10px; }
-.hud-right .btn { min-height: 38px; padding: 0 12px; font-size: 9px; }
+.hud-right { min-width: 0; }
+.hud-right .btn { min-width: 0; min-height: 38px; padding: 0 12px; font-size: 9px; }
 .combat-main-layout {
   grid-template-columns: minmax(0, 1fr) minmax(310px, 340px);
   gap: 12px;

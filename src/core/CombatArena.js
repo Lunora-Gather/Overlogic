@@ -105,6 +105,7 @@ export class CombatArena {
     this.ctx = new BattleContext();
     this.ctx.hud = this.hud;
     this.ctx.random = this.random;
+    this.ctx.timeSpeed = this.speed;
     this.stats = new RobotStats();
     this.stats.loadFromGameState();
     const modifiers = runModifiers(GameState.runConfig || {});
@@ -397,7 +398,7 @@ export class CombatArena {
     if (this.onFinished) this.onFinished(won);
   }
 
-  setPaused(p) { this.paused = p; }
+  setPaused(p) { this.paused = p === true; }
   togglePause() { this.paused = !this.paused; }
   stepFrame() {
     if (!this.paused || this._finished) return;
@@ -411,13 +412,15 @@ export class CombatArena {
     }
     this._render();
   }
-  setSpeed(s) { this.speed = s; }
-  toggleSpeed() {
-    if (this.speed === 0.5) this.speed = 1;
-    else if (this.speed === 1) this.speed = 2;
-    else if (this.speed === 2) this.speed = 4;
-    else this.speed = 0.5;
+  setSpeed(s) {
+    const next = Number(s);
+    this.speed = [0.5, 1, 2, 4].includes(next) ? next : 1;
+    if (this.ctx) this.ctx.timeSpeed = this.speed;
     return this.speed;
+  }
+  toggleSpeed() {
+    const next = this.speed === 0.5 ? 1 : this.speed === 1 ? 2 : this.speed === 2 ? 4 : 0.5;
+    return this.setSpeed(next);
   }
 
   stop() {

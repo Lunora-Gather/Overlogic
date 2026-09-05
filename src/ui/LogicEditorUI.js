@@ -26,8 +26,8 @@ export class LogicEditorUI {
     this.btnAddRule = document.getElementById('btn-add-rule');
     this.btnUndo = document.getElementById('btn-undo');
     this.btnRedo = document.getElementById('btn-redo');
-    this.btnUndo.setAttribute('aria-keyshortcuts', 'Control+Z');
-    this.btnRedo.setAttribute('aria-keyshortcuts', 'Control+Y');
+    this.btnUndo.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
+    this.btnRedo.setAttribute('aria-keyshortcuts', 'Control+Y Meta+Y');
     this.ruleForm = document.getElementById('rule-form');
     this.fCond = document.getElementById('f-cond');
     this.fCondParam = document.getElementById('f-cond-param');
@@ -625,6 +625,7 @@ export class LogicEditorUI {
       this.btnAddRule.disabled = atLimit;
       this.btnAddRule.title = atLimit ? t('editor.ruleLimit') : '';
     }
+    this._syncHistoryControls();
     this._activeWarnings = this.analyzeRules();
 
     const searchQuery = this.rulesSearch ? this.rulesSearch.value.toLowerCase() : '';
@@ -682,6 +683,20 @@ export class LogicEditorUI {
     }
     this._setupDragAndDrop();
     this._restoreRuleFocus(focusState, scrollContainer, scrollTop);
+  }
+
+  _syncHistoryControls() {
+    const undo = GameState.canUndo();
+    const redo = GameState.canRedo();
+    for (const [button, available, labelKey] of [
+      [this.btnUndo, undo, 'editor.undo'],
+      [this.btnRedo, redo, 'editor.redo'],
+    ]) {
+      if (!button) continue;
+      button.disabled = !available;
+      button.setAttribute('aria-disabled', available ? 'false' : 'true');
+      button.title = available ? t(`${labelKey}Hint`) : t('editor.historyUnavailable');
+    }
   }
 
   _captureRuleFocus() {
@@ -1280,28 +1295,39 @@ export class LogicEditorUI {
     document.addEventListener('keydown', (e) => {
       if (this.el.classList.contains('hidden')) return;
       
-      // Ctrl + Z (Undo)
-      if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      const activeElement = document.activeElement;
+      const isTextEditing = activeElement?.matches?.('input:not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]');
+      const modifier = e.ctrlKey || e.metaKey;
+
+      // Keep native text editing undo/redo intact inside fields. The editor
+      // shortcut only owns the document canvas when no text is being edited.
+      if (modifier && !isTextEditing && !e.shiftKey && e.key.toLowerCase() === 'z') {
         e.preventDefault();
         if (GameState.undo()) AudioManager.play('button_click');
       }
-      // Ctrl + Y (Redo)
-      if (e.ctrlKey && !e.shiftKey && e.key.toLowerCase() === 'y') {
+      // Ctrl/Cmd + Y (Redo)
+      if (modifier && !isTextEditing && !e.shiftKey && e.key.toLowerCase() === 'y') {
         e.preventDefault();
         if (GameState.redo()) AudioManager.play('button_click');
       }
-      // Ctrl + S (Save Loadout)
-      if (e.ctrlKey && e.key.toLowerCase() === 's') {
+      // Ctrl/Cmd + S (Save Loadout)
+      if (modifier && !isTextEditing && e.key.toLowerCase() === 's') {
         e.preventDefault();
         const slot = this.lastSavedSlot || 1;
         const btnSave = document.getElementById(`btn-save-${slot}`);
         if (btnSave) btnSave.click();
       }
+      if (e.key === 'Escape' && this.ruleForm && !this.ruleForm.classList.contains('hidden')) {
+        e.preventDefault();
+        this.ruleForm.classList.add('hidden');
+        this.btnAddRule?.focus({ preventScroll: true });
+        return;
+      }
+
       // Enter or Space to Run Simulation only from the editor canvas itself.
       // Interactive controls (including DIV-based map nodes and tabs) own
       // those keys; letting the document handler see them causes accidental
       // launches while editing or navigating by keyboard.
-      const activeElement = document.activeElement;
       const isInteractive = activeElement?.matches?.('input, textarea, select, button, a, [role="button"], [role="tab"], [contenteditable="true"]');
       if (!isInteractive && (e.key === 'Enter' || e.key === ' ')) {
         // Allow default enter behavior in rule form submit
