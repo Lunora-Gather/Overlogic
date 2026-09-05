@@ -197,6 +197,19 @@ export class MainMenu {
       try { window.close(); } catch (e) {}
       this.btnExit.textContent = t('menu.closeTab');
     });
+    const localeOptions = document.querySelector('#locale-switcher .locale-options');
+    localeOptions?.addEventListener('keydown', (event) => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      const buttons = [...localeOptions.querySelectorAll('[data-locale]')];
+      const current = buttons.indexOf(document.activeElement);
+      if (current < 0) return;
+      event.preventDefault();
+      const next = event.key === 'Home' ? 0
+        : event.key === 'End' ? buttons.length - 1
+          : (current + (event.key === 'ArrowRight' ? 1 : -1) + buttons.length) % buttons.length;
+      buttons[next]?.focus();
+      buttons[next]?.click();
+    });
     document.getElementById('locale-switcher')?.addEventListener('click', (event) => {
       const button = event.target.closest('[data-locale]');
       if (!button) return;
@@ -255,8 +268,10 @@ export class MainMenu {
     this._applyOperationsGates(activeRun);
     if (this.runDifficulty) this.runDifficulty.value = activeRun ? GameState.runConfig.difficulty : GameState.settings.difficulty;
     for (const button of document.querySelectorAll('#locale-switcher [data-locale]')) {
-      button.classList.toggle('active', button.dataset.locale === getLocale());
-      button.setAttribute('aria-pressed', button.dataset.locale === getLocale() ? 'true' : 'false');
+      const selected = button.dataset.locale === getLocale();
+      button.classList.toggle('active', selected);
+      button.setAttribute('aria-checked', selected ? 'true' : 'false');
+      button.tabIndex = selected ? 0 : -1;
     }
     const complete = GameState.isDemoCleared();
     const active = activeRun;

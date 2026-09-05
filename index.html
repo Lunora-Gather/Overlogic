@@ -75,10 +75,10 @@
       <div class="home-hero-console">
         <div class="locale-switcher" id="locale-switcher" aria-label="Language" data-i18n-aria-label="menu.language">
           <span class="locale-label" data-i18n="menu.language">Language</span>
-          <div class="locale-options">
-            <button type="button" data-locale="en">EN</button>
-            <button type="button" data-locale="zh-CN">简中</button>
-            <button type="button" data-locale="zh-TW">繁中</button>
+          <div class="locale-options" role="radiogroup" aria-label="Language options" data-i18n-aria-label="menu.language">
+            <button type="button" role="radio" aria-checked="false" data-locale="en">EN</button>
+            <button type="button" role="radio" aria-checked="false" data-locale="zh-CN">简中</button>
+            <button type="button" role="radio" aria-checked="false" data-locale="zh-TW">繁中</button>
           </div>
         </div>
         <div class="core-schematic" aria-hidden="true">
