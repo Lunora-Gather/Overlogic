@@ -1507,6 +1507,9 @@ export class LogicEditorUI {
     this._refreshFormParam();
     this._refreshFormParam2();
     this.ruleForm.classList.remove('hidden');
+    if (window.matchMedia?.('(max-width: 760px)').matches) {
+      this._keepEditorTargetVisible(this.ruleForm);
+    }
     this.fCond.focus({ preventScroll: true });
   }
 
@@ -1515,8 +1518,23 @@ export class LogicEditorUI {
     this.ruleForm.classList.add('hidden');
     const returnFocus = this._formReturnFocus;
     this._formReturnFocus = null;
-    if (returnFocus instanceof HTMLElement && !returnFocus.disabled) returnFocus.focus({ preventScroll: true });
-    else this.btnAddRule?.focus({ preventScroll: true });
+    const target = returnFocus instanceof HTMLElement && !returnFocus.disabled ? returnFocus : this.btnAddRule;
+    target?.focus({ preventScroll: true });
+    if (window.matchMedia?.('(max-width: 760px)').matches) {
+      this._keepEditorTargetVisible(target);
+    }
+  }
+
+  _keepEditorTargetVisible(target) {
+    if (!target || !this.el) return;
+    const viewport = this.el.getBoundingClientRect();
+    const rect = target.getBoundingClientRect();
+    const margin = 12;
+    if (rect.top < viewport.top + margin) {
+      this.el.scrollTop -= (viewport.top + margin) - rect.top;
+    } else if (rect.bottom > viewport.bottom - margin) {
+      this.el.scrollTop += rect.bottom - (viewport.bottom - margin);
+    }
   }
 
   _refreshFormParam() {
