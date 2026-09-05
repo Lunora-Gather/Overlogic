@@ -46,6 +46,7 @@ function hideBootStatus() {
 
 function showBootFailure(error) {
   recordRuntimeError(error, 'boot');
+  document.documentElement.classList.remove('booting');
   if (!bootStatus) return;
   bootStatus.classList.remove('hidden');
   bootStatus.classList.add('error');
@@ -698,6 +699,7 @@ async function main() {
   GameManager.goMainMenu();
   markBootComplete(Date.now() - bootStartedAt);
   recordProductEvent('app_boot', { source: operations.source });
+  document.documentElement.classList.remove('booting');
   hideBootStatus();
 }
 
