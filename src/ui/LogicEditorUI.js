@@ -59,6 +59,7 @@ export class LogicEditorUI {
     this.btnApplyTemplate = document.getElementById('btn-apply-template');
     this.templateTools = document.querySelector('.template-tools');
     this.sandboxPreset = document.getElementById('sandbox-preset');
+    this._formReturnFocus = null;
     this.el.dataset.mobilePanel = 'rules';
     this.mobilePanels = [...document.querySelectorAll('#panel-rules, #panel-conditions, #panel-actions')];
     const syncMobilePanels = () => {
@@ -522,6 +523,7 @@ export class LogicEditorUI {
         this._openAddForm();
         this.fAct.value = id;
         this._toggleFormTarget();
+        this.fAct.focus({ preventScroll: true });
         AudioManager.play('button_click');
       };
       li.addEventListener('click', useAction);
@@ -1319,8 +1321,7 @@ export class LogicEditorUI {
       }
       if (e.key === 'Escape' && this.ruleForm && !this.ruleForm.classList.contains('hidden')) {
         e.preventDefault();
-        this.ruleForm.classList.add('hidden');
-        this.btnAddRule?.focus({ preventScroll: true });
+        this._closeAddForm();
         return;
       }
 
@@ -1344,7 +1345,7 @@ export class LogicEditorUI {
       this._openAddForm();
     });
     this.fCancel.addEventListener('click', () => {
-      this.ruleForm.classList.add('hidden');
+      this._closeAddForm();
     });
     this.fAdd.addEventListener('click', () => {
       const condId = this.fCond.value;
@@ -1366,7 +1367,7 @@ export class LogicEditorUI {
 
       if (GameState.addRule(condId, val, actId, prio, condId2, val2, op, targetPrio)) {
         AudioManager.play('rule_add');
-        this.ruleForm.classList.add('hidden');
+        this._closeAddForm();
       }
     });
     this.fCond.addEventListener('change', () => this._refreshFormParam());
@@ -1477,6 +1478,7 @@ export class LogicEditorUI {
   }
 
   _openAddForm() {
+    this._formReturnFocus = document.activeElement;
     this.fCond.innerHTML = '';
     this.fCond2.innerHTML = '';
     const conds = GameState.availableConditionIds();
@@ -1505,6 +1507,16 @@ export class LogicEditorUI {
     this._refreshFormParam();
     this._refreshFormParam2();
     this.ruleForm.classList.remove('hidden');
+    this.fCond.focus({ preventScroll: true });
+  }
+
+  _closeAddForm() {
+    if (!this.ruleForm || this.ruleForm.classList.contains('hidden')) return;
+    this.ruleForm.classList.add('hidden');
+    const returnFocus = this._formReturnFocus;
+    this._formReturnFocus = null;
+    if (returnFocus instanceof HTMLElement && !returnFocus.disabled) returnFocus.focus({ preventScroll: true });
+    else this.btnAddRule?.focus({ preventScroll: true });
   }
 
   _refreshFormParam() {

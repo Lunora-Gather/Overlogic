@@ -89,7 +89,7 @@ export class PostBattleReportUI {
       for (const a of usedActions) {
         const count = actionUsage[a] || 0;
         const bar = '█'.repeat(Math.min(count, 20)) + '░'.repeat(Math.max(0, 20 - count));
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: 130px;">${escapeHtml(entity('action', a, a))}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(entity('action', a, a))}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
       }
     }
     const enemyKills = report.enemy_kills || {};
@@ -101,7 +101,7 @@ export class PostBattleReportUI {
       for (const [enemyId, count] of killEntries) {
         const enemy = GameDatabase.getEnemy(enemyId);
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #ff9d6c; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #ff9d6c; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
       }
     }
     const repairEntries = Object.entries(report.enemy_repairs || {})
@@ -112,7 +112,7 @@ export class PostBattleReportUI {
       for (const [enemyId, amount] of repairEntries) {
         const enemy = GameDatabase.getEnemy(enemyId);
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #55ffb0; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyRepairLine', { value: Math.round(amount) }))}</li>`;
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #55ffb0; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyRepairLine', { value: Math.round(amount) }))}</li>`;
       }
     }
     const shieldEntries = Object.entries(report.enemy_shield_mitigation || {})
@@ -125,7 +125,7 @@ export class PostBattleReportUI {
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
         const castInfo = report.enemy_shields?.[enemyId];
         const casts = Number(castInfo?.casts) || 0;
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #6ab8ff; display: inline-block; width: 130px;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyShieldLine', { casts, value: Math.round(amount) }))}</li>`;
+        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #6ab8ff; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyShieldLine', { casts, value: Math.round(amount) }))}</li>`;
       }
     }
     if (unusedActions.length > 0) {
