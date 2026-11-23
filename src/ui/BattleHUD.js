@@ -90,7 +90,8 @@ export class BattleHUD {
     });
     document.addEventListener('keydown', (event) => {
       if (document.getElementById('screen-combat')?.classList.contains('hidden')) return;
-      if (event.altKey || event.ctrlKey || event.metaKey) return;
+      if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey) return;
+      if (document.getElementById('settings-overlay')?.classList.contains('hidden') === false) return;
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement || event.target instanceof HTMLTextAreaElement || event.target?.isContentEditable) return;
       if (event.key.toLowerCase() === 'p') {
         event.preventDefault();

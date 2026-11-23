@@ -3,7 +3,7 @@
 import { GameState } from '../core/GameState.js?v=20260725-4';
 import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
-import { buildReport } from '../systems/PostBattleReportBuilder.js?v=20260725-4';
+import { buildReport, damageSourceLabel } from '../systems/PostBattleReportBuilder.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { drawStatsChart } from './StatsChart.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
@@ -230,7 +230,7 @@ export class PostBattleReportUI {
       } else if (event.kind === 'damage') {
         text.textContent = t('report.timelineDamage', {
           value: Math.round(event.value || 0),
-          source: entity('enemy', event.source, event.source),
+          source: damageSourceLabel(event.source),
         });
       } else if (event.kind === 'interrupt') {
         text.textContent = t('report.timelineInterrupt');

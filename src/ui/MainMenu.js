@@ -114,7 +114,7 @@ export class MainMenu {
     this.btnStart.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
-      if (GameState.hasPendingBattleResolution()) {
+      if (GameState.hasPendingBattleResolution() || GameState.hasPendingUpgradeReward()) {
         GameManager.resumePendingBattle();
         return;
       }
@@ -275,7 +275,7 @@ export class MainMenu {
     }
     const complete = GameState.isDemoCleared();
     const active = activeRun;
-    const pending = GameState.hasPendingBattleResolution();
+    const pending = GameState.hasPendingBattleResolution() || GameState.hasPendingUpgradeReward();
     this.btnStart.textContent = complete
       ? t('menu.replay')
       : (pending ? t('menu.resumeReward') : (active ? t('menu.continue') : t('menu.start')));

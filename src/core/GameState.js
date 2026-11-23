@@ -3,10 +3,10 @@
 
 import { GameDatabase } from './GameDatabase.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
-import { allBattles, clearHistory, replaceHistory } from '../systems/RunHistory.js?v=20260725-4';
-import { profileSnapshot, replaceProfile, resetProfile } from '../systems/ProfileProgression.js?v=20260725-4';
-import { challengeSnapshot, clearChallenges, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
-import { clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
+import { HISTORY_KEY, allBattles, clearHistory, replaceHistory } from '../systems/RunHistory.js?v=20260725-4';
+import { PROFILE_KEY, profileSnapshot, replaceProfile, resetProfile } from '../systems/ProfileProgression.js?v=20260725-4';
+import { CHALLENGE_KEY, challengeSnapshot, clearChallenges, replaceChallenges } from '../systems/LiveChallenges.js?v=20260725-4';
+import { ARCHIVE_KEY, clearRunArchive, recordCompletedRun, replaceRunArchive, runArchiveSnapshot } from '../systems/RunArchive.js?v=20260725-4';
 import { recordStorageError, runtimeDiagnosticsSnapshot } from '../systems/RuntimeDiagnostics.js?v=20260725-4';
 import { ruleTemplateById } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled, operationLimit, operationsSnapshot } from '../systems/OperationsConfig.js?v=20260725-4';
@@ -19,6 +19,7 @@ const SAVE_VERSION = CURRENT_SAVE_VERSION;
 const RUN_SAVE_KEY = 'overlogic_run_save';
 const RUN_BACKUP_KEY = 'overlogic_run_save_backup';
 const RUN_TEMP_KEY = 'overlogic_run_save_pending';
+const SETTINGS_KEY = 'overlogic_settings';
 const RUN_MODES = new Set(['standard', 'daily', 'weekly']);
 const DIFFICULTIES = new Set(['casual', 'standard', 'veteran']);
 const LANGUAGES = new Set(['en', 'zh-CN', 'zh-TW']);
@@ -40,6 +41,12 @@ const STAT_LIMITS = Object.freeze({
   nanite_repair: [0, 1_000], superconductors: [0, 1], emergency_recall: [0, 1],
   heavy_impact: [0, 1], thermal_recycle: [0, 1], armor_piercing: [0, 1_000],
 });
+
+function availableRunMode(mode) {
+  if (mode === 'daily' && featureEnabled('dailyChallenges')) return mode;
+  if (mode === 'weekly' && featureEnabled('weeklyGauntlet')) return mode;
+  return 'standard';
+}
 
 function validLoadoutSlot(slotIndex) {
   return Number.isInteger(slotIndex) && slotIndex >= 1 && slotIndex <= LOADOUT_SLOTS;
@@ -113,8 +120,10 @@ class GameStateClass {
     this.currentBattleIndex = 0;
     this.currentMapColumn = 0;
     this.selectedNodeId = '0_start';
+    this.pendingUpgradeNodeId = null;
     this.mapNodes = [];
     this.onUpgradeNodeTriggered = null;
+    this.runRevision = 0;
     this.teachNode = 1;
     this.stats = baseStats();
     this.persistentHp = null;         // HP carry-over between battles (null = full)
@@ -160,7 +169,7 @@ class GameStateClass {
 
   loadSettings() {
     try {
-      const raw = localStorage.getItem('overlogic_settings');
+      const raw = localStorage.getItem(SETTINGS_KEY);
       if (raw) {
         const parsed = JSON.parse(raw);
         const version = Number(parsed?.version ?? SETTINGS_VERSION);
@@ -207,7 +216,7 @@ class GameStateClass {
       if (!LANGUAGES.has(this.settings.language)) this.settings.language = 'en';
       if (!RUN_MODES.has(this.settings.runMode)) this.settings.runMode = 'standard';
       if (!DIFFICULTIES.has(this.settings.difficulty)) this.settings.difficulty = 'standard';
-      localStorage.setItem('overlogic_settings', JSON.stringify(this.settings));
+      localStorage.setItem(SETTINGS_KEY, JSON.stringify(this.settings));
       // Apply to AudioManager
       AudioManager.setVolume(this.settings.volume);
       AudioManager.setMute(this.settings.mute);
@@ -220,6 +229,7 @@ class GameStateClass {
   }
 
   resetRun() {
+    this.runRevision += 1;
     // A new run must not inherit editing history or rule IDs from a previous
     // run. Keeping either would let Ctrl+Z resurrect another run's build and
     // would make fresh share codes/debug logs needlessly non-deterministic.
@@ -229,6 +239,7 @@ class GameStateClass {
     this.currentBattleIndex = 0;
     this.currentMapColumn = 0;
     this.selectedNodeId = '0_start';
+    this.pendingUpgradeNodeId = null;
     this._initMap();
     this.teachNode = 1;
     this.stats = baseStats();
@@ -237,10 +248,11 @@ class GameStateClass {
     this.unlockedActionIds = [];
     this.lastReport = {};
     this.runStats = defaultRunStats();
+    const mode = availableRunMode(this.settings.runMode);
     this.runConfig = {
-      mode: RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard',
+      mode,
       difficulty: DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard',
-      seed: this.periodSeed(this.settings.runMode) || createRunSeed(),
+      seed: this.periodSeed(mode) || createRunSeed(),
     };
     this.tutorialProgress = { editedRule: false, sandboxRun: false };
     this._initDefaultRules();
@@ -292,14 +304,14 @@ class GameStateClass {
       this.rules.push(this._newRule('enemy_casting', null, 'interrupt_shot', 90));
     if (node >= 4 && !this._hasRule('energy_high', 'overdrive'))
       this.rules.push(this._newRule('energy_high', 0.80, 'overdrive', 60));
-    this.saveToStorage();
-    this._emit('rules');
   }
 
   advanceTeachNode() {
     if (this.teachNode < 4) {
       this.teachNode += 1;
       this._advanceTeachRulesTo(this.teachNode);
+      this.saveToStorage();
+      this._emit('rules');
       this._emit('progress');
     }
   }
@@ -351,21 +363,20 @@ class GameStateClass {
       this._advanceTeachRulesTo(this.teachNode);
     }
 
-    this.currentMapColumn += 1;
-    if (this.currentMapColumn < this.mapNodes.length) {
-      const nextCol = this.mapNodes[this.currentMapColumn];
-      this.selectedNodeId = nextCol[0].id;
-    }
+    this._advanceMapColumn();
 
     this.lastReport = { ...this.lastReport, _resolutionApplied: true };
 
     this.saveToStorage();
+    this._emit('stats');
+    this._emit('rules');
     this._emit('progress');
     return true;
   }
 
   recordRunCompletion() {
-    if (!this.isDemoCleared() || this.runStats?.completionRecorded === true) return null;
+    if (!this.isDemoCleared() || this.runStats?.completionRecorded === true ||
+        this.lastReport?._won !== true || this.lastReport?._resolutionApplied !== true) return null;
     const result = recordCompletedRun({
       id: this.runStats.runId,
       mode: this.runConfig?.mode,
@@ -394,14 +405,21 @@ class GameStateClass {
 
   // Called when an upgrade node reward is chosen.
   onUpgradeNodeChosen(rewardId) {
-    if (rewardId !== '') {
+    if (!this.hasPendingUpgradeReward()) return false;
+    if (rewardId) {
       const reward = GameDatabase.getReward(rewardId);
-      if (reward) this._applyReward(reward);
-      else console.error('GameState: unknown reward', rewardId);
+      if (reward?.rewardType !== 'passive') return false;
+      this._applyReward(reward);
       this.runStats.rewardsChosen.push(rewardId);
     }
+    this.getActiveNode().completed = true;
+    this.pendingUpgradeNodeId = null;
+    this._advanceMapColumn();
     this.saveToStorage();
+    this._emit('stats');
+    this._emit('rules');
     this._emit('progress');
+    return true;
   }
 
   _applyReward(reward) {
@@ -416,7 +434,6 @@ class GameStateClass {
           this.unlockedConditionIds.push(reward.targetId);
         break;
     }
-    this._emit('stats'); this._emit('rules');
   }
 
   _applyPassive(target, value) {
@@ -537,7 +554,7 @@ class GameStateClass {
 
   refreshIdlePeriodSeed(date = new Date(), { preserveSeed = false } = {}) {
     if (preserveSeed || !this.canConfigureRun()) return false;
-    const mode = RUN_MODES.has(this.settings.runMode) ? this.settings.runMode : 'standard';
+    const mode = availableRunMode(this.settings.runMode);
     const seed = this.periodSeed(mode, date);
     if (!seed) return false;
     const difficulty = DIFFICULTIES.has(this.settings.difficulty) ? this.settings.difficulty : 'standard';
@@ -548,13 +565,19 @@ class GameStateClass {
   }
 
   hasRunProgress() {
-    return this.currentMapColumn > 0 || this.runStats.battlesWon > 0;
+    return this.currentMapColumn > 0 || this.runStats.battlesWon > 0 || this.hasPendingBattleResolution();
   }
 
   hasPendingBattleResolution() {
-    if (this.lastReport?._won !== true || this.lastReport?._resolutionApplied === true) return false;
+    if (this.lastReport?._won !== true || this.lastReport?._sandbox === true ||
+        this.lastReport?._resolutionApplied === true) return false;
     const activeBattle = this.getActiveBattle();
     return Boolean(activeBattle && this.lastReport?._battleId === activeBattle.id);
+  }
+
+  hasPendingUpgradeReward() {
+    const node = this.getActiveNode();
+    return node?.type === 'upgrade' && !node.completed && node.id === this.pendingUpgradeNodeId;
   }
 
   isPendingFinalBattle() {
@@ -566,28 +589,22 @@ class GameStateClass {
   }
 
   configureRun(mode, difficulty, requestedSeed = null) {
+    if (!this.canConfigureRun()) return;
     const previousMode = this.runConfig?.mode;
-    const requestedMode = RUN_MODES.has(mode) ? mode : 'standard';
-    const allowedMode = (requestedMode === 'daily' && !featureEnabled('dailyChallenges')) ||
-      (requestedMode === 'weekly' && !featureEnabled('weeklyGauntlet'))
-      ? 'standard' : requestedMode;
+    const allowedMode = availableRunMode(mode);
     this.settings.runMode = allowedMode;
     this.settings.difficulty = DIFFICULTIES.has(difficulty) ? difficulty : 'standard';
     const parsedSeed = normalizeRunSeed(requestedSeed);
     this.saveSettings();
-    if (this.currentMapColumn === 0 && this.runStats.battlesWon === 0) {
-      this.runConfig = {
-        mode: this.settings.runMode,
-        difficulty: this.settings.difficulty,
-        seed: this.periodSeed(this.settings.runMode)
-          ? (parsedSeed || this.periodSeed(this.settings.runMode))
-          : (parsedSeed || (previousMode === 'standard' && Number.isSafeInteger(Number(this.runConfig?.seed))
-              ? Number(this.runConfig.seed)
-              : createRunSeed())),
-      };
-      this.saveToStorage();
-      this._emit('progress');
-    }
+    const periodSeed = this.periodSeed(allowedMode);
+    const previousSeed = previousMode === 'standard' && normalizeRunSeed(this.runConfig?.seed);
+    this.runConfig = {
+      mode: allowedMode,
+      difficulty: this.settings.difficulty,
+      seed: parsedSeed || periodSeed || previousSeed || createRunSeed(),
+    };
+    this.saveToStorage();
+    this._emit('progress');
   }
 
   randomFor(salt = '') {
@@ -954,22 +971,25 @@ class GameStateClass {
     ];
   }
 
+  getActiveNode() {
+    return this.mapNodes[this.currentMapColumn]?.find((node) => node.id === this.selectedNodeId) || null;
+  }
+
   getActiveBattle() {
-    if (this.currentMapColumn >= this.mapNodes.length) return null;
-    const colNodes = this.mapNodes[this.currentMapColumn];
-    if (!colNodes) return null;
-    const node = colNodes.find(n => n.id === this.selectedNodeId);
-    if (node && node.type === 'combat') {
-      return GameDatabase.getBattle(node.battleIndex);
-    }
-    return GameDatabase.getBattle(this.currentBattleIndex);
+    const node = this.getActiveNode();
+    return node?.type === 'combat' ? GameDatabase.getBattle(node.battleIndex) : null;
+  }
+
+  _advanceMapColumn() {
+    this.currentMapColumn += 1;
+    this.selectedNodeId = this.mapNodes[this.currentMapColumn]?.[0]?.id ?? null;
   }
 
   selectMapNode(nodeId) {
     const nextCol = this.mapNodes[this.currentMapColumn];
     if (!nextCol) return;
     const node = nextCol.find(n => n.id === nodeId);
-    if (!node) return;
+    if (!node || node.completed || this.hasPendingBattleResolution() || this.hasPendingUpgradeReward()) return;
 
     this.selectedNodeId = nodeId;
 
@@ -977,25 +997,16 @@ class GameStateClass {
       node.completed = true;
       this.stats.max_hp += 25;
       this.persistentHp = this.stats.max_hp;
-      this.currentMapColumn += 1;
-      const nCol = this.mapNodes[this.currentMapColumn];
-      this.selectedNodeId = nCol ? nCol[0].id : null;
+      this._advanceMapColumn();
       this._emit('stats');
       AudioManager.play('shield_on');
     } else if (node.type === 'upgrade') {
-      node.completed = true;
-      this.currentMapColumn += 1;
-      const nCol = this.mapNodes[this.currentMapColumn];
-      this.selectedNodeId = nCol ? nCol[0].id : null;
-      this.saveToStorage();
-      this._emit('progress');
-      if (this.onUpgradeNodeTriggered) {
-        this.onUpgradeNodeTriggered();
-      }
+      this.pendingUpgradeNodeId = node.id;
     }
 
     this.saveToStorage();
     this._emit('progress');
+    if (node.type === 'upgrade') this.onUpgradeNodeTriggered?.();
   }
 
   _runSaveData() {
@@ -1003,6 +1014,7 @@ class GameStateClass {
       currentBattleIndex: this.currentBattleIndex,
       currentMapColumn: this.currentMapColumn,
       selectedNodeId: this.selectedNodeId,
+      pendingUpgradeNodeId: this.pendingUpgradeNodeId,
       mapNodes: this.mapNodes,
       teachNode: this.teachNode,
       stats: this.stats,
@@ -1038,7 +1050,8 @@ class GameStateClass {
         this.markStorageConflict();
         return false;
       }
-      const previous = localStorage.getItem(RUN_SAVE_KEY);
+      if (this.storageStatus.requiresRecovery) return false;
+      const previous = current;
 
       // Stage and verify the complete payload before replacing the primary
       // slot. The previous valid primary becomes a one-step recovery point.
@@ -1057,8 +1070,8 @@ class GameStateClass {
         this.markStorageConflict();
         return false;
       }
-      localStorage.removeItem(RUN_TEMP_KEY);
       this._lastPersistedSerialized = serialized;
+      try { localStorage.removeItem(RUN_TEMP_KEY); } catch (error) { recordStorageError(error, 'run-save-cleanup'); }
       this._setStorageStatus({ available: true, conflict: false, lastError: null });
       return true;
     } catch (e) {
@@ -1070,67 +1083,86 @@ class GameStateClass {
     }
   }
 
+  _applyRunSave(data) {
+    this.currentBattleIndex = data.currentBattleIndex ?? 0;
+    this.currentMapColumn = data.currentMapColumn ?? 0;
+    this.selectedNodeId = data.selectedNodeId ?? '0_start';
+    this.pendingUpgradeNodeId = data.pendingUpgradeNodeId ?? null;
+    this.mapNodes = data.mapNodes;
+    if (!this.mapNodes || this.mapNodes.length === 0) {
+      this._initMap();
+    }
+    this.teachNode = data.teachNode ?? 1;
+    this.stats = data.stats ?? baseStats();
+    this.persistentHp = data.persistentHp ?? null;
+    this.unlockedConditionIds = data.unlockedConditionIds ?? [];
+    this.unlockedActionIds = data.unlockedActionIds ?? [];
+    this.rules = data.rules ?? [];
+    this.lastReport = data.lastReport && typeof data.lastReport === 'object' ? data.lastReport : {};
+    this.runStats = data.runStats ?? defaultRunStats();
+    this.runConfig = data.runConfig ?? {
+      mode: this.settings.runMode,
+      difficulty: this.settings.difficulty,
+      seed: this.periodSeed(this.settings.runMode) || createRunSeed(),
+    };
+    this.tutorialProgress = data.tutorialProgress ?? { editedRule: false, sandboxRun: false };
+    this._ruleCounter = data._ruleCounter ?? 0;
+    this.saveVersion = data.saveVersion ?? 1;
+  }
+
+  _acceptLoadedSave(serialized, restoredFromBackup = false) {
+    this._lastPersistedSerialized = serialized;
+    this.runRevision += 1;
+    this._undoStack = [];
+    this._redoStack = [];
+    resetStorageWriteGate();
+    this._setStorageStatus({
+      available: true, conflict: false, requiresRecovery: false, restoredFromBackup, lastError: null,
+    });
+  }
+
   loadFromStorage() {
-    let primaryError = null;
+    let primaryRead = false;
+    let backupRaw = null;
     try {
       const primaryRaw = localStorage.getItem(RUN_SAVE_KEY);
-      const backupRaw = localStorage.getItem(RUN_BACKUP_KEY);
+      this._lastPersistedSerialized = primaryRaw;
+      primaryRead = true;
+      backupRaw = localStorage.getItem(RUN_BACKUP_KEY);
       let data = null;
-      let restoredFromBackup = false;
-      if (primaryRaw) {
-        try { data = parseRunSave(primaryRaw); } catch (error) { primaryError = error; }
+      let primaryError = null;
+      if (primaryRaw !== null) {
+        try {
+          data = readSupportedRunSave(primaryRaw);
+        } catch (error) {
+          if (error instanceof RangeError) throw error;
+          primaryError = error;
+        }
       }
-      if (!data && backupRaw) {
-        data = parseRunSave(backupRaw);
-        restoredFromBackup = true;
+      if (!data && backupRaw !== null) {
+        data = readSupportedRunSave(backupRaw);
         localStorage.setItem(RUN_SAVE_KEY, backupRaw);
+        this._applyRunSave(data);
+        this._acceptLoadedSave(backupRaw, true);
+        return true;
       }
-      if (!data) {
-        if (primaryError) throw primaryError;
-        this._lastPersistedSerialized = null;
-        resetStorageWriteGate();
-        this._setStorageStatus({ conflict: false });
-        return false;
+      if (data) {
+        this._applyRunSave(data);
+        this._acceptLoadedSave(primaryRaw);
+        return true;
       }
-      const migration = migrateRunSave(data);
-      if (migration.unsupported) throw new Error(`Unsupported run save version ${migration.fromVersion}`);
-      data = migration.data;
-      this.currentBattleIndex = data.currentBattleIndex ?? 0;
-      this.currentMapColumn = data.currentMapColumn ?? 0;
-      this.selectedNodeId = data.selectedNodeId ?? '0_start';
-      this.mapNodes = data.mapNodes;
-      if (!this.mapNodes || this.mapNodes.length === 0) {
-        this._initMap();
-      }
-      this.teachNode = data.teachNode ?? 1;
-      this.stats = data.stats ?? baseStats();
-      this.persistentHp = data.persistentHp ?? null;
-      this.unlockedConditionIds = data.unlockedConditionIds ?? [];
-      this.unlockedActionIds = data.unlockedActionIds ?? [];
-      this.rules = data.rules ?? [];
-      this.lastReport = data.lastReport && typeof data.lastReport === 'object' ? data.lastReport : {};
-      this.runStats = data.runStats ?? defaultRunStats();
-      this.runConfig = data.runConfig ?? {
-        mode: this.settings.runMode,
-        difficulty: this.settings.difficulty,
-        seed: this.periodSeed(this.settings.runMode) || createRunSeed(),
-      };
-      this.tutorialProgress = data.tutorialProgress ?? { editedRule: false, sandboxRun: false };
-      this._ruleCounter = data._ruleCounter ?? 0;
-      this.saveVersion = data.saveVersion ?? 1;
-      this._setStorageStatus({
-        available: true,
-        conflict: false,
-        restoredFromBackup,
-        lastError: restoredFromBackup ? String(primaryError?.message || 'Primary save was invalid') : null,
-      });
-      this._lastPersistedSerialized = restoredFromBackup ? backupRaw : primaryRaw;
+      if (primaryError) throw primaryError;
       resetStorageWriteGate();
-      return true;
-    } catch (e) {
-      recordStorageError(e, 'run-load');
-      this._setStorageStatus({ available: true, restoredFromBackup: false, lastError: String(e?.message || e) });
-      console.error('Failed to load from localStorage', e);
+      this._setStorageStatus({ available: true, conflict: false, requiresRecovery: false, lastError: null });
+      return false;
+    } catch (error) {
+      recordStorageError(error, 'run-load');
+      this._setStorageStatus({
+        available: primaryRead,
+        requiresRecovery: primaryRead && (this._lastPersistedSerialized !== null || backupRaw !== null),
+        restoredFromBackup: false,
+        lastError: String(error?.message || error),
+      });
       return false;
     }
   }
@@ -1153,7 +1185,10 @@ class GameStateClass {
     // A partial reset may still have removed the primary slot. Rebase the
     // compare-and-swap marker before resetRun() so a retry can repair the
     // local stores instead of being mistaken for a stale-tab overwrite.
-    try { this._lastPersistedSerialized = localStorage.getItem(RUN_SAVE_KEY); } catch {}
+    try {
+      this._lastPersistedSerialized = localStorage.getItem(RUN_SAVE_KEY);
+      if (this._lastPersistedSerialized === null) this._setStorageStatus({ requiresRecovery: false });
+    } catch {}
     cleared = clearHistory() && cleared;
     cleared = resetProfile() && cleared;
     cleared = clearChallenges() && cleared;
@@ -1165,26 +1200,35 @@ class GameStateClass {
 
   restoreBackup() {
     if (!storageWritesAllowed()) return false;
+    const previousRun = this._runSaveData();
+    let serialized;
     try {
-      const raw = localStorage.getItem(RUN_BACKUP_KEY);
-      if (!raw || !parseRunSave(raw)) return false;
-      localStorage.setItem(RUN_SAVE_KEY, raw);
-      const restored = this.loadFromStorage();
-      if (restored) {
-        this.normalizeAfterDatabaseLoad();
-        this._emit('rules'); this._emit('stats'); this._emit('progress');
+      if (localStorage.getItem(RUN_SAVE_KEY) !== this._lastPersistedSerialized) {
+        this.markStorageConflict();
+        return false;
       }
-      return restored;
+      const raw = localStorage.getItem(RUN_BACKUP_KEY);
+      if (!raw) return false;
+      this._applyRunSave(readSupportedRunSave(raw));
+      this.normalizeAfterDatabaseLoad({ persist: false });
+      serialized = serializeRunSave(this._runSaveData());
+      localStorage.setItem(RUN_SAVE_KEY, serialized);
     } catch (error) {
+      this._applyRunSave(previousRun);
       recordStorageError(error, 'backup-restore');
       this._setStorageStatus({ lastError: String(error?.message || error) });
       return false;
     }
+    this._acceptLoadedSave(serialized, true);
+    this._emit('rules'); this._emit('stats'); this._emit('progress');
+    return true;
   }
 
   hasBackup() {
-    try { return Boolean(localStorage.getItem(RUN_BACKUP_KEY)); } catch (error) {
-      recordStorageError(error, 'backup-read');
+    try {
+      const raw = localStorage.getItem(RUN_BACKUP_KEY);
+      return raw !== null && Boolean(readSupportedRunSave(raw));
+    } catch {
       return false;
     }
   }
@@ -1262,14 +1306,15 @@ class GameStateClass {
   importSaveData(raw) {
     if (!storageWritesAllowed()) return false;
     if (typeof raw !== 'string' || raw.length === 0 || raw.length > 1_000_000) return false;
-    let previousPrimary;
-    let previousBackup;
-    let previousSettings;
-    const previousLoadouts = {};
-    let previousHistory = null;
-    let previousProfile = null;
-    let previousChallenges = null;
-    let previousRunArchive = null;
+    const previousRun = this._runSaveData();
+    const previousSettings = { ...this.settings };
+    const settingsWriteBlocked = this._settingsWriteBlocked;
+    let serialized;
+    const previousStores = new Map();
+    const changeStore = (key, write) => {
+      previousStores.set(key, localStorage.getItem(key));
+      write();
+    };
     try {
       const payload = JSON.parse(raw);
       if (payload?.product !== 'overlogic' || payload?.exportVersion !== 1) return false;
@@ -1295,90 +1340,90 @@ class GameStateClass {
       if (payload.runArchive !== undefined &&
         (!payload.runArchive || typeof payload.runArchive !== 'object' || Array.isArray(payload.runArchive) ||
           !Array.isArray(payload.runArchive.entries) || payload.runArchive.entries.length > MAX_PORTABLE_ARCHIVE_ENTRIES)) return false;
-      previousPrimary = localStorage.getItem(RUN_SAVE_KEY);
-      previousBackup = localStorage.getItem(RUN_BACKUP_KEY);
-      previousSettings = localStorage.getItem('overlogic_settings');
-      for (let slot = 1; slot <= 3; slot += 1) {
-        previousLoadouts[slot] = localStorage.getItem(`overlogic_loadout_slot_${slot}`);
+      const data = migrateSupportedRunSave(payload.run);
+      const primary = localStorage.getItem(RUN_SAVE_KEY);
+      if (primary !== this._lastPersistedSerialized) {
+        this.markStorageConflict();
+        return false;
       }
-      previousHistory = allBattles();
-      previousProfile = profileSnapshot();
-      previousChallenges = challengeSnapshot();
-      previousRunArchive = runArchiveSnapshot();
-      if (previousPrimary && parseRunSave(previousPrimary)) {
-        localStorage.setItem(RUN_BACKUP_KEY, previousPrimary);
+      let primaryIsValid = false;
+      if (primary !== null) {
+        try {
+          readSupportedRunSave(primary);
+          primaryIsValid = true;
+        } catch (error) {
+          if (error instanceof RangeError) throw error;
+        }
       }
-      localStorage.setItem(RUN_SAVE_KEY, serializeRunSave(payload.run));
-      if (payload.settings && typeof payload.settings === 'object' && !Array.isArray(payload.settings)) {
-        localStorage.setItem('overlogic_settings', JSON.stringify(payload.settings));
+
+      if (payload.settings !== undefined) {
+        changeStore(SETTINGS_KEY, () => localStorage.setItem(SETTINGS_KEY, JSON.stringify(payload.settings)));
         this.loadSettings();
       }
-      for (let slot = 1; slot <= 3; slot += 1) {
-        const rawLoadout = payload.loadouts?.[slot];
-        const rules = Array.isArray(rawLoadout) ? rawLoadout
-          : (rawLoadout && Number(rawLoadout.version ?? LOADOUT_VERSION) <= LOADOUT_VERSION && Array.isArray(rawLoadout.rules)
-            ? rawLoadout.rules : null);
-        if (payload.loadouts !== undefined && rawLoadout !== undefined && rules === null) {
-          throw new Error(`Unsupported loadout version for slot ${slot}`);
-        }
-        if (Array.isArray(rules) && rules.length <= MAX_RULES) {
-          localStorage.setItem(`overlogic_loadout_slot_${slot}`, JSON.stringify({ version: LOADOUT_VERSION, rules }));
-        } else if (payload.loadouts !== undefined) {
-          localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
+      if (payload.loadouts !== undefined) {
+        for (let slot = 1; slot <= LOADOUT_SLOTS; slot += 1) {
+          const rawLoadout = payload.loadouts?.[slot];
+          const rules = Array.isArray(rawLoadout) ? rawLoadout
+            : (rawLoadout && Number(rawLoadout.version ?? LOADOUT_VERSION) <= LOADOUT_VERSION && Array.isArray(rawLoadout.rules)
+              ? rawLoadout.rules : null);
+          if (rawLoadout !== undefined && (!rules || rules.length > MAX_RULES)) {
+            throw new Error(`Invalid loadout for slot ${slot}`);
+          }
+          const key = `overlogic_loadout_slot_${slot}`;
+          changeStore(key, () => {
+            if (rules) localStorage.setItem(key, JSON.stringify({ version: LOADOUT_VERSION, rules }));
+            else localStorage.removeItem(key);
+          });
         }
       }
-      if (payload.battleHistory !== undefined && !replaceHistory(payload.battleHistory)) throw new Error('History import failed');
-      if (payload.profile !== undefined && !replaceProfile(payload.profile)) throw new Error('Profile import failed');
-      if (payload.challenges !== undefined && !replaceChallenges(payload.challenges)) throw new Error('Challenge import failed');
-      if (payload.runArchive !== undefined && !replaceRunArchive(payload.runArchive)) throw new Error('Run archive import failed');
-      if (!this.loadFromStorage()) throw new Error('Imported save could not be loaded');
-      this.normalizeAfterDatabaseLoad();
-      this.saveToStorage();
-      this._emit('rules'); this._emit('stats'); this._emit('progress');
-      return true;
+      for (const [key, value, read, replace] of [
+        [HISTORY_KEY, payload.battleHistory, allBattles, replaceHistory],
+        [PROFILE_KEY, payload.profile, profileSnapshot, replaceProfile],
+        [CHALLENGE_KEY, payload.challenges, challengeSnapshot, replaceChallenges],
+        [ARCHIVE_KEY, payload.runArchive, runArchiveSnapshot, replaceRunArchive],
+      ]) {
+        if (value === undefined) continue;
+        changeStore(key, () => {
+          read(); // Honor the store's future-version write protection.
+          if (!replace(value)) throw new Error(`Import failed for ${key}`);
+        });
+      }
+      this._applyRunSave(data);
+      this.normalizeAfterDatabaseLoad({ persist: false });
+      serialized = serializeRunSave(this._runSaveData());
+      if (localStorage.getItem(RUN_SAVE_KEY) !== primary) {
+        this.markStorageConflict();
+        throw new Error('Run save changed during import');
+      }
+      if (primaryIsValid) changeStore(RUN_BACKUP_KEY, () => localStorage.setItem(RUN_BACKUP_KEY, primary));
+      changeStore(RUN_SAVE_KEY, () => localStorage.setItem(RUN_SAVE_KEY, serialized));
+      if (payload.loadouts !== undefined) this._blockedLoadoutSlots.clear();
     } catch (error) {
-      if (previousPrimary !== undefined) {
+      let rollbackFailed = false;
+      for (const [key, original] of [...previousStores].reverse()) {
         try {
-          if (previousPrimary === null) localStorage.removeItem(RUN_SAVE_KEY);
-          else localStorage.setItem(RUN_SAVE_KEY, previousPrimary);
-        } catch {}
-      }
-      if (previousBackup !== undefined) {
-        try {
-          if (previousBackup === null) localStorage.removeItem(RUN_BACKUP_KEY);
-          else localStorage.setItem(RUN_BACKUP_KEY, previousBackup);
-        } catch {}
-      }
-      if (previousSettings !== undefined) {
-        try {
-          if (previousSettings === null) localStorage.removeItem('overlogic_settings');
-          else localStorage.setItem('overlogic_settings', previousSettings);
-          this.loadSettings();
-        } catch {}
-      }
-      for (let slot = 1; slot <= 3; slot += 1) {
-        if (!(slot in previousLoadouts)) continue;
-        try {
-          const previous = previousLoadouts[slot];
-          if (previous === null) localStorage.removeItem(`overlogic_loadout_slot_${slot}`);
-          else localStorage.setItem(`overlogic_loadout_slot_${slot}`, previous);
-        } catch {}
-      }
-      if (previousHistory) replaceHistory(previousHistory);
-      if (previousProfile) replaceProfile(previousProfile);
-      if (previousChallenges) replaceChallenges(previousChallenges);
-      if (previousRunArchive) replaceRunArchive(previousRunArchive);
-      try {
-        if (typeof previousPrimary === 'string') {
-          this.loadFromStorage();
-          this.normalizeAfterDatabaseLoad();
-        } else if (previousPrimary === null) {
-          this.resetRun();
+          if (localStorage.getItem(key) === original) continue;
+          if (original === null) localStorage.removeItem(key);
+          else localStorage.setItem(key, original);
+        } catch (rollbackError) {
+          rollbackFailed = true;
+          recordStorageError(rollbackError, 'import-rollback');
         }
-      } catch {}
-      this._setStorageStatus({ lastError: String(error?.message || error) });
+      }
+      this._applyRunSave(previousRun);
+      this.settings = previousSettings;
+      this._settingsWriteBlocked = settingsWriteBlocked;
+      AudioManager.volumeVal = previousSettings.volume;
+      AudioManager.muted = previousSettings.mute;
+      this._setStorageStatus({
+        lastError: String(error?.message || error),
+        ...(rollbackFailed ? { available: false } : {}),
+      });
       return false;
     }
+    this._acceptLoadedSave(serialized);
+    this._emit('rules'); this._emit('stats'); this._emit('progress');
+    return true;
   }
 
   saveLoadout(slotIndex) {
@@ -1498,7 +1543,7 @@ class GameStateClass {
     return out;
   }
 
-  normalizeAfterDatabaseLoad() {
+  normalizeAfterDatabaseLoad({ persist = true } = {}) {
     let changed = false;
     if (!Array.isArray(this.mapNodes) || !this._mapShapeLooksCurrent()) {
       const loadedMap = Array.isArray(this.mapNodes) ? this.mapNodes : [];
@@ -1540,6 +1585,10 @@ class GameStateClass {
         this.selectedNodeId = activeCol[0]?.id || '0_start';
         changed = true;
       }
+    }
+    if (this.pendingUpgradeNodeId !== null && !this.hasPendingUpgradeReward()) {
+      this.pendingUpgradeNodeId = null;
+      changed = true;
     }
     const clampedTeach = Math.max(MIN_TEACH_NODE, Math.min(MAX_TEACH_NODE, this.teachNode | 0));
     if (clampedTeach !== this.teachNode) {
@@ -1599,9 +1648,7 @@ class GameStateClass {
       changed = true;
     }
     const requestedMode = RUN_MODES.has(this.runConfig?.mode) ? this.runConfig.mode : 'standard';
-    const normalizedMode = (requestedMode === 'daily' && !featureEnabled('dailyChallenges')) ||
-      (requestedMode === 'weekly' && !featureEnabled('weeklyGauntlet'))
-      ? 'standard' : requestedMode;
+    const normalizedMode = this.hasRunProgress() ? requestedMode : availableRunMode(requestedMode);
     const normalizedDifficulty = DIFFICULTIES.has(this.runConfig?.difficulty)
       ? this.runConfig.difficulty
       : 'standard';
@@ -1684,7 +1731,7 @@ class GameStateClass {
       this.saveVersion = SAVE_VERSION;
       changed = true;
     }
-    if (changed) {
+    if (changed && persist) {
       this.saveToStorage();
       this._emit('rules'); this._emit('stats'); this._emit('progress');
     }
@@ -1771,6 +1818,16 @@ function parseRunSave(raw) {
   }
   // Versions 1–5 predate checksums and remain migratable.
   return data;
+}
+
+function migrateSupportedRunSave(data) {
+  const migration = migrateRunSave(data);
+  if (migration.unsupported) throw new RangeError(`Unsupported run save version ${migration.fromVersion}`);
+  return migration.data;
+}
+
+function readSupportedRunSave(raw) {
+  return migrateSupportedRunSave(parseRunSave(raw));
 }
 
 export const GameState = new GameStateClass();

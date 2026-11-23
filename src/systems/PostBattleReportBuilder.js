@@ -2,6 +2,12 @@
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 
+export function damageSourceLabel(source) {
+  if (source === 'plasma_hazard') return t('report.plasmaHazard');
+  if (source === 'overlogic_heat') return t('report.overlogicHeat');
+  return entity('enemy', source, GameDatabase.getEnemy(source)?.displayName || source);
+}
+
 export function buildReport(report, availableActionIds, availableConditionIds = []) {
   const damageBySource = report.damage_by_source || {};
   const actionUsage = report.action_usage || {};
@@ -19,11 +25,10 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
   const sources = Object.keys(damageBySource)
     .sort((a, b) => damageBySource[b] - damageBySource[a]);
   for (const s of sources) {
-    const ed = GameDatabase.getEnemy(s);
-    const display = s === 'plasma_hazard'
-      ? t('report.plasmaHazard')
-      : (ed ? entity('enemy', s, ed.displayName) : s);
-    damageLines.push(t('report.tookDamage', { value: Math.round(damageBySource[s]), source: display }));
+    damageLines.push(t('report.tookDamage', {
+      value: Math.round(damageBySource[s]),
+      source: damageSourceLabel(s),
+    }));
   }
   if (damageLines.length === 0) damageLines.push(t('report.noDamage'));
 

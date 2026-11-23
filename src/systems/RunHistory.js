@@ -9,7 +9,7 @@ import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 import { operationLimit } from './OperationsConfig.js?v=20260725-4';
 
-const HISTORY_KEY = 'overlogic_run_history';
+export const HISTORY_KEY = 'overlogic_run_history';
 const HISTORY_VERSION = 1;
 const MAX_ENTRIES = 60;
 let writesBlockedByFutureVersion = false;

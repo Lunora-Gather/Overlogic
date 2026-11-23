@@ -8,7 +8,7 @@ function reducedMotion() {
 }
 
 function randomFor(ctx) {
-  return typeof ctx?.random === 'function' ? ctx.random : Math.random;
+  return typeof ctx?.visualRandom === 'function' ? ctx.visualRandom : Math.random;
 }
 
 export class Particle {

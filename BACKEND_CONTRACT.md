@@ -41,7 +41,7 @@ Overlogic 当前是静态、本地优先的 Web 游戏。本文定义未来账�
 
 ```json
 {
-  "saveVersion": 7,
+  "saveVersion": 8,
   "clientRelease": "<sha>",
   "baseRevision": 42,
   "payload": {},

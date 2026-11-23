@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -46,15 +47,19 @@ async function collectPrecacheUrls(dir, out = []) {
       continue;
     }
     const relative = path.relative(output, target).split(path.sep).join('/');
-    if (relative === 'release.json' || relative === '.nojekyll' || relative === 'LICENSE') continue;
+    if (['release.json', '.nojekyll', 'LICENSE', 'sw.js'].includes(relative)) continue;
     out.push(`./${relative}`);
   }
   return out;
 }
-const precacheUrls = ['./', ...(await collectPrecacheUrls(output)).sort()];
+const precacheUrls = (await collectPrecacheUrls(output)).sort();
+const precacheIntegrity = Object.fromEntries(await Promise.all(precacheUrls.map(async (url) => {
+  const hash = createHash('sha256').update(await fs.readFile(path.join(output, url))).digest('base64');
+  return [url, `sha256-${hash}`];
+})));
 const rewrittenServiceWorker = serviceWorkerSource
-  .replaceAll('__RELEASE__', release)
-  .replace('/*__PRECACHE_URLS__*/APP_SHELL', JSON.stringify(precacheUrls));
+  .replace('/*__PRECACHE_URLS__*/APP_SHELL', JSON.stringify(precacheUrls))
+  .replace('/*__PRECACHE_INTEGRITY__*/{}', JSON.stringify(precacheIntegrity));
 await fs.writeFile(serviceWorker, rewrittenServiceWorker);
 await fs.writeFile(path.join(output, 'release.json'), JSON.stringify({
   release,

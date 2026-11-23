@@ -13,7 +13,6 @@ class GameManagerClass {
   constructor() {
     this.state = State.MainMenu;
     this.lastBattleWon = false;
-    this.isUpgradeReward = false;
     this._cancelPendingFocus = null;
   }
 
@@ -53,15 +52,23 @@ class GameManagerClass {
     });
   }
 
-  goMainMenu()    { this.state = State.MainMenu;        this._show('main'); }
+  goMainMenu() {
+    GameState.recordRunCompletion();
+    this.state = State.MainMenu;
+    this._show('main');
+  }
   goLogicEdit()   { this.state = State.LogicEditing;    this._show('editor'); }
-  goCombat()      { this.state = State.Combat;          this._show('combat'); this.isUpgradeReward = false; }
+  goCombat()      { this.state = State.Combat;          this._show('combat'); }
   goRewardSelection() { this.state = State.RewardSelection; this._show('reward'); }
   goPostBattleReport() { this.state = State.PostBattleReport; this._show('report'); }
   goVictory()     { this.state = State.Victory;         this._show('victory'); }
-  goSandbox()     { this.state = State.Combat;          this._show('combat'); this.isUpgradeReward = false; }
+  goSandbox()     { this.state = State.Combat;          this._show('combat'); }
 
   resumePendingBattle() {
+    if (GameState.hasPendingUpgradeReward()) {
+      this.goRewardSelection();
+      return true;
+    }
     if (!GameState.hasPendingBattleResolution()) return false;
     const endHp = Number(GameState.lastReport?._endHp) || null;
     if (GameState.isPendingFinalBattle()) {
@@ -78,16 +85,7 @@ class GameManagerClass {
   onBattleFinished(won) {
     this.lastBattleWon = won;
     if (won) {
-      // Final boss cleared?
-      const isLast = GameState.currentMapColumn >= GameState.mapNodes.length - 1;
-      if (isLast) {
-        const endHp = GameState.lastReport._endHp || null;
-        GameState.onBattleWon('', endHp);
-        GameState.recordRunCompletion();
-        this.goVictory();
-      } else {
-        this.goRewardSelection();
-      }
+      this.resumePendingBattle();
     } else {
       this.goPostBattleReport();
     }
@@ -95,18 +93,10 @@ class GameManagerClass {
 
   // Called by RewardScreen after player picks a reward.
   onRewardChosen(rewardId) {
-    const endHp = GameState.lastReport._endHp || null;
-    if (this.isUpgradeReward) {
-      GameState.onUpgradeNodeChosen(rewardId);
-      this.isUpgradeReward = false;
-    } else {
-      GameState.onBattleWon(rewardId, endHp);
-    }
-    if (GameState.isDemoCleared()) {
-      GameState.recordRunCompletion();
-      this.goVictory();
-    }
-    else this.goLogicEdit();
+    const applied = GameState.hasPendingUpgradeReward()
+      ? GameState.onUpgradeNodeChosen(rewardId)
+      : GameState.hasPendingBattleResolution() && GameState.onBattleWon(rewardId, GameState.lastReport._endHp);
+    if (applied) this.goLogicEdit();
   }
 
   // Called by PostBattleReport buttons.

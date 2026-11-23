@@ -845,7 +845,7 @@ Overlogic/
   DESIGN.md / README.md       # 设计约束、架构说明与发布指引
 ```
 
-发布层约束：`scripts/build.mjs` 只将上述运行时文件复制到 `dist/`，并为模块、数据、HTML 与 Service Worker 注入提交版本。Service Worker 只处理同源 GET 请求，导航使用 network-first，静态资源使用 stale-while-revalidate；任何离线能力都不能阻塞首屏启动。`GameDatabase` 的数据契约校验与 `scripts/release-audit.mjs` 必须在发布前通过。
+发布层约束：`scripts/build.mjs` 只将上述运行时文件复制到 `dist/`，并为模块、数据、HTML 与 Service Worker 注入发布版本。Service Worker 在同源范围内按版本提供经过校验的资源。发布前须通过 `GameDatabase` 数据契约检查与 `scripts/audit-release.mjs`。
 
 ---
 
@@ -1014,7 +1014,7 @@ Overlogic/
 
 - 战斗结束时先持久化 `_won`、`_battleId`、报告与结束生命值，再打开奖励页，避免“胜利已发生但页面刷新后无法领取奖励”。
 - `hasPendingBattleResolution()` 只在报告仍对应当前战斗节点且尚未标记 `_resolutionApplied` 时成立；主菜单入口会恢复奖励页，最终 Boss 则直接完成通关档案。
-- `onBattleWon()` 对已结算报告幂等返回，不重复增加胜场、伤害、时间、奖励或地图列；旧版本没有该标记的存档会按当前节点安全迁移。
+- `onBattleWon()` 把奖励、教学解锁、结算标记和地图推进一次写入主存档。升级工坊保存待领取节点，选择奖励后才解锁下一列。最终战已结算但归档写入失败时，回到主菜单会按运行 ID 重试。
 
 ## 31. 运行诊断与跨标签一致性
 
@@ -1027,10 +1027,9 @@ Overlogic/
 
 ## 32. 离线缓存完整性
 
-- 构建脚本遍历 `dist/`，把 `src/` 和 `data/` 的全部运行时文件注入 Service Worker 预缓存清单；发布版本只保留安全的字母数字、点、下划线和短横线标识。
-- 模块和数据请求带版本查询参数，Service Worker 使用 `ignoreSearch` 从无查询参数的预缓存中恢复，避免“文件已缓存但查询版本不同”造成的离线空壳；导航和带版本请求收到非 2xx 响应时也优先回退到已缓存的同源资源，减少 Pages 404 或弱网抖动造成的空白页。
-- 预缓存失败会退回最小应用壳，单个缓存写入失败不会产生未处理 Promise；这样私密浏览模式、低配额和弱网环境仍能启动并提供可解释的状态。
-- Service Worker 注册 URL 带发布版本并设置 `updateViaCache: none`；带 `v`/`release` 的模块和数据在线时使用 network-first，离线时再通过 `ignoreSearch` 命中完整预缓存，避免新 HTML 被旧 Worker 配上旧模块形成混合版本。
+- 构建脚本为全部运行时资源生成预缓存清单和 SHA-256 校验值。安装期间有资源缺失、内容版本不符或配额不足时，当前 Worker 继续提供已验证的版本。
+- 受控导航从当前发布缓存读取 HTML，带版本的模块和数据只读取对应发布的缓存。当前版本的资源被浏览器清除时，可以从网络重新获取并校验。
+- Service Worker 注册地址带发布版本，且使用 `updateViaCache: none` 检查更新。新版本启用后，当前页面会提示刷新，上一版本缓存保留给仍打开的页面。源码开发模式由本地服务器直接提供资源。
 
 ## 33. 每日战术协议
 

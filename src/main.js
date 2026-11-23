@@ -159,9 +159,11 @@ function setupRuntimeSafety() {
   });
   GameState.on('storage', () => {
     if (!GameState.storageStatus.available) showAppNotice('notice.storageUnavailable');
+    else if (GameState.storageStatus.requiresRecovery) showAppNotice('settings.storageRecovery');
   });
   if (GameState.storageStatus.restoredFromBackup) showAppNotice('notice.saveRestored');
   if (!GameState.storageStatus.available) showAppNotice('notice.storageUnavailable');
+  else if (GameState.storageStatus.requiresRecovery) showAppNotice('settings.storageRecovery');
 }
 
 function registerServiceWorker() {
@@ -169,19 +171,15 @@ function registerServiceWorker() {
   const hadController = Boolean(navigator.serviceWorker.controller);
   const release = document.querySelector('meta[name="overlogic-release"]')?.content || '';
   const safeRelease = /^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(release) ? release : '';
-  const serviceWorkerUrl = safeRelease ? `./sw.js?v=${encodeURIComponent(safeRelease)}` : './sw.js';
-  navigator.serviceWorker.register(serviceWorkerUrl, { updateViaCache: 'none' }).then((registration) => {
-    if (registration.waiting && hadController) {
+  if (!safeRelease) return;
+  const serviceWorkerUrl = `./sw.js?v=${encodeURIComponent(safeRelease)}`;
+  if (hadController) {
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
       window.dispatchEvent(new CustomEvent('overlogic:update-ready'));
-    }
-    registration.addEventListener('updatefound', () => {
-      const worker = registration.installing;
-      worker?.addEventListener('statechange', () => {
-        if (worker.state === 'installed' && hadController) {
-          window.dispatchEvent(new CustomEvent('overlogic:update-ready'));
-        }
-      });
-    });
+    }, { once: true });
+  }
+  navigator.serviceWorker.register(serviceWorkerUrl, { updateViaCache: 'none' }).then((registration) => {
+    if (hadController) return registration.update();
   }).catch(() => {
     // Offline support is progressive enhancement; a blocked registration
     // must never prevent the game from loading.
@@ -225,9 +223,9 @@ async function main() {
   const bootStartedAt = Date.now();
   const operations = await loadOperationsConfig();
   configureProductMetrics(GameState.settings.productMetrics);
-  applyLaunchPreset();
   await GameDatabase.loadAll();
   GameState.normalizeAfterDatabaseLoad();
+  applyLaunchPreset();
   setLocale(GameState.settings.language, { notify: false });
   document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
   if (operations.maintenance.enabled) showAppNotice('ops.maintenance');
@@ -251,11 +249,16 @@ async function main() {
 
   const canvas = document.getElementById('arena');
   let arena = null;
+  let visibilityPausedCombat = false;
 
-  GameState.onUpgradeNodeTriggered = () => {
-    GameManager.isUpgradeReward = true;
-    GameManager.goRewardSelection();
-  };
+  function stopArena() {
+    arena?.stop();
+    arena = null;
+    battleHUD.arena = null;
+    visibilityPausedCombat = false;
+  }
+
+  GameState.onUpgradeNodeTriggered = () => GameManager.goRewardSelection();
 
   // Hook GameManager transitions to drive screen-specific setup.
   const origGoCombat = GameManager.goCombat.bind(GameManager);
@@ -267,15 +270,16 @@ async function main() {
   const origGoSandbox = GameManager.goSandbox.bind(GameManager);
 
   GameManager.goCombat = () => {
-    bgAnim?.stop();
+    if (GameManager.resumePendingBattle()) return;
     const battle = GameState.getActiveBattle();
     if (!battle) {
-      console.error('No active battle found');
-      GameManager.goLogicEdit();
+      const node = GameState.getActiveNode();
+      if (node?.type === 'upgrade') GameState.selectMapNode(node.id);
       return;
     }
+    bgAnim?.stop();
     origGoCombat();
-    if (arena) arena.stop();
+    stopArena();
     arena = new CombatArena(canvas, battleHUD);
     battleHUD.arena = arena;
     arena.onFinished = (won) => GameManager.onBattleFinished(won);
@@ -319,7 +323,7 @@ async function main() {
       arenaType: 'standard_20x20',
       rewardPool: []
     };
-    if (arena) arena.stop();
+    stopArena();
     arena = new CombatArena(canvas, battleHUD);
     battleHUD.arena = arena;
     arena.onFinished = (won) => {
@@ -334,17 +338,16 @@ async function main() {
   GameManager.goMainMenu = () => {
     bgAnim?.start();
     origGoMain();
-    if (arena) { arena.stop(); arena = null; }
+    stopArena();
     mainMenu.render();
   };
   GameManager.goVictory = () => {
     bgAnim?.start();
     origGoVict();
-    if (arena) { arena.stop(); arena = null; }
+    stopArena();
     victoryUI.show();
   };
 
-  let visibilityPausedCombat = false;
   document.addEventListener('visibilitychange', () => {
     if (!arena || GameManager.state !== 'combat') return;
     if (document.hidden && !arena.paused) {
@@ -356,6 +359,10 @@ async function main() {
       battleHUD.btnStep.classList.remove('hidden');
     } else if (!document.hidden && visibilityPausedCombat) {
       visibilityPausedCombat = false;
+      if (!settingsOverlay.classList.contains('hidden')) {
+        resumeCombatAfterSettings = true;
+        return;
+      }
       arena.setPaused(false);
       battleHUD.btnPause.textContent = t('combat.pause');
       battleHUD.btnPause.setAttribute('aria-pressed', 'false');
@@ -401,6 +408,9 @@ async function main() {
       tone = 'danger';
     } else if (status.conflict) {
       key = 'settings.storageConflict';
+      tone = 'danger';
+    } else if (status.requiresRecovery) {
+      key = 'settings.storageRecovery';
       tone = 'danger';
     } else if (status.restoredFromBackup) {
       key = 'settings.storageRestored';
@@ -452,10 +462,14 @@ async function main() {
     settingsOverlay.classList.add('hidden');
     settingsOverlay.setAttribute('aria-hidden', 'true');
     if (resumeCombatAfterSettings && arena && !arena._finished) {
-      arena.setPaused(false);
-      battleHUD.btnPause.textContent = t('combat.pause');
-      battleHUD.btnPause.setAttribute('aria-pressed', 'false');
-      battleHUD.btnStep.classList.add('hidden');
+      if (document.hidden) {
+        visibilityPausedCombat = true;
+      } else {
+        arena.setPaused(false);
+        battleHUD.btnPause.textContent = t('combat.pause');
+        battleHUD.btnPause.setAttribute('aria-pressed', 'false');
+        battleHUD.btnStep.classList.add('hidden');
+      }
     }
     resumeCombatAfterSettings = false;
     if (settingsReturnFocus instanceof HTMLElement) settingsReturnFocus.focus();
@@ -541,6 +555,20 @@ async function main() {
     }
   });
 
+  function finishSaveLoad(message) {
+    stopArena();
+    settingsOriginalVolume = null;
+    closeSettings();
+    AudioManager.setVolume(GameState.settings.volume);
+    setLocale(GameState.settings.language);
+    document.documentElement.classList.toggle('reduce-motion', GameState.settings.reduceMotion);
+    document.documentElement.classList.toggle('high-contrast', GameState.settings.highContrast);
+    configureProductMetrics(GameState.settings.productMetrics);
+    bgAnim?.setReducedMotion(GameState.settings.reduceMotion);
+    GameManager.goMainMenu();
+    showAppNotice(message);
+  }
+
   btnDataImport?.addEventListener('click', () => dataImportFile?.click());
   dataImportFile?.addEventListener('change', async () => {
     try {
@@ -549,11 +577,7 @@ async function main() {
       if (!file || file.size > 1_000_000) throw new Error('Invalid import file');
       const imported = GameState.importSaveData(await file.text());
       if (!imported) throw new Error('Import rejected');
-      refreshSettingsStorageStatus();
-      showAppNotice('notice.saveImported', {
-        actionKey: 'notice.reloadSave',
-        onAction: () => window.location.reload(),
-      });
+      finishSaveLoad('notice.saveImported');
     } catch {
       showAppNotice('notice.importFailed');
     }
@@ -564,12 +588,7 @@ async function main() {
       showAppNotice('notice.restoreFailed');
       return;
     }
-    showAppNotice('notice.saveRestored', {
-      actionKey: 'notice.reloadSave',
-      onAction: () => window.location.reload(),
-    });
-    btnDataRestore.disabled = !GameState.hasBackup();
-    refreshSettingsStorageStatus();
+    finishSaveLoad('notice.backupLoaded');
   });
 
   // Global Tooltip Delegator

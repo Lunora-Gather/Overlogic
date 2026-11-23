@@ -26,7 +26,8 @@ export class LogicBrain {
     this.onLabel = null;        // callback(label, rule, diagnostics, diagnosticReasons)
   }
 
-  setup(robot, ctx, executor, tracker) {
+  setup(robot, ctx, executor, tracker, rules = GameState.rules) {
+    this.rules = rules;
     this.robot = robot;
     this.ctx = ctx;
     this.executor = executor;
@@ -53,7 +54,7 @@ export class LogicBrain {
   }
 
   _tick() {
-    const rules = GameState.rules;
+    const rules = this.rules;
     const valid = [];
     const diagnostics = {};
     const diagnosticReasons = {};

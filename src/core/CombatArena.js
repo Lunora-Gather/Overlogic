@@ -33,7 +33,7 @@ const WAVE_CLEAR_DELAY = 1.15;
 // the renderer may interpolate later without changing gameplay facts.
 export const SIMULATION_STEP_SECONDS = 1 / 60;
 const MAX_CATCH_UP_STEPS = 120;
-const SIMULATION_VERSION = 2;
+const SIMULATION_VERSION = 3;
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
   shooter: ShooterEnemy,
@@ -85,6 +85,11 @@ export class CombatArena {
     this.dpr = dpr;
 
     this.battle = battle;
+    this.runRevision = GameState.runRevision;
+    this.runId = GameState.runStats.runId;
+    this.mapColumn = GameState.currentMapColumn;
+    this.nodeId = GameState.selectedNodeId;
+    this.runConfig = { ...GameState.runConfig };
     const sandbox = String(battle?.id || '').startsWith('sandbox_');
     recordProductEvent(sandbox ? 'sandbox_started' : 'battle_started', {
       battleId: battle?.id || 'unknown',
@@ -99,16 +104,18 @@ export class CombatArena {
     this.currentWave = 0;
     this._waveClearTimer = 0;
     this.random = GameState.randomFor(`arena:${battle.id}:${GameState.currentMapColumn}`);
-    this.camera.random = this.random;
+    this.camera.random = GameState.randomFor(`camera:${battle.id}:${this.mapColumn}`);
 
     // Fresh context + robot + brain
     this.ctx = new BattleContext();
     this.ctx.hud = this.hud;
     this.ctx.random = this.random;
+    this.ctx.visualRandom = GameState.randomFor(`effects:${battle.id}:${this.mapColumn}`);
     this.ctx.timeSpeed = this.speed;
     this.stats = new RobotStats();
     this.stats.loadFromGameState();
-    const modifiers = runModifiers(GameState.runConfig || {});
+    this.modifiers = runModifiers(this.runConfig);
+    const modifiers = this.modifiers;
     if (modifiers.robotEnergyRegen !== 1) {
       this.stats.base.energy_regen = Math.max(0, this.stats.stat('energy_regen', 8) * modifiers.robotEnergyRegen);
     }
@@ -148,8 +155,9 @@ export class CombatArena {
     // expose executor to ctx for condition evaluation (overdrive_ready)
     this.ctx.executor = this.executor;
     this.brain = new LogicBrain();
-    this.brain.setup(this.robot, this.ctx, this.executor, this.ctx.tracker);
-    this.ctx.tracker.setRuleSnapshot(GameState.rules);
+    const rules = structuredClone(GameState.rules);
+    this.brain.setup(this.robot, this.ctx, this.executor, this.ctx.tracker, rules);
+    this.ctx.tracker.setRuleSnapshot(rules);
     this.brain.onLabel = (label, rule, diagnostics, diagnosticReasons) => {
       this.hud.setCurrentLogic(label, rule, this.ctx.overlogic.active);
       if (diagnostics) {
@@ -290,7 +298,7 @@ export class CombatArena {
   }
 
   _spawnWave(spawns) {
-    const modifiers = runModifiers(GameState.runConfig || {});
+    const modifiers = this.modifiers;
     for (const s of spawns) {
       if (s.enemyId === 'shield_drone' && !featureEnabled('shieldRelay')) {
         this.hud.logConsole(t('ops.featureUnavailable'), 'warn');
@@ -341,11 +349,13 @@ export class CombatArena {
     if (this._finished) return;
     this._finished = true;
     cancelAnimationFrame(this._rafId);
+    if (this.runRevision !== GameState.runRevision || this.runId !== GameState.runStats.runId ||
+        this.mapColumn !== GameState.currentMapColumn || this.nodeId !== GameState.selectedNodeId) return;
     const endHp = this.robot.hp; // capture HP for persistence
     const report = this.ctx.tracker.toReport();
-    report._runSeed = GameState.runConfig?.seed ?? null;
-    report._runMode = GameState.runConfig?.mode || 'standard';
-    report._difficulty = GameState.runConfig?.difficulty || 'standard';
+    report._runSeed = this.runConfig.seed ?? null;
+    report._runMode = this.runConfig.mode || 'standard';
+    report._difficulty = this.runConfig.difficulty || 'standard';
     report._battleId = this.battle?.id || null;
     report._won = won === true;
     report._sandbox = String(this.battle?.id || '').startsWith('sandbox_');

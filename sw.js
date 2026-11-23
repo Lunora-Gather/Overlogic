@@ -1,86 +1,74 @@
-// Overlogic offline shell. The build replaces __RELEASE__ so a new release
-// gets a fresh cache while an already-open tab can finish on its old assets.
-const CACHE_NAME = 'overlogic-__RELEASE__';
-const APP_SHELL = ['./', './index.html', './style.css', './manifest.webmanifest', './icon.svg'];
-const NAVIGATION_CACHE_KEY = './index.html';
-// The build injects every runtime module/data URL here. The source fallback
-// keeps the unbuilt development service worker valid.
+// The build embeds the release and the integrity of each precached asset.
+const RELEASE = '__RELEASE__';
+const CACHE_PREFIX = `overlogic-${self.registration.scope}-`;
+const CACHE_NAME = CACHE_PREFIX + RELEASE;
+const APP_SHELL = ['./index.html'];
 const PRECACHE_URLS = /*__PRECACHE_URLS__*/APP_SHELL;
+const PRECACHE_INTEGRITY = /*__PRECACHE_INTEGRITY__*/{};
+const shell = new URL('./index.html', self.registration.scope);
+const root = new URL('./', self.registration.scope);
+const assets = new Map(PRECACHE_URLS.map((path) => [new URL(path, root).pathname, path]));
 
-async function putCacheSafe(cache, request, response) {
-  try { await cache.put(request, response); } catch { /* quota/private mode */ }
+function releaseRequest(path) {
+  return new Request(new URL(path, root), {
+    cache: 'reload',
+    integrity: PRECACHE_INTEGRITY[path],
+  });
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      // Keep installation atomic. If a release artifact is missing or quota is
-      // exhausted, the current verified worker stays active instead of being
-      // replaced by a shell that cannot boot offline.
-      .then((cache) => cache.addAll(PRECACHE_URLS))
-      .then(() => self.skipWaiting()),
-  );
+  // A deployment changing mid-install will fail the integrity check and leave
+  // the currently working release in control.
+  event.waitUntil(caches.open(CACHE_NAME)
+    .then((cache) => cache.addAll(PRECACHE_URLS.map(releaseRequest)))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys()
-      .then((keys) => Promise.all(keys
-        .filter((key) => key.startsWith('overlogic-') && key !== CACHE_NAME)
-        .map((key) => caches.delete(key))))
-      .then(() => self.clients.claim()),
-  );
+  event.waitUntil(activateRelease());
 });
 
-async function networkFirst(request) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      // Challenge and release query strings all serve the same app shell.
-      // Canonicalize the cache key so shared links cannot create an unbounded
-      // number of duplicate HTML entries within one release cache.
-      await putCacheSafe(cache, NAVIGATION_CACHE_KEY, response.clone());
-      return response;
-    }
-    return (await caches.match(request, { ignoreSearch: true })) || response;
-  } catch {
-    return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
-  }
+async function activateRelease() {
+  const older = (await caches.keys()).filter((key) => key.startsWith(CACHE_PREFIX) && key !== CACHE_NAME);
+  const complete = await Promise.all(older.map(async (key) => (
+    await caches.match(shell, { cacheName: key }) ? key : null
+  )));
+  // A failed install can leave an empty cache. Keep the last complete release.
+  const previous = complete.filter(Boolean).at(-1);
+  await Promise.all(older.filter((key) => key !== previous).map((key) => caches.delete(key)));
+  await self.clients.claim();
 }
 
-async function staleWhileRevalidate(request) {
-  // Runtime imports carry the release query string while precache URLs do
-  // not; ignoreSearch lets the complete build-time manifest serve them
-  // offline without duplicating every query variant.
-  const cached = await caches.match(request, { ignoreSearch: true });
-  const refresh = fetch(request).then((response) => {
-    if (response.ok) caches.open(CACHE_NAME).then((cache) => putCacheSafe(cache, request, response.clone()));
-    return response;
-  }).catch(() => cached);
-  return cached || refresh;
-}
-
-async function versionedNetworkFirst(request) {
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      await putCacheSafe(cache, request, response.clone());
-      return response;
+async function releaseAsset(path, version) {
+  const url = new URL(path, root);
+  const cached = await caches.match(url, { cacheName: CACHE_PREFIX + version });
+  if (cached) return cached;
+  if (version === RELEASE) {
+    try {
+      const response = await fetch(releaseRequest(path));
+      if (response.ok) return response;
+    } catch {
+      // An evicted resource may only be recovered from the same release.
     }
-    return (await caches.match(request, { ignoreSearch: true })) || response;
-  } catch {
-    return (await caches.match(request, { ignoreSearch: true })) || caches.match('./index.html');
   }
+  return new Response('Release resource unavailable', { status: 503 });
 }
 
 self.addEventListener('fetch', (event) => {
   const request = event.request;
   const url = new URL(request.url);
-  if (request.method !== 'GET' || url.origin !== self.location.origin) return;
-  const versioned = url.searchParams.has('v') || url.searchParams.has('release');
-  event.respondWith(request.mode === 'navigate'
-    ? networkFirst(request)
-    : (versioned ? versionedNetworkFirst(request) : staleWhileRevalidate(request)));
+  if (request.method !== 'GET' || url.origin !== root.origin) return;
+
+  if (request.mode === 'navigate' && (url.pathname === root.pathname || url.pathname === shell.pathname)) {
+    event.respondWith(releaseAsset('./index.html', RELEASE));
+    return;
+  }
+  if (request.mode === 'navigate') return;
+  const requestedVersion = url.searchParams.get('v') ?? url.searchParams.get('release');
+  const version = requestedVersion ?? RELEASE;
+  if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,39}$/.test(version)) return;
+  const path = assets.get(url.pathname) ??
+    (requestedVersion && version !== RELEASE && url.pathname.startsWith(root.pathname)
+      ? './' + url.pathname.slice(root.pathname.length) : null);
+  if (path) event.respondWith(releaseAsset(path, version));
 });

@@ -194,7 +194,7 @@ check(/Consent withdrawal/.test(productTelemetry) &&
 check(/storageWritesAllowed/.test(storageGate) && /markStorageWriteConflict/.test(storageGate) && /markStorageConflict/.test(main),
   'cross-tab storage conflicts must stop stale tabs from continuing to write');
 check(/sw\.js\?v=/.test(main) && /updateViaCache:\s*['"]none['"]/.test(main), 'service worker registration must be tied to the release version');
-check(/versionedNetworkFirst/.test(serviceWorker) && /searchParams\.has\(['"]v['"]\)/.test(serviceWorker), 'versioned runtime assets must prefer the network and fall back offline');
+check(serviceWorker.includes('cacheName: CACHE_PREFIX + version') && serviceWorker.includes('PRECACHE_INTEGRITY[path]'), 'runtime assets must use the matching release cache and integrity-checked network fallback');
 
 check(manifest.name && manifest.short_name && manifest.start_url && manifest.scope, 'PWA manifest core metadata is incomplete');
 check(manifest.display === 'standalone', 'PWA must remain installable as a standalone app');

@@ -1,6 +1,7 @@
 // StatsChart.js — Custom 2D Canvas chart renderer for cyberpunk run analytics.
 
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
+import { damageSourceLabel } from '../systems/PostBattleReportBuilder.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 
 export function drawStatsChart(canvas, report) {
@@ -113,8 +114,7 @@ export function drawStatsChart(canvas, report) {
     g.fillText(t('chart.noDamage'), dmgLabelX, dy);
   } else {
     for (const [source, dmg] of damageSources.slice(0, maxActions)) {
-      const enemy = GameDatabase.getEnemy(source);
-      const name = enemy ? entity('enemy', source, enemy.displayName) : source;
+      const name = damageSourceLabel(source);
 
       g.fillStyle = '#8892b0';
       g.fillText(name.toUpperCase(), dmgLabelX, dy);

@@ -301,7 +301,8 @@ function verifySaveMigrationContracts() {
   assert.equal(legacy.data.saveVersion, CURRENT_SAVE_VERSION);
   assert.deepEqual(legacy.data.runStats.replayDigests, []);
   assert.deepEqual(legacy.data.lastReport.replay_events, []);
-  assert.deepEqual(legacy.steps, ['6->7']);
+  assert.deepEqual(legacy.steps, ['6->7', '7->8']);
+  assert.equal(legacy.data.pendingUpgradeNodeId, null);
   assert.equal(migrateRunSave({ saveVersion: CURRENT_SAVE_VERSION }).changed, false);
   assert.equal(migrateRunSave({ saveVersion: CURRENT_SAVE_VERSION + 1 }).unsupported, true,
     'future save versions must fail closed instead of being silently downgraded');
@@ -626,6 +627,7 @@ async function verifyGameplayContracts() {
   };
   const apexArena = new CombatArena({ getContext: () => ({}) }, apexHud);
   apexArena.ctx = new BattleContext();
+  apexArena.modifiers = runModifiers(GameState.runConfig);
   apexArena._spawnWave([{ enemyId: 'apex_warden', count: 1 }]);
   assert.equal(apexArena.ctx.boss?.enemyId, 'apex_warden', 'Apex Warden must receive boss HUD and targeting wiring');
 
@@ -727,6 +729,8 @@ async function verifyGameplayContracts() {
 
   GameState.resetRun();
   GameState.currentMapColumn = GameState.mapNodes.length - 1;
+  GameState.selectedNodeId = '8_singularity';
+  GameState.lastReport = { _won: true, _battleId: GameState.getActiveBattle().id, _endHp: 45 };
   assert.equal(GameManager.state, 'main');
   GameManager.onBattleFinished(true);
   assert.equal(GameManager.state, 'victory', 'final boss win should go directly to victory');
@@ -1047,9 +1051,9 @@ function verifyUiSafetyContracts() {
   assert(buildScript.includes("'manifest.webmanifest'") && buildScript.includes("'sw.js'"), 'build must publish the installable shell');
   assert(!/const include = \[[^\]]*(?:README|OPERATIONS|SECURITY|BACKEND_CONTRACT)/.test(buildScript),
     'Pages artifacts must exclude repository-only documentation');
-  assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_URLS') && serviceWorker.includes('putCacheSafe') && serviceWorker.includes('ignoreSearch') && serviceWorker.includes('networkFirst') && serviceWorker.includes('versionedNetworkFirst'), 'service worker must use versioned precache, online-fresh modules, and offline navigation fallback');
-  assert(serviceWorker.includes('NAVIGATION_CACHE_KEY') && !serviceWorker.includes('cache.addAll(PRECACHE_URLS).catch'),
-    'navigation caching must be query-bounded and release installation must remain atomic');
+  assert(serviceWorker.includes('__RELEASE__') && serviceWorker.includes('PRECACHE_INTEGRITY') &&
+    serviceWorker.includes('cache.addAll') && serviceWorker.includes('cacheName: CACHE_PREFIX + version'),
+    'service worker must install complete releases and look up only the requested release cache');
   assert(mainUi.includes("updateViaCache: 'none'") && mainUi.includes('sw.js?v='), 'service worker registration must be release-versioned and bypass stale HTTP cache');
   assert(mainUi.includes('refreshAppNoticeCopy') && mainUi.includes("overlogic:localechange"), 'runtime notices must follow locale changes');
   assert(buildScript.includes('collectPrecacheUrls') && buildScript.includes('PRECACHE_URLS'), 'build must inject the complete runtime precache manifest');
@@ -1280,7 +1284,7 @@ function verifyRunHistoryContracts() {
     runId: 'run_integration', completionRecorded: false, battlesWon: 7,
     totalDamageDealt: 2200, totalBattleTime: 130, rewardsChosen: ['pu_max_hp'],
   };
-  GameState.lastReport = { _endHp: 44 };
+  GameState.lastReport = { _endHp: 44, _won: true, _resolutionApplied: true };
   assert.equal(GameState.recordRunCompletion()?.persisted, true, 'cleared campaigns should archive through GameState');
   assert.equal(GameState.runStats.completionRecorded, true);
   assert.match(runArchiveSnapshot().entries.find(entry => entry.id === 'run_integration')?.replayDigest || '', /^RPL1-[0-9A-F]{8}$/,
@@ -1423,4 +1427,5 @@ verifySynergyContracts();
 verifyRunHistoryContracts();
 verifySimulation();
 
+execFileSync(process.execPath, ['--test', 'scripts/verify-regressions.mjs'], { stdio: 'inherit' });
 console.log('VERIFY_OK');

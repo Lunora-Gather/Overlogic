@@ -5,7 +5,7 @@
 // shape changes, so future releases can add a migration without burying it
 // inside the runtime validation path.
 
-export const CURRENT_SAVE_VERSION = 7;
+export const CURRENT_SAVE_VERSION = 8;
 
 function ensureObject(value) {
   return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
@@ -67,6 +67,9 @@ export function migrateRunSave(input) {
           runStats: { ...ensureObject(data.runStats), replayDigests: ensureArray(data.runStats?.replayDigests) },
           lastReport: { ...ensureObject(data.lastReport), replay_events: ensureArray(data.lastReport?.replay_events) },
         };
+        break;
+      case 7:
+        data = { ...data, pendingUpgradeNodeId: null };
         break;
       default:
         break;

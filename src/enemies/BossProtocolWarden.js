@@ -105,7 +105,7 @@ export class BossProtocolWarden extends EnemyBase {
           { x: Math.cos(ang), y: Math.sin(ang) },
           7.0, // speed
           3.0, // life
-          6,   // dmg
+          this.damage * 0.6,
           'boss_enraged',
           false,
           null,
@@ -122,11 +122,11 @@ export class BossProtocolWarden extends EnemyBase {
   _phase1(dt, r, dirX, dirY, dist) {
     this.actionTimer -= dt;
     if (this.actionTimer <= 0) {
-      this._fireSpread({ x: r.x, y: r.y }, 3, 10, 6, 10);
+      this._fireSpread({ x: r.x, y: r.y }, 3, this.damage, 6, 10);
       this.actionTimer = 1.8;
     }
     if (dist < 3 && this.attackTimer <= 0) {
-      this.ctx.robot.takeDamage(15, this.enemyId);
+      this.ctx.robot.takeDamage(this.damage * 1.5, this.enemyId);
       this.attackTimer = 1.5;
     }
   }
@@ -134,7 +134,7 @@ export class BossProtocolWarden extends EnemyBase {
   _phase2(dt, r, dirX, dirY, dist) {
     this.actionTimer -= dt;
     if (this.actionTimer <= 0) {
-      this._fireSpread({ x: r.x, y: r.y }, 3, 10, 6, 10);
+      this._fireSpread({ x: r.x, y: r.y }, 3, this.damage, 6, 10);
       this.actionTimer = 1.3;
     }
     this.summonTimer -= dt;
@@ -182,7 +182,7 @@ export class BossProtocolWarden extends EnemyBase {
     const localY = dx * Math.sin(-this.laserAngle) + dy * Math.cos(-this.laserAngle);
     const rad = r.bodyRadius || 0.4;
     if (localX >= -rad && localX <= 8 + rad && Math.abs(localY) <= 1.5 + rad) {
-      r.takeDamage(30, this.enemyId);
+      r.takeDamage(this.damage * 3, this.enemyId);
     }
   }
 
@@ -271,7 +271,7 @@ export class BossProtocolWarden extends EnemyBase {
       let cx = 0;
       g.moveTo(0, 0);
       while (cx < beamW) {
-        const random = this.ctx?.random || Math.random;
+        const random = this.ctx?.visualRandom || Math.random;
         cx += 15 + random() * 20;
         const cy = (random() - 0.5) * beamH * 0.35;
         g.lineTo(cx, cy);

@@ -177,6 +177,10 @@ function runSuite() {
   const midGameGate = rosterDiagnostics.slice(3, 8);
 
   prepareRun({ seed: 20260726, fullRules: true, lateGameBuild: true });
+  // Hold range against stronger Warden attacks and reserve the shield for low hull.
+  GameState.rules.find((rule) => rule.actionId === 'dash_toward').enabled = false;
+  GameState.rules.find((rule) => rule.actionId === 'shield').conditionValue = 0.4;
+  GameState.rules.find((rule) => rule.actionId === 'basic_attack').targetPriority = 'boss';
   const bossGate = [8, 9].map((index) =>
     simulateBattle(GameDatabase.getBattle(index), { maxTime: 120 })
   );

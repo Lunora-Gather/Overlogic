@@ -112,7 +112,9 @@ export class RobotController {
       if (this._meltdownAccumulator >= 1.0) {
         this._meltdownAccumulator -= 1.0;
         const heatDmg = Math.round(this.maxHp * 0.05); // 5% max HP
-        this.hp = Math.max(0, this.hp - heatDmg);
+        const damageTaken = Math.min(this.hp, heatDmg);
+        this.hp -= damageTaken;
+        this.ctx.tracker?.recordDamageTaken(damageTaken, 'overlogic_heat');
         spawnText(this.ctx, this.x, this.y - 0.4, t('combat.heatDamage', { value: heatDmg }), '#ff8000', 11);
         if (this.hp <= 0 && !this.dead) {
           this.hp = 0; this.dead = true;
@@ -170,7 +172,7 @@ export class RobotController {
     this.x = next.x; this.y = next.y;
 
     // Spawn thruster trail particles when moving
-    if (Math.hypot(vx, vy) > 0.1 && (this.ctx?.random || Math.random)() < 0.45) {
+    if (Math.hypot(vx, vy) > 0.1 && (this.ctx?.visualRandom || Math.random)() < 0.45) {
       const trailColor = this.overdriveTimer > 0 ? 'rgba(255, 184, 77, 0.45)' : 'rgba(0, 210, 255, 0.35)';
       spawnEngineTrail(this.ctx, this.x, this.y, trailColor, this.overdriveTimer > 0 ? 0.16 : 0.12);
     }

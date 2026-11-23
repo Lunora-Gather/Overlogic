@@ -5,7 +5,7 @@
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
-const PROFILE_KEY = 'overlogic_profile';
+export const PROFILE_KEY = 'overlogic_profile';
 const PROFILE_VERSION = 1;
 let writesBlockedByFutureVersion = false;
 

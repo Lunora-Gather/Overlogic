@@ -55,7 +55,8 @@ export function buildRewardOptions(battle) {
 }
 
 export function buildUpgradeOptions() {
-  const random = GameState.randomFor(`upgrade:${GameState.currentMapColumn}`);
+  // Keep the destination column as the salt so existing seeds retain their offers.
+  const random = GameState.randomFor(`upgrade:${GameState.currentMapColumn + 1}`);
   const passives = GameDatabase.allRewards()
     .filter(r => r.rewardType === 'passive' && !wasExhausted(r.id))
     .map(r => r.id);

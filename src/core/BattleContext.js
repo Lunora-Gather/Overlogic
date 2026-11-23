@@ -21,7 +21,8 @@ export class BattleContext {
     this.overlogic = new OverlogicSystem();
     this.boss = null;
     this.timeSpeed = 1;       // combat speed multiplier (x0.5 / x1 / x2 / x4)
-    this.random = Math.random; // seeded by CombatArena for gameplay-affecting randomness
+    this.random = Math.random; // Simulation only
+    this.visualRandom = Math.random;
     this._lastCasting = false; // for casting-seen edge detection
     this.hazards = [];        // live HazardTile instances
     this.executor = null;     // set by CombatArena after executor is created

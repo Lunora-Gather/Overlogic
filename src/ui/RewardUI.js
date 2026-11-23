@@ -35,10 +35,10 @@ export class RewardUI {
   }
 
   show() {
-    if (GameManager.isUpgradeReward) {
+    if (GameState.hasPendingUpgradeReward()) {
       this._currentOptions = buildUpgradeOptions();
     } else {
-      const justWonBattle = GameState.getActiveBattle() || GameDatabase.getBattle(GameState.currentBattleIndex);
+      const justWonBattle = GameState.getActiveBattle();
       this._currentOptions = buildRewardOptions(justWonBattle);
     }
     this._render();

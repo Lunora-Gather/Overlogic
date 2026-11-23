@@ -557,7 +557,7 @@ export class LogicEditorUI {
       }
     }
     
-    // 2. Unreachable/Redundant rules check
+    // 2. Duplicate rules. Distinct actions can run when higher priorities are blocked.
     const sortedEnabled = [...enabledRules].sort((a, b) => b.priority - a.priority);
     for (let i = 0; i < sortedEnabled.length; i++) {
       const rA = sortedEnabled[i];
@@ -568,14 +568,14 @@ export class LogicEditorUI {
           JSON.stringify(rA.conditionValue) === JSON.stringify(rB.conditionValue) &&
           rA.conditionId2 === rB.conditionId2 &&
           JSON.stringify(rA.conditionValue2) === JSON.stringify(rB.conditionValue2) &&
-          rA.operator === rB.operator
+          rA.operator === rB.operator &&
+          Boolean(rA.negateCondition1) === Boolean(rB.negateCondition1) &&
+          Boolean(rA.negateCondition2) === Boolean(rB.negateCondition2) &&
+          rA.actionId === rB.actionId &&
+          rA.targetPriority === rB.targetPriority
         ) {
           if (!warnings.has(rB.id)) warnings.set(rB.id, []);
-          if (rA.actionId === rB.actionId && rA.targetPriority === rB.targetPriority) {
-            warnings.get(rB.id).push(t('warning.redundant', { priority: rA.priority }));
-          } else {
-            warnings.get(rB.id).push(t('warning.unreachable', { priority: rA.priority }));
-          }
+          warnings.get(rB.id).push(t('warning.redundant', { priority: rA.priority }));
         }
       }
     }

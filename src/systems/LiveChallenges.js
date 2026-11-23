@@ -7,7 +7,7 @@
 import { recordStorageError } from './RuntimeDiagnostics.js?v=20260725-4';
 import { storageWritesAllowed } from './StorageWriteGate.js?v=20260725-4';
 
-const CHALLENGE_KEY = 'overlogic_live_challenges';
+export const CHALLENGE_KEY = 'overlogic_live_challenges';
 const CHALLENGE_VERSION = 1;
 let writesBlockedByFutureVersion = false;
 

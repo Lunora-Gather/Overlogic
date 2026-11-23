@@ -1,4 +1,5 @@
 import fs from 'node:fs/promises';
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 
 const root = process.cwd();
@@ -28,7 +29,7 @@ if (!release.release || !release.builtAt) throw new Error('release.json must con
 
 const files = await collectFiles(dist);
 const textFiles = files.filter((file) => /\.(?:html|css|js|json|webmanifest|svg)$/.test(file));
-const forbidden = ['__RELEASE__', '?v=20260725-4', '__PRECACHE_URLS__'];
+const forbidden = ['__RELEASE__', '?v=20260725-4', '__PRECACHE_URLS__', '__PRECACHE_INTEGRITY__'];
 const forbiddenPatterns = [
   [/\beval\s*\(/, 'dynamic eval'],
   [/\bnew\s+Function\s*\(/, 'dynamic Function constructor'],
@@ -60,6 +61,18 @@ for (const requiredMeta of [
 }
 for (const cspDirective of ["default-src 'self'", "script-src 'self'", "object-src 'none'", "base-uri 'none'", "connect-src 'self'"]) {
   if (!indexSource.includes(cspDirective)) throw new Error(`release shell CSP missing: ${cspDirective}`);
+}
+
+const workerSource = await fs.readFile(path.join(dist, 'sw.js'), 'utf8');
+const precacheUrls = JSON.parse(workerSource.match(/^const PRECACHE_URLS = (.+);$/m)?.[1]);
+const integrity = JSON.parse(workerSource.match(/^const PRECACHE_INTEGRITY = (.+);$/m)?.[1]);
+const runtimeFiles = files.map((file) => path.relative(dist, file).split(path.sep).join('/'))
+  .filter((file) => !['release.json', '.nojekyll', 'LICENSE', 'sw.js'].includes(file))
+  .map((file) => './' + file).sort();
+if (JSON.stringify(runtimeFiles) !== JSON.stringify(precacheUrls)) throw new Error('Incomplete release precache');
+for (const url of precacheUrls) {
+  const hash = createHash('sha256').update(await fs.readFile(path.join(dist, url))).digest('base64');
+  if (integrity[url] !== `sha256-${hash}`) throw new Error(`Incorrect precache integrity for ${url}`);
 }
 
 const dataFiles = (await collectFiles(path.join(dist, 'data'))).filter((file) => file.endsWith('.json'));
