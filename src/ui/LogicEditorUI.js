@@ -49,6 +49,8 @@ export class LogicEditorUI {
     this.btnEditorMenu = document.getElementById('btn-editor-menu');
     this.mapNodesContainer = document.getElementById('map-nodes');
     this.mapRouteLabel = document.getElementById('map-route-label');
+    const prep = this.mapNodesContainer.closest('details');
+    prep?.addEventListener('toggle', () => { if (prep.open) this._followCurrentMapColumn(); });
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
     this.synergyList = document.getElementById('synergy-list');
@@ -80,6 +82,10 @@ export class LogicEditorUI {
       });
       syncMobilePanels();
       if (moveFocus) button.focus();
+    };
+    this.selectMobilePanel = (name) => {
+      const button = this.mobileTabs.find(tab => tab.dataset.editorPanel === name);
+      if (button) activateMobileTab(button);
     };
     this.mobileTabs.forEach(button => {
       button.addEventListener('click', () => activateMobileTab(button));
@@ -133,6 +139,8 @@ export class LogicEditorUI {
   }
 
   show() {
+    this.selectMobilePanel('rules');
+    this.el.scrollTop = 0;
     this.renderAll();
     // Each transition back to the editor should land on its primary action,
     // especially after a confirmation dialog or a reward selection.
@@ -484,7 +492,7 @@ export class LogicEditorUI {
       
       // One click pre-fills the builder; this also works on touch devices.
       const useCondition = () => {
-        this._openAddForm();
+        this._openAddForm(li);
         this.fCond.value = id;
         this._refreshFormParam();
         AudioManager.play('button_click');
@@ -520,7 +528,7 @@ export class LogicEditorUI {
       li.setAttribute('aria-label', t('editor.useAction', { name: entity('action', id, a.displayName) }));
       
       const useAction = () => {
-        this._openAddForm();
+        this._openAddForm(li);
         this.fAct.value = id;
         this._toggleFormTarget();
         this.fAct.focus({ preventScroll: true });
@@ -632,24 +640,9 @@ export class LogicEditorUI {
 
     const searchQuery = this.rulesSearch ? this.rulesSearch.value.toLowerCase() : '';
 
-    // Add header row
-    if (GameState.rules.length > 0) {
-      const header = document.createElement('div');
-      header.className = 'rule-header';
-      header.innerHTML = `
-        <span></span>
-        <span style="text-align: center;">${escapeHtml(t('editor.prio'))}</span>
-        <span>${escapeHtml(t('editor.condition1'))}</span>
-        <span>${escapeHtml(t('editor.operator'))}</span>
-        <span>${escapeHtml(t('editor.condition2'))}</span>
-        <span>${escapeHtml(t('editor.thenAction'))}</span>
-        <span>${escapeHtml(t('editor.target'))}</span>
-        <span style="text-align: center;">${escapeHtml(t('editor.delete'))}</span>
-      `;
-      this.ruleList.appendChild(header);
-    } else {
+    if (GameState.rules.length === 0) {
       // Empty state guide card
-      const guide = document.createElement('div');
+      const guide = document.createElement('li');
       guide.className = 'rule-empty-guide';
       guide.innerHTML = `
         <div class="guide-icon">⚡</div>
@@ -732,9 +725,21 @@ export class LogicEditorUI {
   }
 
   _buildRow(r) {
-    const row = document.createElement('div');
+    const row = document.createElement('li');
     row.className = 'rule-row';
     row.dataset.id = r.id;
+    const toolbar = document.createElement('div');
+    toolbar.className = 'rule-card-toolbar';
+    const field = (parent, key, ...controls) => {
+      const label = document.createElement('span');
+      label.className = 'rule-field-label';
+      label.textContent = t(key);
+      parent.append(label, ...controls);
+    };
+    const conditions = document.createElement('div');
+    const actions = document.createElement('div');
+    conditions.className = actions.className = 'rule-card-fields';
+    row.append(toolbar, conditions, actions);
 
     // 1. Drag handle (☰)
     const handle = document.createElement('span');
@@ -758,7 +763,7 @@ export class LogicEditorUI {
       row.classList.remove('dragging');
       this._saveNewPriorities();
     });
-    row.appendChild(handle);
+    toolbar.appendChild(handle);
 
     const reorder = document.createElement('span');
     reorder.className = 'rule-reorder-buttons';
@@ -776,7 +781,7 @@ export class LogicEditorUI {
       });
       reorder.appendChild(button);
     }
-    row.appendChild(reorder);
+    toolbar.appendChild(reorder);
 
     // 2. Priority input
     const prio = document.createElement('input');
@@ -789,7 +794,7 @@ export class LogicEditorUI {
       GameState.setRulePriority(r.id, +prio.value);
       AudioManager.play('button_click');
     });
-    row.appendChild(prio);
+    field(toolbar, 'editor.prio', prio);
 
     // 3. Condition 1 + Param 1 + Enable toggle
     const cond1Wrap = document.createElement('div');
@@ -832,7 +837,7 @@ export class LogicEditorUI {
     paramCell1.className = 'rule-param';
     this._fillParamCellFor(paramCell1, r.id, r.conditionId, r.conditionValue, false);
     cond1Wrap.appendChild(paramCell1);
-    row.appendChild(cond1Wrap);
+    field(conditions, 'editor.condition1', cond1Wrap);
 
     // 4. Operator Select (None / AND)
     const opSel = document.createElement('select');
@@ -859,7 +864,7 @@ export class LogicEditorUI {
       GameState.setRuleOperator(r.id, opSel.value);
       AudioManager.play('button_click');
     });
-    row.appendChild(opSel);
+    field(conditions, 'editor.operator', opSel);
 
     // 5. Condition 2 + Param 2 (hidden if operator is None)
     const cond2Wrap = document.createElement('div');
@@ -893,10 +898,8 @@ export class LogicEditorUI {
       paramCell2.className = 'rule-param';
       this._fillParamCellFor(paramCell2, r.id, r.conditionId2 || 'hp_low', r.conditionValue2, true);
       cond2Wrap.appendChild(paramCell2);
-    } else {
-      cond2Wrap.style.visibility = 'hidden';
+      field(conditions, 'editor.condition2', cond2Wrap);
     }
-    row.appendChild(cond2Wrap);
 
     // 6. Action Select
     const actSel = this._actSelect(r.actionId);
@@ -937,7 +940,7 @@ export class LogicEditorUI {
       updateBadges(actSel.value);
       AudioManager.play('button_click');
     });
-    row.appendChild(actWrap);
+    field(actions, 'editor.thenAction', actWrap);
 
     // 6.5 Targeting Priority Dropdown
     const tarSel = document.createElement('select');
@@ -963,13 +966,7 @@ export class LogicEditorUI {
       AudioManager.play('button_click');
     });
     const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot', 'dash_through'].includes(r.actionId);
-    if (!targetsEnemies) {
-      tarSel.disabled = true;
-      tarSel.tabIndex = -1;
-      tarSel.setAttribute('aria-hidden', 'true');
-      tarSel.style.visibility = 'hidden';
-    }
-    row.appendChild(tarSel);
+    if (targetsEnemies) field(actions, 'editor.target', tarSel);
 
     // Keep diagnostics and row actions in one grid cell. Rendering the
     // warning as a separate child creates an implicit second grid row and can
@@ -1067,7 +1064,7 @@ export class LogicEditorUI {
     });
     actionsContainer.appendChild(del);
 
-    row.appendChild(actionsContainer);
+    toolbar.appendChild(actionsContainer);
 
     return row;
   }
@@ -1329,7 +1326,7 @@ export class LogicEditorUI {
       // Interactive controls (including DIV-based map nodes and tabs) own
       // those keys; letting the document handler see them causes accidental
       // launches while editing or navigating by keyboard.
-      const isInteractive = activeElement?.matches?.('input, textarea, select, button, a, [role="button"], [role="tab"], [contenteditable="true"]');
+      const isInteractive = activeElement?.matches?.('input, textarea, select, button, summary, a, [role="button"], [role="tab"], [contenteditable="true"]');
       if (!isInteractive && (e.key === 'Enter' || e.key === ' ')) {
         // Allow default enter behavior in rule form submit
         if (e.key === 'Enter' && this.ruleForm && !this.ruleForm.classList.contains('hidden')) {
@@ -1477,8 +1474,9 @@ export class LogicEditorUI {
     }
   }
 
-  _openAddForm() {
-    this._formReturnFocus = document.activeElement;
+  _openAddForm(trigger = document.activeElement) {
+    this._formReturnFocus = trigger;
+    if (window.matchMedia?.('(max-width: 760px)').matches) this.selectMobilePanel('rules');
     this.fCond.innerHTML = '';
     this.fCond2.innerHTML = '';
     const conds = GameState.availableConditionIds();
@@ -1519,6 +1517,8 @@ export class LogicEditorUI {
     const returnFocus = this._formReturnFocus;
     this._formReturnFocus = null;
     const target = returnFocus instanceof HTMLElement && !returnFocus.disabled ? returnFocus : this.btnAddRule;
+    const panelId = target?.closest('[role="tabpanel"]')?.id;
+    if (panelId && window.matchMedia?.('(max-width: 760px)').matches) this.selectMobilePanel(panelId.slice('panel-'.length));
     target?.focus({ preventScroll: true });
     if (window.matchMedia?.('(max-width: 760px)').matches) {
       this._keepEditorTargetVisible(target);

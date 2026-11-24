@@ -986,8 +986,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('class="editor-mobile-tabs"'), 'mobile editor should expose panel navigation');
   assert(editorUi.includes('panel.inert') && editorUi.includes("aria-hidden"),
     'mobile editor tabs should remove inactive panel controls from the accessibility tree');
-  assert(editorUi.includes("tarSel.setAttribute('aria-hidden', 'true')") && editorUi.includes('tarSel.disabled = true'),
-    'actions without a target must not expose an inert target selector to assistive technology');
+  assert(editorUi.includes("if (targetsEnemies) field(actions, 'editor.target', tarSel)") && !editorUi.includes('appendChild(tarSel)'),
+    'actions without a target must omit the target selector from the rule card and accessibility tree');
   assert(html.includes('id="btn-export-rules"'), 'editor should expose build sharing');
   assert(html.includes('data-i18n-aria-label="editor.formPriority"'), 'rule builder priority must be labelled');
   assert(html.includes('data-i18n-aria-label="editor.formCondition1"'), 'rule builder condition must be labelled');
@@ -1086,7 +1086,8 @@ function verifyUiSafetyContracts() {
   assert(html.includes('name="overlogic-release"') && html.includes('id="app-version"'), 'settings should expose a supportable release identifier');
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
   setLocale('zh-CN', { notify: false });
-  assert.equal(t('menu.start'), '开始模拟');
+  assert.equal(t('menu.start'), '进入逻辑工作台');
+  assert.equal(t('editor.run'), '启动战斗模拟 ▶');
   assert.equal(t('combat.temperature'), '核心温度');
   assert.equal(t('report.unavailable'), '当前不可用');
   assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));
@@ -1094,7 +1095,8 @@ function verifyUiSafetyContracts() {
   assert.equal(entity('condition', 'support_present', 'Support Unit Present'), '存在支援单位');
   assert.equal(t('target.support'), '支援单位');
   setLocale('zh-TW', { notify: false });
-  assert.equal(t('menu.start'), '開始模擬');
+  assert.equal(t('menu.start'), '進入邏輯工作臺');
+  assert.equal(t('editor.run'), '啟動戰鬥模擬 ▶');
   assert.equal(t('combat.temperature'), '核心溫度');
   assert.equal(t('report.unavailable'), '目前不可用');
   assert.equal(entity('action', 'shield', 'Shield'), '護盾');

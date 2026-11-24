@@ -2359,14 +2359,6 @@ input[type="number"] {
 #arena {
   border: 1px solid var(--accent);
   background: #020306;
-  box-shadow: 0 0 45px rgba(0, 210, 255, 0.2);
-  border-radius: 4px;
-  width: min(100%, calc(100vh - 114px));
-  width: min(100%, calc(100dvh - 114px));
-  height: auto;
-  max-width: 100%;
-  max-height: calc(100vh - 114px);
-  max-height: calc(100dvh - 114px);
   justify-self: center;
   align-self: center;
   aspect-ratio: 1 / 1;
@@ -2380,28 +2372,23 @@ input[type="number"] {
   height: 100%;
   max-height: 100%;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+  grid-template-columns: minmax(0, 1fr) minmax(310px, 340px);
   align-items: stretch;
-  gap: 16px;
+  gap: 12px;
   width: 100%;
-  max-width: 1160px;
+  max-width: 1280px;
   margin: 0 auto;
   z-index: 8;
   overflow: hidden;
 }
 .combat-rules-panel {
-  width: 320px;
   min-width: 0;
-  background: var(--panel);
   border: 1px solid var(--line);
-  border-radius: 6px;
-  padding: 16px;
   box-shadow: var(--glow-shadow);
   display: flex;
   flex-direction: column;
   height: 100%;
-  max-height: calc(100vh - 114px);
-  max-height: calc(100dvh - 114px);
+
   min-height: 0;
   z-index: 8;
 }
@@ -2522,20 +2509,6 @@ input[type="number"] {
 .combat-rule-item.executing.overlogic .c-act {
   color: var(--boss);
   text-shadow: 0 0 6px rgba(255, 45, 116, 0.6);
-}
-@media (max-width: 1024px) {
-  .combat-main-layout {
-    grid-template-columns: 1fr;
-    align-items: center;
-    overflow-y: auto;
-  }
-  .combat-rules-panel {
-    width: 720px;
-    max-width: 100%;
-    height: auto;
-    max-height: 250px;
-    flex: none;
-  }
 }
 .phase-toast {
   position: absolute;
@@ -2758,15 +2731,6 @@ input[type="number"] {
   }
   .report-grid {
     grid-template-columns: 1fr;
-  }
-  .combat-top {
-    flex-wrap: wrap;
-    gap: 12px;
-    justify-content: center;
-  }
-  .hud-center {
-    order: -1;
-    width: 100%;
   }
 }
 .btn:disabled {
@@ -3372,62 +3336,6 @@ html.high-contrast .history-meta {
     padding: 16px 12px !important;
     font-size: 13px;
   }
-#screen-combat {
-    padding: 10px;
-    gap: 10px;
-    overflow-y: auto;
-  }
-.combat-top {
-    height: auto;
-    min-height: 0;
-    padding: 12px;
-    align-items: stretch;
-  }
-.hud-left {
-    width: 100%;
-    gap: 8px;
-  }
-.bar {
-    width: 100%;
-  }
-.bar > span {
-    width: 44px;
-  }
-.bar-track {
-    flex: 1;
-    width: auto;
-  }
-.hud-center {
-    order: -1;
-    width: 100%;
-    min-width: 0;
-  }
-.current-logic {
-    max-width: 100%;
-    white-space: normal;
-    line-height: 1.35;
-  }
-.hud-right {
-    width: 100%;
-    justify-content: space-between;
-  }
-.hud-right .btn {
-    flex: 1 1 auto;
-    padding: 9px 8px;
-  }
-.combat-main-layout {
-    width: 100%;
-    overflow: visible;
-    gap: 10px;
-  }
-#arena {
-    width: 100%;
-    height: auto;
-  }
-.combat-rules-panel {
-    width: 100%;
-    max-height: 300px;
-  }
 .phase-toast {
     width: calc(100% - 32px);
     white-space: normal;
@@ -3446,25 +3354,6 @@ html.high-contrast .history-meta {
   }
 .report-actions {
     flex-direction: column;
-  }
-}
-@media (min-width: 761px) and (max-width: 1120px) {
-  .combat-top {
-    height: auto;
-    padding: 14px;
-    gap: 12px;
-  }
-.hud-left {
-    flex: 1 1 100%;
-    justify-content: center;
-  }
-.hud-center {
-    order: -1;
-    flex-basis: 100%;
-  }
-.hud-right {
-    width: 100%;
-    justify-content: center;
   }
 }
 :root {
@@ -4251,7 +4140,7 @@ html[data-locale^="zh"] #screen-main .home-column-heading { letter-spacing:.04em
 #screen-editor {
   display: grid !important;
   grid-template-columns: minmax(0, 1fr);
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto;
+  grid-template-rows: auto minmax(0, 1fr) auto;
   align-content: stretch;
   align-items: stretch;
   gap: 10px;
@@ -4960,6 +4849,64 @@ body::before {
 #screen-editor .module-list li:hover { transform: translateX(2px); border-color: var(--border-mid); }
 #screen-editor .rule-row { border-left: 2px solid rgba(var(--accent2-rgb), .32); background: rgba(255,255,255,.018); }
 #screen-editor .editor-footer { border-top-color: rgba(var(--accent-rgb), .28); }
+#screen-editor details > summary {
+  padding: 8px 4px;
+  color: var(--accent);
+  font: 600 13px/1.35 var(--font-ui);
+  cursor: pointer;
+}
+#screen-editor summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+#screen-editor .editor-prep { border-top: 1px solid var(--border-soft); min-width: 0; }
+#screen-editor .editor-prep > section { margin: 8px 0 0; }
+#screen-editor .editor-library { margin-bottom: 6px; }
+#screen-editor .rule-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr);
+  align-items: start;
+  padding: 9px 12px;
+  gap: 7px 16px;
+}
+#screen-editor .rule-card-toolbar {
+  display: flex; align-items: center; gap: 8px; grid-column: 1 / -1;
+  padding-bottom: 5px; border-bottom: 1px solid var(--border-soft);
+}
+#screen-editor .rule-card-toolbar .rule-row-actions { margin-left: auto; }
+#screen-editor .rule-card-toolbar .rule-warn-icon { position: static; }
+#screen-editor .rule-reorder-buttons { display: inline-flex; gap: 3px; }
+#screen-editor .rule-move-btn { min-height: 28px; min-width: 28px; }
+#screen-editor .rule-card-fields { display: grid; min-width: 0; align-content: start; gap: 4px; }
+#screen-editor .rule-field-label { color: var(--muted); font: 600 11px/1.25 var(--font-ui); }
+#screen-editor .rule-row select, #screen-editor .rule-row input:not([type="checkbox"]) {
+  font: 500 13px/1.25 var(--font-ui); height: 32px;
+}
+#screen-editor .rule-row .cond-wrap, #screen-editor .rule-row .cond2-wrap { flex-wrap: wrap; }
+#screen-editor .rule-card-fields :is(.cond-wrap, .cond2-wrap) select { min-width: max-content; }
+#screen-editor .rule-card-fields [data-focus-field="action"] { flex: 1; }
+#screen-editor .module-list li { font-size: 14px; }
+#screen-editor .module-list .mod-desc { font-size: 12px; line-height: 1.45; }
+#screen-editor .module-list .mod-meta { font-size: 11px; }
+@media (min-width: 901px) {
+  /* Keep the workspace usable when prep, loadouts or the builder are open.
+     Short windows scroll the screen rather than crushing the rule list. */
+  #screen-editor { grid-template-rows: auto minmax(20rem, 1fr) auto; overflow-y: auto; }
+  #screen-editor .panel-rules { overflow-y: auto !important; }
+  #screen-editor .panel-rules > :not(.rule-list) { flex-shrink: 0; }
+  #screen-editor .panel-rules .rule-list { flex: 1 0 12rem; max-height: none; }
+  #screen-editor :is(#panel-conditions, #panel-actions) {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr);
+  }
+  #screen-editor .module-list { align-content: start; padding: 3px; }
+}
+@media (min-width: 761px) and (max-width: 900px) {
+  #screen-editor { height: 100%; justify-content: flex-start; }
+  #screen-editor .editor-grid { display: grid !important; grid-template-columns: repeat(2, minmax(0, 1fr)) !important; }
+  #screen-editor #panel-rules { grid-row: 1; grid-column: 1 / -1; }
+}
+@media (max-width: 760px) {
+  #screen-editor .editor-mobile-tabs { position: static; }
+  #screen-editor .editor-prep summary, #screen-editor .editor-library summary { min-height: 40px; }
+}
 #screen-combat {
   gap: 10px;
   padding: 12px 16px;
@@ -4985,14 +4932,6 @@ body::before {
 .wave-info { margin-top: 5px; font-size: 10px; }
 .hud-right { min-width: 0; }
 .hud-right .btn { min-width: 0; min-height: 38px; padding: 0 12px; font-size: 9px; }
-.combat-main-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(310px, 340px);
-  gap: 12px;
-  width: 100%;
-  max-width: 1280px;
-  min-height: 0;
-  height: 100%;
-}
 .arena-frame {
   position: relative;
   display: grid;
@@ -5040,18 +4979,16 @@ body::before {
 .corner-bl { bottom: 16px; left: 18px; border-width: 0 0 1px 1px; }
 .corner-br { right: 18px; bottom: 16px; border-width: 0 1px 1px 0; }
 #arena {
-  width: min(100%, calc(100dvh - 180px));
+  width: min(100cqw, 100cqh);
   height: auto;
   max-width: 100%;
   max-height: 100%;
-  aspect-ratio: 1 / 1;
   border-color: rgba(var(--accent-rgb), .58);
   border-radius: 9px;
   box-shadow: 0 0 46px rgba(var(--accent-rgb), .11);
 }
 .combat-rules-panel {
   width: 100%;
-  height: 100%;
   max-height: none;
   padding: 15px;
   border-color: var(--border-mid);
@@ -5061,13 +4998,56 @@ body::before {
 .combat-rules-panel h3 { color: #b9edfb; font-size: 11px; }
 .combat-rule-item { border-radius: 8px; background: rgba(255,255,255,.018); }
 .combat-console-log { border-radius: 8px; background: rgba(0, 4, 10, .58); }
+.combat-inspector { display: flex; flex-direction: column; flex: 1; min-height: 0; }
+.combat-inspector-toggle { display: none; }
+.combat-rule-item { flex-shrink: 0; }
+.combat-main-layout .arena-frame { container-type: size; }
+.arena-corner { pointer-events: none; }
+
 @media (max-width: 1024px) {
   #screen-main .home-header { grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; }
   #screen-main .home-shell { grid-template-columns: minmax(0, 1fr) minmax(300px, .78fr); }
-  .combat-main-layout { grid-template-columns: 1fr; height: auto; overflow-y: auto; }
-  .arena-frame { width: min(100%, 720px); height: auto; aspect-ratio: 1 / 1; justify-self: center; }
-  #arena { width: min(100%, calc(100dvh - 180px)); height: auto; }
-  .combat-rules-panel { width: min(100%, 720px); height: 330px; max-height: 330px; justify-self: center; }
+  #screen-combat {
+    padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+  #screen-combat .combat-top { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; min-height: 0; padding: 8px; }
+  #screen-combat .hud-left { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  #screen-combat .hud-left .bar { row-gap: 2px; }
+  #screen-combat .hud-center { order: 0; display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; text-align: left; }
+  #screen-combat .current-logic { grid-column: 1 / -1; width: 100%; min-height: 0; margin: 0; padding: 3px 0; white-space: nowrap; font-size: 11px; letter-spacing: .03em; }
+  #screen-combat .wave-info { margin: 0; letter-spacing: .05em; }
+  #combat-timer { font: 11px/1.3 var(--font-mono); }
+  #screen-combat .hud-right { display: flex; flex-wrap: wrap; gap: 4px; }
+  #screen-combat::after { opacity: .28; }
+  #screen-combat .hud-right .btn { flex: 1 1 auto; min-width: 44px; min-height: 44px; padding: 0 5px; letter-spacing: .03em; }
+  #screen-combat .combat-main-layout { grid-template: minmax(0, 1fr) auto / minmax(0, 1fr); align-items: stretch; overflow: visible; gap: 6px; min-height: 120px; }
+  #screen-combat .arena-frame { width: 100%; height: 100%; padding: 24px 6px 6px; }
+  #screen-combat .arena-frame::after { inset: 24px 6px 6px; }
+  #screen-combat .combat-rules-panel { width: 100%; height: auto; min-height: 0; max-height: none; padding: 0; }
+  .combat-inspector-toggle { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 44px; padding: 0 14px; background: transparent; color: var(--accent); font: 700 12px/1.2 var(--font-mono); border: 0; cursor: pointer; }
+  .combat-inspector-toggle[aria-expanded="false"] + .combat-inspector { display: none; }
+  .combat-inspector-toggle[aria-expanded="true"] .inspector-chevron { transform: rotate(180deg); }
+  .combat-inspector { flex: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; height: clamp(100px, 24dvh, 240px); padding: 0 8px 8px; }
+  .combat-inspector .combat-console-section { padding: 0; margin: 0; border: 0; }
+  .combat-inspector h3 { margin: 0 0 5px; padding-bottom: 4px; }
+  .combat-inspector .combat-console-log { margin: 0; }
+}
+@media (min-width: 650px) and (max-width: 1024px) and (orientation: landscape) {
+  #screen-combat .combat-top { grid-template-columns: minmax(0, .85fr) minmax(0, 1fr) auto; align-items: center; gap: 12px; }
+  #screen-combat .hud-right { width: auto; }
+  #screen-combat .combat-main-layout { grid-template: minmax(0, 1fr) / minmax(0, 1fr) minmax(200px, 30%); }
+  #screen-combat .combat-rules-panel { align-self: start; max-height: 100%; }
+  .combat-inspector { grid-template-columns: 1fr; grid-template-rows: repeat(2, minmax(0, 1fr)); height: min(48dvh, 420px); flex: 1 1 auto; }
+}
+@media (max-width: 649px) and (orientation: landscape) {
+  #screen-combat { display: grid; grid-template: auto auto minmax(0, 1fr) / minmax(0, 1fr) minmax(245px, 46%); align-items: start; }
+  #screen-combat .combat-top { grid-area: 1 / 2; }
+  #screen-combat .boss-bar { grid-area: 2 / 2; width: 100%; margin: 0; }
+  #screen-combat .combat-main-layout { display: contents; }
+  #screen-combat .arena-frame { grid-area: 1 / 1 / -1; }
+  #screen-combat .combat-rules-panel { grid-area: 3 / 2; max-height: 100%; }
+  .combat-inspector { flex: 1 1 auto; }
 }
 @media (min-width: 761px) and (max-width: 900px) {
   #screen-main .home-header { grid-template-columns: minmax(0, 1fr); gap: 16px; min-height: 0; }
@@ -5093,22 +5073,33 @@ body::before {
   #screen-main .home-run-intro { min-height: 64px; }
   #screen-editor .map-col { flex-basis: 124px; min-width: 124px; }
   #screen-editor .editor-mobile-run { display: flex; position: sticky; top: 8px; z-index: 35; flex: 0 0 auto; width: 100%; min-height: 46px; border-color: rgba(var(--accent2-rgb), .45); background: linear-gradient(105deg, rgba(37, 139, 172, .94), rgba(45, 139, 112, .92)); box-shadow: 0 12px 28px rgba(0, 0, 0, .36), 0 0 18px rgba(var(--accent-rgb), .12); }
-  .combat-top { display: flex; min-height: 0; }
-  .hud-left { display: grid; grid-template-columns: 1fr; width: 100%; }
-  .arena-frame { padding: 28px 10px 10px; border-radius: var(--radius-md); }
-  .arena-frame::after { inset: 28px 10px 10px; }
-  .combat-rules-panel { height: auto; max-height: 360px; }
+
 }
 @media (max-width: 480px) {
-  #screen-main .home-header { gap: 14px; }
+  #screen-main { gap: 12px; padding-block-start: 12px; }
+  #screen-main .home-header { gap: 10px; padding-bottom: 10px; }
   #screen-main .home-lead { display: none; }
-  #screen-main .home-hero-console { height: 150px; }
+  /* On phones the console is a utility strip; give the launch controls the space. */
+  #screen-main .home-hero-console {
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 5px 8px;
+  }
+  #screen-main .home-launch-column > .home-column-heading,
+  #screen-main .core-schematic,
+  #screen-main .core-status small,
+  #screen-main .home-run-intro { display: none; }
+  #screen-main .core-status { position: static; width: auto; order: -1; min-width: 0; }
+  #screen-main .locale-switcher { position: relative; inset: auto; min-width: 0; padding: 2px; }
+  #screen-main .locale-switcher button { min-height: 40px; }
   #screen-main .home-loop { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
   #screen-main .home-loop span { display: grid; justify-items: center; gap: 5px; }
   #screen-main .home-loop i { display: none; }
   #screen-main .home-loop small { text-align: center; }
-  #screen-main .home-run-intro { align-items: flex-start; min-height: 54px; padding: 9px 12px; }
-  #screen-main .home-run-intro small { display: none; }
+  #screen-main .run-config-panel label > span { font-size: 10px; }
   #screen-main .run-config-panel { gap: 8px; padding: 11px; }
   #screen-main .run-config-panel select,
   #screen-main .run-seed-field input,

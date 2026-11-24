@@ -134,7 +134,7 @@
           <small id="run-season-status">Active</small>
         </section>
         <div class="menu-buttons">
-          <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Start Simulation</button>
+          <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Open Logic Workstation</button>
           <button type="button" id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
           <button type="button" id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
           <button type="button" id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
@@ -208,27 +208,29 @@
           <span id="ed-teach" class="value">1</span>
         </div>
       </div>
-      <div class="map-panel">
-        <span id="map-route-label" class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
-        <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
-      </div>
+      <details class="editor-prep">
+        <summary data-i18n="editor.prepDetails">Route, readiness &amp; synergies</summary>
+        <div class="map-panel">
+          <span id="map-route-label" class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
+          <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
+        </div>
+        <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
+        <section id="synergy-panel" class="synergy-panel" aria-labelledby="synergy-title">
+          <div class="synergy-heading">
+            <span id="synergy-title" data-i18n="synergy.title">Protocol Synergies</span>
+            <small data-i18n="synergy.hint">Combine upgrades to unlock build-defining effects.</small>
+          </div>
+          <div id="synergy-list" class="synergy-list"></div>
+        </section>
+      </details>
     </header>
-
-    <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
-    <section id="synergy-panel" class="synergy-panel" aria-labelledby="synergy-title">
-      <div class="synergy-heading">
-        <span id="synergy-title" data-i18n="synergy.title">Protocol Synergies</span>
-        <small data-i18n="synergy.hint">Combine upgrades to unlock build-defining effects.</small>
-      </div>
-      <div id="synergy-list" class="synergy-list"></div>
-    </section>
 
     <nav class="editor-mobile-tabs" role="tablist" aria-label="Editor panels" data-i18n-aria-label="editor.panelNavigation">
       <button type="button" id="editor-tab-rules" role="tab" aria-controls="panel-rules" aria-selected="true" tabindex="0" data-editor-panel="rules" class="active" data-i18n="editor.tabRules">Rules</button>
       <button type="button" id="editor-tab-conditions" role="tab" aria-controls="panel-conditions" aria-selected="false" tabindex="-1" data-editor-panel="conditions" data-i18n="editor.tabConditions">Conditions</button>
       <button type="button" id="editor-tab-actions" role="tab" aria-controls="panel-actions" aria-selected="false" tabindex="-1" data-editor-panel="actions" data-i18n="editor.tabActions">Actions</button>
     </nav>
-    <button type="button" id="btn-mobile-run" class="btn primary editor-mobile-run" data-i18n="editor.run">Run Simulation ▶</button>
+    <button type="button" id="btn-mobile-run" class="btn primary editor-mobile-run" data-i18n="editor.run">Launch Battle ▶</button>
 
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions" role="tabpanel" aria-labelledby="editor-tab-conditions">
@@ -245,7 +247,8 @@
           <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
         </h3>
         
-        <!-- Slots Bar -->
+        <details class="editor-library">
+          <summary data-i18n="editor.libraryDetails">Templates &amp; saved loadouts</summary>
         <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
           <span data-i18n="editor.loadouts" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
           <div class="template-tools" style="display: flex; align-items: center; gap: 6px; flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 8px;">
@@ -279,6 +282,7 @@
           </div>
         </div>
 
+        </details>
         <div id="rule-form" class="rule-form hidden">
           <select id="f-cond" aria-label="Primary condition for new rule" data-i18n-aria-label="editor.formCondition1"></select>
           <span id="f-cond-param"></span>
@@ -327,7 +331,7 @@
           <option value="support" data-i18n="sandbox.support">Support Protocol</option>
         </select>
         <button type="button" id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox">Sandbox Test ⚙️</button>
-        <button type="button" id="btn-run" class="btn primary big" data-i18n="editor.run">Run Simulation ▶</button>
+        <button type="button" id="btn-run" class="btn primary big" data-i18n="editor.run">Launch Battle ▶</button>
       </div>
     </footer>
   </section>
@@ -369,13 +373,16 @@
         <canvas id="arena" width="720" height="720" role="img" aria-label="Combat arena" data-i18n-aria-label="combat.arena"></canvas>
       </div>
       <aside class="panel combat-rules-panel">
-        <div class="directives-section combat-panel-section">
-          <h3 data-i18n="combat.directives">Active Directives</h3>
-          <ul id="combat-rules-list" class="combat-rules-list"></ul>
-        </div>
-        <div class="console-section combat-panel-section combat-console-section">
-          <h3 data-i18n="combat.console">Console Log</h3>
-          <div id="combat-console-log" class="combat-console-log" role="log" aria-live="polite" aria-relevant="additions"></div>
+        <button type="button" class="combat-inspector-toggle" id="btn-combat-inspector" aria-expanded="false" aria-controls="combat-inspector"><span data-i18n="combat.inspector">Directives &amp; log</span><span class="inspector-chevron" aria-hidden="true">⌄</span></button>
+        <div id="combat-inspector" class="combat-inspector">
+          <div class="directives-section combat-panel-section">
+            <h3 id="combat-directives-title" data-i18n="combat.directives">Active Directives</h3>
+            <ul id="combat-rules-list" class="combat-rules-list" tabindex="0" aria-labelledby="combat-directives-title"></ul>
+          </div>
+          <div class="console-section combat-panel-section combat-console-section">
+            <h3 id="combat-log-title" data-i18n="combat.console">Console Log</h3>
+            <div id="combat-console-log" class="combat-console-log" role="log" tabindex="0" aria-labelledby="combat-log-title" aria-live="polite" aria-relevant="additions"></div>
+          </div>
         </div>
       </aside>
     </div>

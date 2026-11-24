@@ -26,6 +26,7 @@ export class BattleHUD {
     this.btnStep  = document.getElementById('btn-step');
     this.btnSpeed = document.getElementById('btn-speed');
     this.btnQuit  = document.getElementById('btn-quit');
+    this.inspectorToggle = document.getElementById('btn-combat-inspector');
     this.bossWrap = document.getElementById('boss-bar-wrap');
     this.bossName = document.getElementById('boss-name');
     this.bossFill = document.getElementById('boss-fill');
@@ -56,14 +57,23 @@ export class BattleHUD {
     entry.className = `console-entry ${type}`;
     const timePrefix = `[${this.arena ? this.arena.battleTime.toFixed(1) : '0.0'}s] `;
     entry.textContent = timePrefix + message;
+    const follow = consoleEl.scrollHeight - consoleEl.clientHeight - consoleEl.scrollTop < 2;
     consoleEl.appendChild(entry);
     while (consoleEl.children.length > 50) {
       consoleEl.removeChild(consoleEl.firstChild);
     }
-    consoleEl.scrollTop = consoleEl.scrollHeight;
+    if (follow) consoleEl.scrollTop = consoleEl.scrollHeight;
   }
 
   _bind() {
+    this.inspectorToggle?.addEventListener('click', () => {
+      const open = this.inspectorToggle.getAttribute('aria-expanded') !== 'true';
+      this.inspectorToggle.setAttribute('aria-expanded', String(open));
+      if (open) {
+        const log = document.getElementById('combat-console-log');
+        log.scrollTop = log.scrollHeight;
+      }
+    });
     this.btnPause.addEventListener('click', () => {
       if (!this.arena) return;
       this.arena.togglePause();
@@ -107,6 +117,7 @@ export class BattleHUD {
   }
 
   onBattleStart(battle) {
+    this.inspectorToggle.setAttribute('aria-expanded', 'false');
     this.btnPause.textContent = t('combat.pause');
     this.btnPause.setAttribute('aria-pressed', 'false');
     this.btnStep.classList.add('hidden');

@@ -34,6 +34,8 @@ jobs:
         run: npm run release-audit
       - name: Smoke test release over HTTP
         run: npm run http-audit
+      - name: Check responsive layout in Chrome
+        run: npm run layout-audit
       - name: Enforce performance budgets
         run: npm run performance-audit
 

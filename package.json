@@ -10,6 +10,7 @@
     "balance": "node scripts/simulate-balance.mjs",
     "release-audit": "node scripts/audit-release.mjs",
     "http-audit": "node scripts/audit-http.mjs",
+    "layout-audit": "node scripts/audit-layout.mjs",
     "quality-audit": "node scripts/audit-quality.mjs",
     "performance-audit": "node scripts/audit-performance.mjs",
     "check": "node scripts/check.mjs"

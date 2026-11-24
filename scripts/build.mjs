@@ -27,6 +27,12 @@ async function rewrite(dir) {
       await rewrite(target);
       continue;
     }
+    if (item.name.endsWith('.css')) {
+      // Keep source indentation readable without shipping it in the stylesheet.
+      const css = await fs.readFile(target, 'utf8');
+      await fs.writeFile(target, css.replace(/^[ \t]+/gm, ''));
+      continue;
+    }
     if (!/\.(?:html|js)$/.test(item.name)) continue;
     const source = await fs.readFile(target, 'utf8');
     const updated = source
