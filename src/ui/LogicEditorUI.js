@@ -14,6 +14,18 @@ import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { describeRule, formatLabel } from '../logic/LogicRule.js?v=20260725-4';
+import { RobotStats } from '../robot/RobotStats.js?v=20260725-4';
+
+function actionDetails(action, stats) {
+  const cost = t('editor.actionCost', {
+    time: t('reward.unit.seconds', { value: Number(stats.actionCooldown(action.id).toFixed(2)) }),
+    energy: action.energyCost,
+  });
+  if (action.id === 'dash_toward' || action.id === 'dash_away') {
+    return `${cost} · ${t('editor.actionTravel', { range: stats.stat('dash_distance', 3) })}`;
+  }
+  return action.range > 0 ? `${cost} · ${t('editor.actionRange', { range: action.range })}` : cost;
+}
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -222,12 +234,12 @@ export class LogicEditorUI {
     const battle = GameState.getActiveBattle();
     if (battle) {
       this.edBattleName.textContent = entity('battle', battle.id, battle.displayName);
-      this.edBattlePreview.textContent = `// ${this._formatBattlePreview(battle)}`;
+      this.edBattlePreview.textContent = this._formatBattlePreview(battle);
     } else {
       const colNodes = GameState.mapNodes[GameState.currentMapColumn];
       const activeNode = colNodes ? colNodes.find(n => n.id === GameState.selectedNodeId) : null;
       if (activeNode) {
-        this.edBattleName.textContent = activeNode.type === 'repair' ? t('map.repair') : t('map.upgrade');
+        this.edBattleName.textContent = activeNode.type === 'repair' ? t('map.repairName') : t('map.upgradeName');
         this.edBattlePreview.textContent = t('editor.instantNode');
       } else {
         this.edBattleName.textContent = '—';
@@ -563,6 +575,8 @@ export class LogicEditorUI {
       this.condList.appendChild(li);
     }
     // Actions
+    const stats = new RobotStats();
+    stats.loadFromGameState();
     this.actList.innerHTML = '';
     for (const id of GameState.availableActionIds()) {
       const a = GameDatabase.getAction(id);
@@ -573,9 +587,7 @@ export class LogicEditorUI {
       const li = document.createElement('li');
       li.innerHTML = `<span class="mod-name">${escapeHtml(entity('action', id, a.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
         `<span class="mod-desc">${escapeHtml(entity('action', id, a.description, 'description'))}</span>` +
-        `<span class="mod-meta">${escapeHtml(t('editor.actionMeta', {
-          cooldown: a.cooldown, energy: a.energyCost, range: a.range,
-        }))}</span>`;
+        `<span class="mod-meta">${escapeHtml(actionDetails(a, stats))}</span>`;
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'action';
       li.dataset.tooltipId = id;
@@ -722,6 +734,8 @@ export class LogicEditorUI {
       this.editorRun = GameState.runStats.runId;
       this.expandedRuleId = sortedRules[0]?.id;
     }
+    const stats = new RobotStats();
+    stats.loadFromGameState();
     for (const r of sortedRules) {
       // Filter check
       if (searchQuery) {
@@ -729,11 +743,13 @@ export class LogicEditorUI {
         const c2 = GameDatabase.getCondition(r.conditionId2);
         const a = GameDatabase.getAction(r.actionId);
         const matches = formatLabel(r, GameDatabase).toLowerCase().includes(searchQuery) ||
-          [c1, c2, a].some(item => item?.displayName.toLowerCase().includes(searchQuery));
+          [['condition', c1], ['condition', c2], ['action', a]].some(([kind, item]) =>
+            item && [item.displayName, entity(kind, item.id, item.displayName)]
+              .some(name => name.toLowerCase().includes(searchQuery)));
         if (!matches) continue;
       }
 
-      const row = this._buildRow(r);
+      const row = this._buildRow(r, stats);
       this.ruleList.appendChild(row);
     }
     if (searchQuery && GameState.rules.length && !this.ruleList.childElementCount) {
@@ -806,7 +822,7 @@ export class LogicEditorUI {
     if (scrollContainer) scrollContainer.scrollTop = scrollTop;
   }
 
-  _buildRow(r) {
+  _buildRow(r, stats) {
     const row = document.createElement('li');
     row.className = 'rule-row';
     row.dataset.id = r.id;
@@ -834,8 +850,8 @@ export class LogicEditorUI {
     const { condition, action } = describeRule(r, GameDatabase);
     summary.innerHTML =
       `<span class="rule-order">${escapeHtml(String(r.priority))}</span>` +
-      `<span class="rule-when"><small>${escapeHtml(t('combat.if'))}</small> ${escapeHtml(condition)}</span>` +
-      `<span class="rule-do"><small>${escapeHtml(t('combat.then'))}</small> ${escapeHtml(action)}</span>`;
+      `<span class="rule-phrase"><span class="rule-when"><small>${escapeHtml(t('combat.if'))}</small> ${escapeHtml(condition)}</span> ` +
+      `<span class="rule-do"><small>${escapeHtml(t('combat.then'))}</small> ${escapeHtml(action)}</span></span>`;
     summary.setAttribute('aria-label', readableSummary);
     summary.title = readableSummary;
     const toolbar = document.createElement('div');
@@ -854,10 +870,9 @@ export class LogicEditorUI {
     row.append(overview, detail);
     row.classList.toggle('rule-disabled', r.enabled === false);
 
-    // 1. Drag handle (☰)
+    // Drag handle
     const handle = document.createElement('span');
     handle.className = 'drag-handle';
-    handle.innerHTML = '☰';
     handle.title = t('editor.dragReorder');
     handle.addEventListener('mousedown', () => {
       row.setAttribute('draggable', 'true');
@@ -966,7 +981,7 @@ export class LogicEditorUI {
     opSel.setAttribute('aria-label', t('editor.conditionOperator', { id: r.id }));
     opSel.style.width = '100%';
     const optNone = document.createElement('option');
-    optNone.value = ''; optNone.textContent = t('common.none');
+    optNone.value = ''; optNone.textContent = t('editor.singleCondition');
     if (!r.operator) optNone.selected = true;
     opSel.appendChild(optNone);
 
@@ -1025,42 +1040,19 @@ export class LogicEditorUI {
     const actSel = this._actSelect(r.actionId);
     actSel.dataset.focusField = 'action';
     actSel.setAttribute('aria-label', t('editor.ruleAction', { id: r.id }));
-    const actWrap = document.createElement('span');
-    actWrap.style.display = 'flex';
-    actWrap.style.flexDirection = 'column';
-    actWrap.style.alignItems = 'flex-start';
-    actWrap.style.gap = '3px';
-    actWrap.style.width = '100%';
-
-    const selLine = document.createElement('div');
-    selLine.style.display = 'flex';
-    selLine.style.alignItems = 'center';
-    selLine.style.gap = '4px';
-    selLine.style.width = '100%';
-    selLine.appendChild(document.createTextNode('→ '));
-    selLine.appendChild(actSel);
-    actWrap.appendChild(selLine);
-
-    const badgeSpan = document.createElement('span');
-    badgeSpan.className = 'rule-act-badge';
-    badgeSpan.style.marginLeft = '16px';
-    const updateBadges = (actId) => {
-      const a = GameDatabase.getAction(actId);
-      if (a) {
-        badgeSpan.innerHTML = `<span class="badge-cd">${a.cooldown}s</span><span class="badge-en">e${a.energyCost}</span>`;
-      } else {
-        badgeSpan.innerHTML = '';
-      }
-    };
-    updateBadges(r.actionId);
-    actWrap.appendChild(badgeSpan);
-
+    actSel.className = 'rule-action-select';
     actSel.addEventListener('change', () => {
       GameState.setRuleAction(r.id, actSel.value);
-      updateBadges(actSel.value);
       AudioManager.play('button_click');
     });
-    field(actions, 'editor.thenAction', actWrap);
+    field(actions, 'editor.thenAction', actSel);
+    const actionData = GameDatabase.getAction(r.actionId);
+    if (actionData) {
+      const meta = document.createElement('span');
+      meta.className = 'rule-action-meta';
+      meta.textContent = actionDetails(actionData, stats);
+      actions.appendChild(meta);
+    }
 
     // 6.5 Targeting Priority Dropdown
     const tarSel = document.createElement('select');
@@ -1088,82 +1080,28 @@ export class LogicEditorUI {
     const targetsEnemies = ['basic_attack', 'dash_toward', 'dash_away', 'interrupt_shot', 'dash_through'].includes(r.actionId);
     if (targetsEnemies) field(actions, 'editor.target', tarSel);
 
-    // Keep diagnostics and row actions in one grid cell. Rendering the
-    // warning as a separate child creates an implicit second grid row and can
-    // push duplicate/delete controls outside the rule card at compact heights.
+    const warnings = this._activeWarnings?.get(r.id);
+    if (warnings?.length) {
+      const list = document.createElement('ul');
+      list.className = 'rule-advice';
+      for (const warning of warnings) {
+        const item = document.createElement('li');
+        item.textContent = warning;
+        list.appendChild(item);
+      }
+      detail.insertBefore(list, toolbar);
+    }
+
     const actionsContainer = document.createElement('span');
     actionsContainer.className = 'rule-row-actions';
 
-    // Warnings alert icon
-    const warnings = this._activeWarnings && this._activeWarnings.get(r.id);
-    if (warnings && warnings.length > 0) {
-      const warnSpan = document.createElement('span');
-      warnSpan.className = 'rule-warn-icon';
-      warnSpan.tabIndex = 0;
-      warnSpan.setAttribute('role', 'img');
-      warnSpan.setAttribute('aria-label', `${t('brief.warnings', { count: warnings.length })}: ${warnings.join(' ')}`);
-      warnSpan.innerHTML = '⚠️';
-      warnSpan.style.cursor = 'help';
-      warnSpan.style.color = '#ffb938';
-      warnSpan.style.fontSize = '14px';
-      warnSpan.style.textShadow = '0 0 6px #ffb938';
-      
-      const showWarningTooltip = () => {
-        const tooltip = document.getElementById('custom-tooltip');
-        if (!tooltip) return;
-        tooltip.innerHTML = warnings.map(w => `<div style="margin-bottom: 4px; color: #ffb938; font-weight: bold;">• ${escapeHtml(w)}</div>`).join('');
-        tooltip.classList.remove('hidden');
-        tooltip.style.display = 'block';
-        tooltip.setAttribute('aria-hidden', 'false');
-        warnSpan.setAttribute('aria-describedby', 'custom-tooltip');
-        
-        const rect = warnSpan.getBoundingClientRect();
-        const tooltipW = tooltip.offsetWidth;
-        const tooltipH = tooltip.offsetHeight;
-        
-        const left = Math.max(10, Math.min(window.innerWidth - tooltipW - 10,
-          rect.left - tooltipW / 2 + rect.width / 2));
-        let top = rect.top - tooltipH - 8;
-        if (top < 10) top = rect.bottom + 8;
-        if (top + tooltipH > window.innerHeight - 10) top = Math.max(10, window.innerHeight - tooltipH - 10);
-        tooltip.style.left = `${left}px`;
-        tooltip.style.top = `${top}px`;
-      };
-      warnSpan.addEventListener('mouseenter', showWarningTooltip);
-      warnSpan.addEventListener('focusin', showWarningTooltip);
-
-      const hideWarningTooltip = () => {
-        const tooltip = document.getElementById('custom-tooltip');
-        if (tooltip) {
-          tooltip.classList.add('hidden');
-          tooltip.style.display = 'none';
-          tooltip.setAttribute('aria-hidden', 'true');
-        }
-        warnSpan.removeAttribute('aria-describedby');
-      };
-      warnSpan.addEventListener('mouseleave', hideWarningTooltip);
-      warnSpan.addEventListener('focusout', hideWarningTooltip);
-
-      actionsContainer.appendChild(warnSpan);
-    }
-    
-    // 7. Actions Container (Duplicate + Delete)
     // 7.1 Clone Button
     const clone = document.createElement('button');
     clone.type = 'button';
     clone.disabled = GameState.rules.length >= 40;
-    clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = t('editor.duplicate');
+    clone.className = 'clone-btn';
+    clone.textContent = t('editor.duplicate');
     clone.dataset.focusField = 'duplicate';
-    clone.setAttribute('aria-label', t('editor.duplicate'));
-    clone.style.background = 'none';
-    clone.style.border = 'none';
-    clone.style.cursor = 'pointer';
-    clone.style.color = 'var(--muted)';
-    clone.style.fontSize = '12px';
-    clone.style.padding = '2px';
-    clone.style.transition = 'color 0.2s, transform 0.2s';
-    clone.addEventListener('mouseenter', () => { clone.style.color = 'var(--accent2)'; clone.style.transform = 'scale(1.15)'; });
-    clone.addEventListener('mouseleave', () => { clone.style.color = 'var(--muted)'; clone.style.transform = 'scale(1)'; });
     clone.addEventListener('click', () => {
       if (GameState.addRule(
         r.conditionId, r.conditionValue, r.actionId, Math.max(0, r.priority - 1),
@@ -1178,7 +1116,7 @@ export class LogicEditorUI {
 
     // 7.2 Delete Button
     const del = document.createElement('button');
-    del.className = 'del'; del.textContent = '✕'; del.title = t('editor.delete');
+    del.className = 'del'; del.type = 'button'; del.textContent = t('editor.delete');
     del.dataset.focusField = 'delete';
     del.setAttribute('aria-label', t('editor.delete'));
     del.addEventListener('click', () => {

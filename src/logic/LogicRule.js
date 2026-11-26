@@ -10,13 +10,21 @@ export function formatCond(condId, val, db, negated = false) {
   if (!condId) return '';
   const c = db.getCondition(condId);
   const cName = c ? entity('condition', condId, c.displayName) : condId;
-  let vStr = '';
-  if (typeof val === 'number') {
-    vStr = c && c.parameterType === 'percent' ? ` ${Math.round(val * 100)}%` : ` ${val.toFixed(1)}`;
-  } else if (Array.isArray(val)) {
-    vStr = ` (${val[0].toFixed(1)},${val[1].toFixed(0)})`;
+  let clause = cName;
+  const key = `rule.condition.${condId}`;
+  const round = value => Number(value.toFixed(2));
+  if (Number.isFinite(val)) {
+    const percent = c?.parameterType === 'percent';
+    const value = percent ? round(val * 100) : round(val);
+    clause = t(key, { value });
+    if (clause === key) clause = `${cName} ${value}${percent ? '%' : ''}`;
+  } else if (Array.isArray(val) && Number.isFinite(val[0]) && Number.isFinite(val[1])) {
+    const radius = round(val[0]);
+    const count = Math.trunc(val[1]);
+    clause = t(key, { radius, count });
+    if (clause === key) clause = `${cName} (${radius}, ${count})`;
   }
-  return `${negated ? `${t('common.not')} ` : ''}${cName}${vStr}`;
+  return negated ? `${t('common.not')} (${clause})` : clause;
 }
 
 // Format a rule for HUD display: "[P{n}] IF Cond val THEN Action"

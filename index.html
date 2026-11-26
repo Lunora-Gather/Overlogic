@@ -219,21 +219,23 @@
     </div>
 
     <header class="editor-header">
-      <div class="editor-header-top">
-        <div class="battle-info">
-          <span class="label" data-i18n="editor.nextBattle">Next Battle</span>
-          <span id="ed-battle-name" class="value">—</span>
-          <span id="ed-battle-preview" class="muted">—</span>
-        </div>
-        <div class="teach-info">
-          <span class="label" data-i18n="editor.directiveLayer">Directive Layer</span>
-          <span id="ed-teach" class="value">1</span>
-        </div>
-      </div>
       <details class="editor-prep">
-        <summary data-i18n="editor.prepDetails">Route, readiness &amp; synergies</summary>
+        <summary>
+          <span class="battle-info">
+            <span class="label" data-i18n="editor.nextBattle">Next Battle</span>
+            <span id="ed-battle-name" class="value">—</span>
+            <span id="ed-battle-preview" class="muted">—</span>
+          </span>
+          <span class="editor-prep-caption" data-i18n="editor.prepDetails">Route &amp; prep</span>
+        </summary>
         <div class="map-panel">
-          <span id="map-route-label" class="label" data-i18n="editor.chooseRoute">// CHOOSE PROTOCOL ROUTE</span>
+          <div class="editor-route-heading">
+            <span id="map-route-label" class="label" data-i18n="editor.chooseRoute">Choose route</span>
+            <span class="teach-info">
+              <span class="label" data-i18n="editor.directiveLayer">Directive Layer</span>
+              <span id="ed-teach" class="value">1</span>
+            </span>
+          </div>
           <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
         </div>
         <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
@@ -261,12 +263,12 @@
       </aside>
 
       <main class="panel panel-rules" id="panel-rules" role="tabpanel" aria-labelledby="editor-tab-rules">
-        <h3 class="rules-toolbar"><span data-i18n="editor.activeRules">Active Rules</span>
+        <div class="rules-toolbar"><h3 data-i18n="editor.activeRules">Active Rules</h3>
           <button type="button" id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
           <button type="button" id="btn-undo" class="btn small ghost compact-tool" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
           <button type="button" id="btn-redo" class="btn small ghost compact-tool" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
           <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
-        </h3>
+        </div>
         
         <div id="editor-coach" class="editor-coach hidden">
           <p id="coach-message" role="status"></p>
@@ -310,7 +312,7 @@
         </details>
         <div id="rule-form" class="rule-form hidden">
           <div class="rule-form-condition">
-            <label for="f-cond" data-i18n="editor.condition1">If condition 1</label>
+            <label for="f-cond" data-i18n="editor.condition1">Condition</label>
             <div class="rule-form-controls">
               <select id="f-cond" aria-label="Primary condition for new rule" data-i18n-aria-label="editor.formCondition1"></select>
               <span id="f-cond-param"></span>
@@ -319,7 +321,7 @@
           <div class="rule-form-operator">
             <label for="f-op" data-i18n="editor.operator">Combine conditions</label>
             <select id="f-op" aria-label="Condition operator for new rule" data-i18n-aria-label="editor.formOperator">
-              <option value="" data-i18n="common.none">None</option>
+              <option value="" data-i18n="editor.singleCondition">Only one condition</option>
               <option value="and" data-i18n="rule.and">AND</option>
               <option value="or" data-i18n="rule.or">OR</option>
             </select>

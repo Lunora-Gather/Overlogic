@@ -636,10 +636,11 @@ async function main() {
     } else if (type === 'action') {
       const a = GameDatabase.getAction(id);
       if (a) {
+        const details = el.querySelector('.mod-meta')?.textContent || '';
         content = `<strong style="color:var(--accent); font-size:12px;">${escapeHtml(entity('action', id, a.displayName))}</strong><br>` +
                   `<span style="color:var(--muted); font-size:10px;">${escapeHtml(t('tooltip.actionCode'))}: ${escapeHtml(id)}</span><br>` +
                   `<p style="margin:6px 0 6px 0; font-size:11px;">${escapeHtml(entity('action', id, a.description, 'description'))}</p>` +
-                  `<span style="color:var(--accent2); font-size:10px; display:block;">${escapeHtml(t('tooltip.cooldown'))}: ${escapeHtml(a.cooldown)}s · ${escapeHtml(t('tooltip.cost'))}: ${escapeHtml(a.energyCost)} EN · ${escapeHtml(t('tooltip.range'))}: ${escapeHtml(a.range)}m</span>`;
+                  `<span style="color:var(--accent2); font-size:10px; display:block;">${escapeHtml(details)}</span>`;
       }
     } else if (type === 'map-node') {
       // Find the node from GameState mapNodes

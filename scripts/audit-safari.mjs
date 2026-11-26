@@ -138,6 +138,11 @@ async function play(frame, locale, width, height) {
   const disclosure = '.rule-readable-summary';
   const expanded = () => [...doc.querySelectorAll(disclosure)].filter(el => el.getAttribute('aria-expanded') === 'true');
   check(expanded().length === 1, 'initial disclosure');
+  check(expanded()[0].querySelector('.rule-phrase').textContent.includes('≤ 30%'), 'shield threshold reads as an inclusive limit');
+  check(find('.rule-detail:not([hidden]) .rule-action-meta').textContent.includes('25'), 'shield cost visible beside the action');
+  await click('.editor-prep > summary');
+  check(find('#ed-teach').offsetWidth && find('#map-nodes').offsetWidth, 'route and directive level visible together');
+  await click('.editor-prep > summary');
   await click('.rule-row:nth-child(2) ' + disclosure);
   check(expanded()[0] === find('.rule-row:nth-child(2) ' + disclosure) && !find(threshold).offsetWidth, 'switch rule');
   await click('#btn-coach');
@@ -146,8 +151,15 @@ async function play(frame, locale, width, height) {
   check(find(threshold).value === '30', 'undo');
   await click('#btn-redo');
   check(find(threshold).value === '50', 'redo');
+  const priority = find('.rule-detail:not([hidden]) [data-focus-field="priority"]');
+  priority.value = '70';
+  priority.dispatchEvent(new win.Event('change', { bubbles: true }));
+  check(find('.rule-detail:not([hidden]) .rule-advice')?.offsetWidth, 'priority warning is readable without hover');
+  await click('#btn-undo');
+  check(!find('.rule-detail:not([hidden]) .rule-advice'), 'undo clears the resolved warning');
   const search = find('#rules-search');
-  for (const [query, count] of [[labels[0], 1], ['zzz', 0], ['', 3]]) {
+  const conditionLabel = { en: 'HP Low', 'zh-CN': '生命值较低', 'zh-TW': '生命值較低' }[locale];
+  for (const [query, count] of [[labels[0], 1], [conditionLabel, 1], ['zzz', 0], ['', 3]]) {
     search.value = query;
     search.dispatchEvent(new win.Event('input', { bubbles: true }));
     check(doc.querySelectorAll('.rule-row').length === count, 'filter ' + query);
