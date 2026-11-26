@@ -46,7 +46,7 @@ export class PostBattleReportUI {
     });
     this.btnEdit.addEventListener('click', () => {
       AudioManager.play('button_click');
-      GameManager.onReportEditLogic();
+      GameManager.onReportEditLogic(this.addedRuleId);
     });
     this.btnRestart.addEventListener('click', async () => {
       AudioManager.play('button_click');
@@ -66,6 +66,7 @@ export class PostBattleReportUI {
   }
 
   show() {
+    this.addedRuleId = null;
     this._showAllTimeline = false;
     for (const details of this.el.querySelectorAll('details')) details.open = false;
     const report = GameState.lastReport || {};
@@ -159,7 +160,6 @@ export class PostBattleReportUI {
           addBtn.textContent = t('report.configured');
         }
 
-        
         addBtn.addEventListener('click', () => {
           const added = GameState.addRule(
             sug.rule.conditionId,
@@ -167,11 +167,14 @@ export class PostBattleReportUI {
             sug.rule.actionId,
             sug.rule.priority
           );
+          if (added) {
+            this.addedRuleId = GameState.rules.at(-1).id;
+            this.btnEdit.focus({ preventScroll: true });
+          }
           AudioManager.play(added ? 'rule_add' : 'button_click');
           addBtn.disabled = true;
           addBtn.textContent = t(added ? 'report.added' : 'report.unavailable');
           addBtn.classList.remove('primary');
-
         });
         li.appendChild(addBtn);
       }

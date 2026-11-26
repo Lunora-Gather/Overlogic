@@ -970,15 +970,15 @@ function verifyUiSafetyContracts() {
     'operator leaderboard must separate mode and difficulty before comparing runs');
   assert(menuUi.includes('preventScroll: true') && menuUi.includes('profileCard.scrollTop = 0'),
     'the mobile operator dossier must open at its title without losing keyboard focus containment');
-  assert(mainUi.includes('settingVolume?.focus({ preventScroll: true })') && mainUi.includes('settingsList.scrollTop = 0'),
+  assert(mainUi.includes('selectSettingsTab(settingsTabs[0], true)') && mainUi.includes("querySelector('.settings-list').scrollTop = 0"),
     'the settings dialog must open at its title and first control on short viewports');
-  assert(html.indexOf('class="menu-buttons"') < html.indexOf('id="run-profile"'),
+  assert(html.indexOf('id="btn-start"') < html.indexOf('id="run-profile"'),
     'the primary launch action must appear before secondary profile and retention panels');
   assert(html.includes('id="victory-receipt"') && victoryUi.includes('runReceipt') && victoryUi.includes('btn-copy-victory-receipt'),
     'victory results must expose a shareable deterministic run receipt');
   assert(victoryUi.includes('combineReplayDigests') && victoryUi.includes('simulationVersion'),
     'victory receipts must include the fixed-step replay facts used by the archive');
-  assert(victoryUi.includes('formatCond') && battleHud.includes('r.negateCondition1') && battleHud.includes('r.negateCondition2'),
+  assert(victoryUi.includes('formatCond') && battleHud.includes('describeRule(r, GameDatabase)'),
     'combat and victory summaries must faithfully render negated conditions');
   assert(html.includes('id="btn-new-run"'), 'menu should distinguish continuing from starting a new run');
   assert(html.includes('id="confirm-overlay"') && html.includes('aria-describedby="confirm-message"'), 'destructive menu actions should use an accessible themed confirm dialog');

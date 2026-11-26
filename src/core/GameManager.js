@@ -47,6 +47,7 @@ class GameManagerClass {
       };
     scheduleFocus(() => {
       this._cancelPendingFocus = null;
+      if (target.contains?.(document.activeElement)) return;
       const preferred = target.querySelector('[data-autofocus], .screen-primary, #btn-continue, #btn-add-rule, #btn-pause');
       if (preferred && typeof preferred.focus === 'function' && !preferred.disabled) preferred.focus({ preventScroll: true });
     });
@@ -101,7 +102,7 @@ class GameManagerClass {
 
   // Called by PostBattleReport buttons.
   onReportRetryBattle() { this.goCombat(); }
-  onReportEditLogic()   { this.goLogicEdit(); }
+  onReportEditLogic(ruleId) { this.goLogicEdit(ruleId); }
   onReportRestartRun()  { GameState.resetRun(); this.goLogicEdit(); }
 }
 

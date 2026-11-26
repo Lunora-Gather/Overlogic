@@ -335,7 +335,7 @@ async function main() {
   };
   GameManager.goRewardSelection = () => { bgAnim?.start(); origGoReward(); rewardUI.show(); };
   GameManager.goPostBattleReport = () => { bgAnim?.start(); origGoReport(); reportUI.show(); };
-  GameManager.goLogicEdit = () => { bgAnim?.start(); origGoLogic(); logicEditor.show(); };
+  GameManager.goLogicEdit = (ruleId) => { bgAnim?.start(); origGoLogic(); logicEditor.show(ruleId); };
   GameManager.goMainMenu = () => {
     bgAnim?.start();
     origGoMain();
@@ -420,6 +420,26 @@ async function main() {
     settingsStorageStatusCopy.textContent = t(key);
   }
 
+  const settingsTabs = [...settingsOverlay.querySelectorAll('[role="tab"]')];
+  const selectSettingsTab = (active, moveFocus = false) => {
+    for (const tab of settingsTabs) {
+      const selected = tab === active;
+      tab.setAttribute('aria-selected', String(selected));
+      tab.tabIndex = selected ? 0 : -1;
+      document.getElementById(tab.getAttribute('aria-controls')).hidden = !selected;
+    }
+    settingsOverlay.querySelector('.settings-list').scrollTop = 0;
+    if (moveFocus) active.focus();
+  };
+  for (const tab of settingsTabs) {
+    tab.addEventListener('click', () => selectSettingsTab(tab, true));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const index = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - settingsTabs.indexOf(tab);
+      selectSettingsTab(settingsTabs[index], true);
+    });
+  }
   let settingsBackground = null;
 
   function openSettings(event) {
@@ -447,9 +467,7 @@ async function main() {
     }
     settingsOverlay.classList.remove('hidden');
     settingsOverlay.setAttribute('aria-hidden', 'false');
-    const settingsList = settingsOverlay.querySelector('.settings-list');
-    if (settingsList) settingsList.scrollTop = 0;
-    settingVolume?.focus({ preventScroll: true });
+    selectSettingsTab(settingsTabs[0], true);
     AudioManager.play('button_click');
   }
 
@@ -471,8 +489,14 @@ async function main() {
     resumeCombatAfterSettings = false;
     if (settingsBackground) settingsBackground.inert = settingsBackground.classList.contains('hidden');
     settingsBackground = null;
-    if (settingsReturnFocus instanceof HTMLElement) settingsReturnFocus.focus();
+    const opener = settingsReturnFocus;
     settingsReturnFocus = null;
+    if (opener instanceof HTMLElement) {
+      opener.focus({ preventScroll: true });
+      if (document.activeElement !== opener) requestAnimationFrame(() => {
+        if (settingsOverlay.classList.contains('hidden')) opener.focus({ preventScroll: true });
+      });
+    }
     AudioManager.play('button_click');
   }
 

@@ -86,8 +86,8 @@
       </section>
     </header>
     <div class="home-shell">
-      <main class="home-launch-column">
-        <h2 class="home-section-title" data-i18n="menu.runSettings">Run settings</h2>
+      <details class="home-disclosure home-launch-column">
+        <summary><span data-i18n="menu.runSettings">Run settings</span> <small id="run-selection"></small></summary>
         <div class="run-config-panel">
           <label><span data-i18n="menu.mode">Run Mode</span>
             <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
@@ -118,19 +118,21 @@
           <strong id="run-season-name">Foundry Protocol</strong>
           <small id="run-season-status">Active</small>
         </section>
-        <div class="menu-buttons">
+        <div class="home-reset">
+          <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
+        </div>
+      </details>
+      <details class="home-disclosure home-dashboard">
+        <summary data-i18n="menu.records">Records &amp; challenges</summary>
+        <section id="run-profile" class="run-profile"></section>
+        <section id="run-challenges" class="run-challenges"></section>
+        <section id="run-history" class="run-history"></section>
+      </details>
+      <div class="home-utilities">
           <button type="button" id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
           <button type="button" id="btn-install" class="btn ghost hidden" data-i18n="menu.install">Install App</button>
-          <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
           <button type="button" id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
-        </div>
-      </main>
-      <aside class="home-dashboard" aria-label="Operator Profile" data-i18n-aria-label="menu.profileTitle">
-        <h2 class="home-section-title" data-i18n="menu.profileTitle">Operator profile</h2>
-        <section id="run-profile" class="run-profile" aria-live="polite"></section>
-        <section id="run-challenges" class="run-challenges" aria-live="polite"></section>
-        <section id="run-history" class="run-history" aria-live="polite"></section>
-      </aside>
+      </div>
     </div>
     <div id="how-overlay" class="overlay hidden" aria-hidden="true">
       <div class="overlay-card how-card" role="dialog" aria-modal="true" aria-labelledby="how-title">
@@ -333,7 +335,6 @@
         <div class="bar"><span data-i18n="combat.temperature">TEMP</span><div class="bar-track" role="progressbar" aria-label="Core temperature" data-i18n-aria-label="combat.temperature" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div id="ol-fill" class="bar-fill ol"></div><span id="ol-text" class="bar-text"></span></div></div>
       </div>
       <div class="hud-center">
-        <div id="current-logic" class="current-logic" aria-live="polite">Current Logic: —</div>
         <div id="wave-info" class="wave-info">Wave 1/2</div>
         <div id="combat-timer" class="muted">0.0s</div>
         <div id="combat-sr-summary" class="sr-only" aria-live="polite"></div>
@@ -352,24 +353,32 @@
     </div>
     <div class="combat-main-layout">
       <div class="arena-frame">
-        <span class="arena-frame-label" data-i18n="combat.tacticalField">Tactical field</span>
-        <span class="arena-frame-signal"><i aria-hidden="true"></i><span id="arena-feed-state" data-i18n="combat.liveSignal">Autonomous feed</span></span>
-        <span class="arena-corner corner-tl" aria-hidden="true"></span>
-        <span class="arena-corner corner-tr" aria-hidden="true"></span>
-        <span class="arena-corner corner-bl" aria-hidden="true"></span>
-        <span class="arena-corner corner-br" aria-hidden="true"></span>
+        <header>
+          <span class="arena-frame-label" data-i18n="combat.tacticalField">Tactical field</span>
+          <span class="arena-frame-signal"><i aria-hidden="true"></i><span id="arena-feed-state" data-i18n="combat.liveSignal">Autonomous feed</span></span>
+        </header>
         <canvas id="arena" width="720" height="720" role="img" aria-label="Combat arena" data-i18n-aria-label="combat.arena"></canvas>
       </div>
-      <aside class="panel combat-rules-panel">
-        <button type="button" class="combat-inspector-toggle" id="btn-combat-inspector" aria-expanded="false" aria-controls="combat-inspector"><span data-i18n="combat.inspector">Directives &amp; log</span><span class="inspector-chevron" aria-hidden="true">⌄</span></button>
-        <div id="combat-inspector" class="combat-inspector">
-          <div class="directives-section combat-panel-section">
-            <h3 id="combat-directives-title" data-i18n="combat.directives">Active Directives</h3>
-            <ul id="combat-rules-list" class="combat-rules-list" tabindex="0" aria-labelledby="combat-directives-title"></ul>
+      <aside class="combat-sidebar">
+        <section class="combat-decision" aria-labelledby="decision-title">
+          <div class="decision-copy">
+            <h2 id="decision-title" data-i18n="combat.lastAction">Last action</h2>
+            <strong id="current-logic" class="decision-action" aria-live="polite">—</strong>
+            <p id="decision-reason" class="decision-reason"></p>
           </div>
-          <div class="console-section combat-panel-section combat-console-section">
-            <h3 id="combat-log-title" data-i18n="combat.console">Console Log</h3>
-            <div id="combat-console-log" class="combat-console-log" role="log" tabindex="0" aria-labelledby="combat-log-title" aria-live="polite" aria-relevant="additions"></div>
+          <span id="decision-time" class="decision-time" aria-hidden="true"></span>
+        </section>
+        <div class="combat-rules-panel">
+          <button type="button" class="combat-inspector-toggle" id="btn-combat-inspector" aria-expanded="false" aria-controls="combat-inspector"><span data-i18n="combat.inspector">Directives &amp; log</span><span class="inspector-chevron" aria-hidden="true">⌄</span></button>
+          <div id="combat-inspector" class="combat-inspector">
+            <div class="directives-section combat-panel-section">
+              <h3 id="combat-directives-title" data-i18n="combat.directives">Active Directives</h3>
+              <ul id="combat-rules-list" class="combat-rules-list" tabindex="0" aria-labelledby="combat-directives-title"></ul>
+            </div>
+            <div class="console-section combat-panel-section combat-console-section">
+              <h3 id="combat-log-title" data-i18n="combat.console">Battle log</h3>
+              <div id="combat-console-log" class="combat-console-log" role="log" tabindex="0" aria-labelledby="combat-log-title" aria-live="polite" aria-relevant="additions"></div>
+            </div>
           </div>
         </div>
       </aside>
@@ -386,8 +395,10 @@
 
   <!-- ===== Post Battle Report ===== -->
   <section id="screen-report" class="screen hidden">
-    <h2 class="fail-title" data-i18n="report.failed">Simulation Failed</h2>
-    <p class="muted" id="report-outcome"></p>
+    <header class="report-heading">
+      <h2 class="fail-title" data-i18n="report.failed">Simulation Failed</h2>
+      <p class="muted" id="report-outcome"></p>
+    </header>
     <section class="report-next-step" aria-labelledby="suggest-title">
       <h3 id="suggest-title" data-i18n="report.suggest">Suggested fix</h3>
       <ul id="rep-suggest"></ul>
@@ -428,8 +439,6 @@
   <!-- ===== Victory ===== -->
   <section id="screen-victory" class="screen hidden">
     <h1 class="logo" data-i18n="victory.title">SIMULATION COMPLETE</h1>
-    <p class="subtitle" data-i18n="victory.subtitle">// your logic survived</p>
-    <p class="muted" data-i18n="victory.flavor">The machine learned from you.</p>
     <div id="victory-run-stats" class="victory-stats-grid"></div>
     <div class="victory-actions">
       <button type="button" id="btn-victory-replay" class="btn primary big" data-i18n="victory.replay">Run Again</button>
@@ -439,20 +448,23 @@
       <input id="victory-challenge-link" readonly aria-label="Challenge link" data-i18n-aria-label="victory.challengeUrl">
       <button type="button" class="btn small" id="btn-victory-challenge" data-i18n="victory.challengeLink">Copy challenge link</button>
     </div>
-    <div class="victory-receipt" aria-live="polite">
-      <div>
-        <span class="receipt-label" data-i18n="victory.receiptTitle">Run Receipt</span>
-        <small data-i18n="victory.receiptHelp">A deterministic client-side share code for this completed run.</small>
+    <details class="victory-details">
+      <summary data-i18n="victory.receiptTitle">Run receipt</summary>
+      <div class="victory-receipt" aria-live="polite">
+        <div>
+          <span class="receipt-label" data-i18n="victory.receiptTitle">Run Receipt</span>
+          <small data-i18n="victory.receiptHelp">A deterministic client-side share code for this completed run.</small>
+        </div>
+        <code id="victory-receipt">—</code>
+        <button type="button" id="btn-copy-victory-receipt" class="btn ghost small" data-i18n="victory.receiptCopy">Copy</button>
       </div>
-      <code id="victory-receipt">—</code>
-      <button type="button" id="btn-copy-victory-receipt" class="btn ghost small" data-i18n="victory.receiptCopy">Copy</button>
-    </div>
-    <div class="run-integrity victory-integrity" aria-live="polite">
-      <div class="integrity-copy"><strong data-i18n="victory.replayTitle">Replay integrity</strong><small data-i18n="victory.replayHelp">A bounded client-side integrity hint, not a server anti-cheat proof.</small></div>
-      <code id="victory-replay-digest">—</code>
-      <span id="victory-simulation-facts" class="integrity-facts">—</span>
-      <button type="button" id="btn-copy-victory-replay" class="btn ghost small" data-i18n="victory.replayCopy">Copy digest</button>
-    </div>
+      <div class="run-integrity victory-integrity" aria-live="polite">
+        <div class="integrity-copy"><strong data-i18n="victory.replayTitle">Replay integrity</strong><small data-i18n="victory.replayHelp">A bounded client-side integrity hint, not a server anti-cheat proof.</small></div>
+        <code id="victory-replay-digest">—</code>
+        <span id="victory-simulation-facts" class="integrity-facts">—</span>
+        <button type="button" id="btn-copy-victory-replay" class="btn ghost small" data-i18n="victory.replayCopy">Copy digest</button>
+      </div>
+    </details>
     <div class="report-card" style="max-width: 680px; width: 100%; display: flex; flex-direction: column; align-items: center; margin-top: 16px;">
       <h3 data-i18n="victory.performance">Final Battle Performance</h3>
       <canvas id="chart-victory" width="680" height="200" role="img" aria-label="Final battle performance chart" data-i18n-aria-label="chart.victoryAlt" style="width: 100%; height: 200px; border: 1px solid rgba(0, 210, 255, 0.15); border-radius: 4px; margin-top: 10px;"></canvas>
@@ -467,64 +479,77 @@
   <div id="settings-overlay" class="overlay hidden" aria-hidden="true">
     <div class="overlay-card settings-card" role="dialog" aria-modal="true" aria-labelledby="settings-title">
       <h2 id="settings-title" data-i18n="settings.title">System Configuration</h2>
-      <div class="settings-list" style="display: flex; flex-direction: column; gap: 16px; margin: 20px 0; text-align: left; width: 100%; max-width: 320px;">
-        <div class="settings-group" style="display: flex; flex-direction: column; gap: 8px;">
-          <label for="setting-volume" data-i18n="settings.volume" style="font-size: 12px; text-transform: uppercase; color: var(--accent); letter-spacing: 1px;">Master Volume</label>
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <input type="range" id="setting-volume" min="0" max="1" step="0.05" value="0.8" style="flex: 1; cursor: pointer;">
-            <span id="setting-volume-val" style="font-family: monospace; font-size: 12px; color: var(--txt); width: 40px; text-align: right;">80%</span>
+      <div class="settings-tabs" role="tablist" data-i18n-aria-label="settings.title" aria-label="Settings">
+        <button type="button" role="tab" id="settings-tab-play" aria-controls="settings-play" aria-selected="true" data-i18n="settings.play">Game</button>
+        <button type="button" role="tab" id="settings-tab-data" aria-controls="settings-data" aria-selected="false" tabindex="-1" data-i18n="settings.data">Save data</button>
+      </div>
+      <div class="settings-list">
+        <div id="settings-play" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-play">
+          <section class="settings-section">
+            <h3 data-i18n="settings.sound">Sound</h3>
+            <div class="settings-group">
+              <label for="setting-volume" data-i18n="settings.volume">Master volume</label>
+              <div class="volume-control">
+                <input type="range" id="setting-volume" min="0" max="1" step="0.05" value="0.8">
+                <span id="setting-volume-val">80%</span>
+              </div>
+            </div>
+            <label class="settings-group setting-toggle" for="setting-mute">
+              <span data-i18n="settings.mute">Mute audio</span>
+              <input type="checkbox" id="setting-mute">
+            </label>
+          </section>
+          <section class="settings-section">
+            <h3 data-i18n="settings.display">Display</h3>
+            <label class="settings-group setting-toggle" for="setting-shake">
+              <span data-i18n="settings.shake">Camera shake</span>
+              <input type="checkbox" id="setting-shake" checked>
+            </label>
+            <label class="settings-group setting-toggle" for="setting-reduce-motion">
+              <span data-i18n="settings.motion">Reduce motion</span>
+              <input type="checkbox" id="setting-reduce-motion">
+            </label>
+            <label class="settings-group setting-toggle" for="setting-high-contrast">
+              <span data-i18n="settings.contrast">High contrast</span>
+              <input type="checkbox" id="setting-high-contrast">
+            </label>
+          </section>
+          <div class="settings-group settings-language">
+            <label for="setting-language" data-i18n="settings.language">Interface language</label>
+            <select id="setting-language" class="settings-select">
+              <option value="en">English</option>
+              <option value="zh-CN">简体中文</option>
+              <option value="zh-TW">繁體中文</option>
+            </select>
           </div>
         </div>
-        <label class="settings-group setting-toggle" for="setting-mute">
-          <span data-i18n="settings.mute">Mute Audio</span>
-          <input type="checkbox" id="setting-mute">
-        </label>
-        <label class="settings-group setting-toggle" for="setting-shake">
-          <span data-i18n="settings.shake">Enable Camera Shake</span>
-          <input type="checkbox" id="setting-shake" checked>
-        </label>
-        <label class="settings-group setting-toggle" for="setting-reduce-motion">
-          <span data-i18n="settings.motion">Reduce Motion</span>
-          <input type="checkbox" id="setting-reduce-motion">
-        </label>
-        <label class="settings-group setting-toggle" for="setting-high-contrast">
-          <span data-i18n="settings.contrast">High Contrast</span>
-          <input type="checkbox" id="setting-high-contrast">
-        </label>
-        <div class="settings-group settings-consent-group">
-          <div class="settings-consent-copy">
-            <label for="setting-product-metrics" data-i18n="settings.metrics">Local Product Metrics</label>
-            <p class="settings-help" data-i18n="settings.metricsHelp">Store anonymous, bounded playtest events in this browser. Nothing is uploaded automatically.</p>
+        <div id="settings-data" class="settings-page" role="tabpanel" aria-labelledby="settings-tab-data" hidden>
+          <div class="settings-group data-tools">
+            <p class="settings-help" data-i18n="settings.dataHelp">Export a portable backup before changing devices or clearing browser data.</p>
+            <div id="settings-storage-status" class="settings-storage-status" role="status" aria-live="polite">
+              <strong data-i18n="settings.storageHealth">Save health</strong>
+              <span id="settings-storage-status-copy">—</span>
+            </div>
+            <div class="settings-data-actions">
+              <button id="btn-data-export" type="button" class="btn secondary small" data-i18n="settings.export">Export</button>
+              <button id="btn-data-import" type="button" class="btn ghost small" data-i18n="settings.import">Import</button>
+              <button id="btn-data-restore" type="button" class="btn ghost small" data-i18n="settings.restore">Restore backup</button>
+              <button id="btn-data-support" type="button" class="btn ghost small" data-i18n="settings.support">Support bundle</button>
+            </div>
+            <input id="data-import-file" class="hidden" type="file" accept="application/json,.json" aria-label="Import save data" data-i18n-aria-label="settings.importFile">
           </div>
-          <input type="checkbox" id="setting-product-metrics">
-        </div>
-        <div class="settings-group" style="display:flex;flex-direction:column;gap:8px;">
-          <label for="setting-language" data-i18n="settings.language" style="font-size:12px;text-transform:uppercase;color:var(--accent);letter-spacing:1px;">Interface Language</label>
-          <select id="setting-language" class="settings-select">
-            <option value="en">English</option>
-            <option value="zh-CN">简体中文</option>
-            <option value="zh-TW">繁體中文</option>
-          </select>
-        </div>
-        <div class="settings-group data-tools">
-          <span class="settings-section-label" data-i18n="settings.data">Save Data</span>
-          <p class="settings-help" data-i18n="settings.dataHelp">Export a portable backup before changing devices or clearing browser data.</p>
-          <div id="settings-storage-status" class="settings-storage-status" role="status" aria-live="polite">
-            <strong data-i18n="settings.storageHealth">Save health</strong>
-            <span id="settings-storage-status-copy">—</span>
+          <div class="settings-group settings-consent-group">
+            <div class="settings-consent-copy">
+              <label for="setting-product-metrics" data-i18n="settings.metrics">Local product metrics</label>
+              <p class="settings-help" data-i18n="settings.metricsHelp">Store anonymous, bounded playtest events in this browser. Nothing is uploaded automatically.</p>
+            </div>
+            <input type="checkbox" id="setting-product-metrics">
           </div>
-          <div class="settings-data-actions">
-            <button id="btn-data-export" type="button" class="btn secondary small" data-i18n="settings.export">Export</button>
-            <button id="btn-data-import" type="button" class="btn ghost small" data-i18n="settings.import">Import</button>
-            <button id="btn-data-restore" type="button" class="btn ghost small" data-i18n="settings.restore">Restore backup</button>
-            <button id="btn-data-support" type="button" class="btn ghost small" data-i18n="settings.support">Support bundle</button>
-          </div>
-          <input id="data-import-file" class="hidden" type="file" accept="application/json,.json" aria-label="Import save data" data-i18n-aria-label="settings.importFile">
         </div>
-        <div class="settings-version" aria-label="Build version" data-i18n-aria-label="settings.version">
-          <span data-i18n="settings.version">Build version</span>
-          <code id="app-version">DEV</code>
-        </div>
+      </div>
+      <div class="settings-version" aria-label="Build version" data-i18n-aria-label="settings.version">
+        <span data-i18n="settings.version">Build version</span>
+        <code id="app-version">DEV</code>
       </div>
       <div class="modal-actions settings-actions">
         <button type="button" id="btn-settings-save" class="btn primary" data-i18n="common.apply">Apply</button>

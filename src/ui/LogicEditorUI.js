@@ -13,7 +13,7 @@ import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
-import { formatLabel } from '../logic/LogicRule.js?v=20260725-4';
+import { describeRule, formatLabel } from '../logic/LogicRule.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -143,10 +143,21 @@ export class LogicEditorUI {
     this._renderTemplateOptions();
   }
 
-  show() {
+  show(ruleId) {
     this.selectMobilePanel('rules');
     this.el.scrollTop = 0;
+    if (ruleId) {
+      this.expandedRuleId = ruleId;
+      this.rulesSearch.value = '';
+    }
     this.renderAll();
+    if (ruleId) {
+      const ruleSummary = this.ruleList.querySelector('.rule-readable-summary[aria-expanded="true"]');
+      if (ruleSummary) {
+        ruleSummary.focus();
+        return;
+      }
+    }
     // Each transition back to the editor should land on its primary action,
     // especially after a confirmation dialog or a reward selection.
     this.btnAddRule?.focus({ preventScroll: true });
@@ -818,7 +829,12 @@ export class LogicEditorUI {
       header?.scrollIntoView({ block: 'nearest' });
     });
     summary.className = 'rule-readable-summary';
-    summary.textContent = readableSummary;
+    const { condition, action } = describeRule(r, GameDatabase);
+    summary.innerHTML =
+      `<span class="rule-order">${escapeHtml(String(r.priority))}</span>` +
+      `<span class="rule-when"><small>${escapeHtml(t('combat.if'))}</small> ${escapeHtml(condition)}</span>` +
+      `<span class="rule-do"><small>${escapeHtml(t('combat.then'))}</small> ${escapeHtml(action)}</span>`;
+    summary.setAttribute('aria-label', readableSummary);
     summary.title = readableSummary;
     const toolbar = document.createElement('div');
     toolbar.className = 'rule-card-toolbar';

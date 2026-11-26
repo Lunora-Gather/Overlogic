@@ -100,7 +100,19 @@ try {
   assert(await evaluate(`document.querySelector('${toggle}').getAttribute('aria-expanded') === 'false'`));
   await click(toggle);
   assert(await evaluate("document.querySelector('#combat-console-log').offsetHeight > 0"), 'Cannot open combat log');
-  console.log('LAYOUT_AUDIT_OK: three locales, phone launch and editing, desktop rule label, four arena corners and combat log');
+  await click(toggle);
+  assert(await evaluate(`${rect('.combat-decision')}.bottom <= innerHeight`), 'Decision readout is below the fold on a 390px viewport');
+  for (const [width, height] of [[320, 568], [844, 390]]) {
+    await viewport(width, height);
+    await sleep(100);
+    assert(await evaluate(`(() => {
+      const screen = document.querySelector('#screen-combat');
+      const board = document.querySelector('#arena').getBoundingClientRect();
+      return screen.scrollWidth <= screen.clientWidth + 1 && board.width >= 155 &&
+        board.left >= 0 && board.right <= innerWidth && board.top >= 0 && board.bottom <= innerHeight;
+    })()`), `Combat canvas overflowed ${width}×${height}`);
+  }
+  console.log('LAYOUT_AUDIT_OK: three locales, phone launch and editing, desktop rule label, four arena corners, combat log and compact portrait/landscape');
 } finally {
   clearTimeout(abort); socket?.close(); server?.kill();
   if (chrome?.exitCode === null && chrome.pid) { const closed = once(chrome, 'close'); chrome.kill(); await closed; }

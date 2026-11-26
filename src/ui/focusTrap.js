@@ -14,7 +14,7 @@ export function trapDialogFocus(dialog) {
   dialog.addEventListener('keydown', (event) => {
     if (event.key !== 'Tab' || dialog.classList.contains('hidden')) return;
     const focusable = [...dialog.querySelectorAll(FOCUSABLE)]
-      .filter((element) => !element.hidden && element.offsetParent !== null);
+      .filter((element) => !element.closest('[hidden], [inert], [tabindex="-1"]') && element.offsetParent !== null);
     if (focusable.length === 0) return;
     const first = focusable[0];
     const last = focusable[focusable.length - 1];

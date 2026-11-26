@@ -40,6 +40,7 @@ export class MainMenu {
     this.runSeedInput = document.getElementById('run-seed-input');
     this.btnCopyRunSeed = document.getElementById('btn-copy-run-seed');
     this.runConfigHint = document.getElementById('run-config-hint');
+    this.runSelection = document.getElementById('run-selection');
     this.runSeason = document.getElementById('run-season');
     this.runSeasonName = document.getElementById('run-season-name');
     this.runSeasonStatus = document.getElementById('run-season-status');
@@ -481,12 +482,10 @@ export class MainMenu {
 
   renderHistory() {
     if (!this.runHistory) return;
-    const summary = historySummary();
     const entries = recentBattles();
-    if (entries.length === 0) {
-      this.runHistory.innerHTML = `<div class="history-empty">${t('menu.historyEmpty')}</div>`;
-      return;
-    }
+    this.runHistory.hidden = entries.length === 0;
+    if (this.runHistory.hidden) return;
+    const summary = historySummary();
     const cards = entries.map((entry) => {
       const battle = entry.battleId.replace(/^battle_/, '#');
       const result = entry.won ? t('menu.historyWin') : t('menu.historyLoss');
@@ -569,13 +568,20 @@ export class MainMenu {
     this.confirmOverlay.setAttribute('aria-hidden', 'true');
     if (this.confirmBackground) this.confirmBackground.inert = this.confirmBackground.classList.contains('hidden');
     this.confirmBackground = null;
-    if (this._confirmReturnFocus instanceof HTMLElement) this._confirmReturnFocus.focus();
+    const opener = this._confirmReturnFocus;
     this._confirmReturnFocus = null;
+    if (opener instanceof HTMLElement) {
+      opener.focus({ preventScroll: true });
+      if (!result && document.activeElement !== opener) requestAnimationFrame(() => {
+        if (this.confirmOverlay.classList.contains('hidden')) opener.focus({ preventScroll: true });
+      });
+    }
     resolve(result === true);
   }
 
   renderRunConfig() {
     if (!this.periodSeedLabel || !this.runMode) return;
+    this.runSelection.textContent = [t(`mode.${this.runMode.value}`), t(`difficulty.${this.runDifficulty.value}`)].join(' · ');
     const period = this.runMode.value;
     const daily = period === 'daily';
     const weekly = period === 'weekly';

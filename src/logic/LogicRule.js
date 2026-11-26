@@ -22,6 +22,11 @@ export function formatCond(condId, val, db, negated = false) {
 // Format a rule for HUD display: "[P{n}] IF Cond val THEN Action"
 export function formatLabel(rule, db) {
   if (!rule || !rule.conditionId) return t('combat.idle');
+  const { condition, action } = describeRule(rule, db);
+  return `[P${rule.priority|0}] ${t('combat.if')} ${condition} ${t('combat.then')} ${action}`;
+}
+
+export function describeRule(rule, db) {
   const cond1Str = formatCond(rule.conditionId, rule.conditionValue, db, rule.negateCondition1);
   let condStr = cond1Str;
   if (rule.operator && rule.conditionId2) {
@@ -32,5 +37,5 @@ export function formatLabel(rule, db) {
   const a = db.getAction(rule.actionId);
   const aName = a ? entity('action', rule.actionId, a.displayName) : rule.actionId;
   const targetStr = rule.targetPriority && rule.targetPriority !== 'nearest' ? ` (${t(`target.${rule.targetPriority}`)})` : '';
-  return `[P${rule.priority|0}] ${t('combat.if')} ${condStr} ${t('combat.then')} ${aName}${targetStr}`;
+  return { condition: condStr, action: aName + targetStr };
 }

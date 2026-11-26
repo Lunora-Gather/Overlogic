@@ -5,9 +5,9 @@ import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { GameState } from '../core/GameState.js?v=20260725-4';
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
-import { formatCond } from '../logic/LogicRule.js?v=20260725-4';
+import { describeRule } from '../logic/LogicRule.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
-import { entity, t } from '../i18n/I18n.js?v=20260725-4';
+import { t } from '../i18n/I18n.js?v=20260725-4';
 
 export class BattleHUD {
   constructor(arena) {
@@ -19,6 +19,8 @@ export class BattleHUD {
     this.olFill = document.getElementById('ol-fill');
     this.olText = document.getElementById('ol-text');
     this.curLogic = document.getElementById('current-logic');
+    this.decisionReason = document.getElementById('decision-reason');
+    this.decisionTime = document.getElementById('decision-time');
     this.waveInfo = document.getElementById('wave-info');
     this.timerEl = document.getElementById('combat-timer');
     this.srSummary = document.getElementById('combat-sr-summary');
@@ -41,6 +43,9 @@ export class BattleHUD {
     this._bind();
     window.addEventListener('overlogic:localechange', () => {
       this.renderRulesPanel();
+      this._lastRuleId = null;
+      this.renderDecision();
+      if (this.lastDiagnostics) this.updateDiagnostics(...this.lastDiagnostics);
       if (this.arena) {
         this.syncPauseControls();
         this.btnSpeed.textContent = t('combat.speed', { speed: this.arena.speed });
@@ -127,8 +132,10 @@ export class BattleHUD {
     this.inspectorToggle.setAttribute('aria-expanded', 'false');
     this.syncPauseControls();
     this.btnSpeed.textContent = t('combat.speed', { speed: 1 });
-    this.curLogic.textContent = t('combat.current', { label: '—' });
-    this.curLogic.classList.remove('overlogic');
+    this.lastDecision = null;
+    this.lastDiagnostics = null;
+    this.lastLoggedRule = null;
+    this.renderDecision();
     this.hideBossBar();
     this.hidePhaseToast();
     this.renderRulesPanel();
@@ -193,73 +200,69 @@ export class BattleHUD {
   setShield(on)    { /* visual handled in renderer */ }
   setOverdrive(on) { /* visual handled in renderer */ }
 
-  setCurrentLogic(label, rule, overlogicActive) {
-    const txt = t(overlogicActive && rule ? 'combat.overlogicActive' : 'combat.current', { label });
-    // Avoid re-announcing the same status every 150 ms. The live region now
-    // speaks only when the visible logic actually changes.
-    if (this.curLogic.textContent !== txt) this.curLogic.textContent = txt;
-    this.curLogic.classList.toggle('overlogic', !!overlogicActive && !!rule);
-
-    // Highlight executing rule in directives list
-    const items = document.querySelectorAll('.combat-rule-item');
-    for (const li of items) {
-      li.classList.remove('executing', 'overlogic');
+  renderDecision() {
+    const decision = this.lastDecision;
+    if (!decision) {
+      this.curLogic.textContent = t('combat.noActionYet');
+      this.decisionReason.textContent = t('combat.waitingForRule');
+      this.decisionTime.textContent = '';
+      return;
     }
-    if (rule) {
-      const activeLi = document.getElementById(`combat-rule-${rule.id}`);
-      if (activeLi) {
-        activeLi.classList.add('executing');
-        if (overlogicActive) {
-          activeLi.classList.add('overlogic');
-        }
-      }
+    const { condition, action } = describeRule(decision.rule, GameDatabase);
+    if (this.curLogic.textContent !== action) this.curLogic.textContent = action;
+    this.decisionReason.textContent = t('combat.triggeredBy', { condition, priority: decision.rule.priority });
+    this.decisionTime.textContent = decision.time.toFixed(1) + ' s';
+  }
 
-      if (this._lastRuleId !== rule.id) {
-        this._lastRuleId = rule.id;
+  setCurrentLogic(label, rule, overlogicActive, diagnostics) {
+    const executed = rule && diagnostics?.[rule.id] === 'executing';
+    if (executed) {
+      if (this.lastLoggedRule !== rule.id) {
         this.logConsole(t(overlogicActive ? 'log.overdrive' : 'log.executed', { label }), overlogicActive ? 'warn' : 'info');
-
-        // flash effect on rule switch (DESIGN.md §13.3: 0.2s highlight)
-        this.curLogic.classList.remove('flash');
-        // force reflow so the class re-applies cleanly on rapid switches
-        void this.curLogic.offsetWidth;
-        this.curLogic.classList.add('flash');
+        this.lastLoggedRule = rule.id;
       }
-    } else {
-      if (this._lastRuleId !== null) {
-        this._lastRuleId = null;
-        this.logConsole(t('combat.idle'), 'info');
-      }
+      this.lastDecision = { rule, time: this.arena.battleTime };
+      this.renderDecision();
     }
+    if (!executed) this.lastLoggedRule = null;
+    const activeId = executed ? rule.id : null;
+    if (this._lastRuleId === activeId) {
+      if (activeId) document.getElementById(`combat-rule-${activeId}`)?.classList.toggle('overlogic', overlogicActive);
+      return;
+    }
+    const previous = document.getElementById(`combat-rule-${this._lastRuleId}`);
+    previous?.classList.remove('executing', 'overlogic');
+    this._lastRuleId = activeId;
+    if (!activeId) return;
+
+    const active = document.getElementById(`combat-rule-${activeId}`);
+    active?.classList.add('executing');
+    active?.classList.toggle('overlogic', overlogicActive);
   }
 
   renderRulesPanel() {
     const rulesList = document.getElementById('combat-rules-list');
     if (!rulesList) return;
     rulesList.innerHTML = '';
-    const sortedRules = [...GameState.rules].sort((a, b) => b.priority - a.priority);
+    const sortedRules = [...GameState.rules].filter(rule => rule.enabled !== false).sort((a, b) => b.priority - a.priority);
+    if (!sortedRules.length) {
+      const empty = document.createElement('li');
+      empty.textContent = t('combat.noEnabledRules');
+      rulesList.appendChild(empty);
+    }
     for (const r of sortedRules) {
-      if (r.enabled === false) continue;
       const li = document.createElement('li');
       li.id = `combat-rule-${r.id}`;
       li.className = 'combat-rule-item';
       
-      const cond1Str = formatCond(r.conditionId, r.conditionValue, GameDatabase, r.negateCondition1);
-      let condStr = cond1Str;
-      if (r.operator && r.conditionId2) {
-        const cond2Str = formatCond(r.conditionId2, r.conditionValue2, GameDatabase, r.negateCondition2);
-        const opStr = t(`rule.${r.operator}`);
-        condStr = `${cond1Str} ${opStr} ${cond2Str}`;
-      }
-      const a = GameDatabase.getAction(r.actionId);
-      const aName = a ? entity('action', r.actionId, a.displayName) : r.actionId;
-      const targetStr = r.targetPriority && r.targetPriority !== 'nearest' ? ` (${t(`target.${r.targetPriority}`)})` : '';
-
-      li.innerHTML = `${escapeHtml(t('combat.if'))} <span class="c-cond">${escapeHtml(condStr)}</span> ${escapeHtml(t('combat.then'))} <span class="c-act">${escapeHtml(aName + targetStr)}</span> <span class="c-prio">[${escapeHtml(t('editor.prio'))} ${escapeHtml(r.priority|0)}]</span>`;
+      const { condition, action } = describeRule(r, GameDatabase);
+      li.innerHTML = `<strong class="c-act">${escapeHtml(action)}</strong><span class="c-cond">${escapeHtml(condition)}</span>`;
       rulesList.appendChild(li);
     }
   }
 
   updateDiagnostics(diagnostics, diagnosticReasons = {}) {
+    this.lastDiagnostics = [diagnostics, diagnosticReasons];
     for (const [ruleId, state] of Object.entries(diagnostics)) {
       const li = document.getElementById(`combat-rule-${ruleId}`);
       if (!li) continue;
@@ -273,64 +276,19 @@ export class BattleHUD {
       
       li.classList.add(`diag-${state}`);
       
-      const badge = document.createElement('span');
-      badge.className = 'diag-status-badge';
-      badge.style.float = 'right';
-      badge.style.fontSize = '9px';
-      badge.style.padding = '1px 5px';
-      badge.style.borderRadius = '3px';
-      badge.style.marginLeft = '8px';
-      badge.style.fontWeight = 'bold';
-      badge.style.textTransform = 'uppercase';
-      
-      switch (state) {
-        case 'executing':
-          badge.textContent = t('combat.active');
-          badge.style.background = 'rgba(0, 255, 195, 0.2)';
-          badge.style.color = '#00ffc3';
-          badge.style.border = '1px solid #00ffc3';
-          break;
-        case 'cooldown':
-          badge.textContent = 'CD';
-          badge.style.background = 'rgba(0, 210, 255, 0.15)';
-          badge.style.color = '#00d2ff';
-          badge.style.border = '1px solid #00d2ff';
-          break;
-        case 'energy':
-          badge.textContent = t('combat.lowEnergy');
-          badge.style.background = 'rgba(255, 230, 0, 0.15)';
-          badge.style.color = '#ffe24b';
-          badge.style.border = '1px solid #ffe24b';
-          break;
-        case 'condition_false':
-          badge.textContent = t('combat.skip');
-          badge.style.background = 'rgba(255, 255, 255, 0.05)';
-          badge.style.color = 'rgba(255, 255, 255, 0.3)';
-          badge.style.border = '1px solid rgba(255, 255, 255, 0.15)';
-          break;
-        case 'overridden':
-          badge.textContent = t('combat.ready');
-          badge.style.background = 'rgba(255, 255, 255, 0.1)';
-          badge.style.color = 'rgba(255, 255, 255, 0.7)';
-          badge.style.border = '1px solid rgba(255, 255, 255, 0.3)';
-          break;
-        case 'pursuing':
-          badge.textContent = t('combat.pursuing');
-          badge.style.background = 'rgba(0, 210, 255, 0.12)';
-          badge.style.color = '#7de8ff';
-          badge.style.border = '1px solid rgba(0, 210, 255, 0.45)';
-          break;
-        case 'action_unavailable':
-          const reason = diagnosticReasons[ruleId] || 'unknown';
-          badge.textContent = t(`diagnostic.reason.${reason}`);
-          badge.title = t(`diagnostic.reason.${reason}`);
-          badge.setAttribute('aria-label', t(`diagnostic.reason.${reason}`));
-          badge.style.background = 'rgba(255, 185, 56, 0.12)';
-          badge.style.color = '#ffcf73';
-          badge.style.border = '1px solid rgba(255, 185, 56, 0.4)';
-          break;
-      }
-      if (state !== 'disabled') {
+      const reason = {
+        executing: 'combat.active',
+        cooldown: 'combat.onCooldown',
+        energy: 'combat.lowEnergy',
+        condition_false: 'combat.conditionUnmet',
+        overridden: 'combat.lowerPriority',
+        pursuing: 'combat.pursuing',
+        action_unavailable: `diagnostic.reason.${diagnosticReasons[ruleId] || 'unknown'}`,
+      }[state];
+      if (reason) {
+        const badge = document.createElement('span');
+        badge.className = 'diag-status-badge';
+        badge.textContent = t(reason);
         li.appendChild(badge);
       }
     }

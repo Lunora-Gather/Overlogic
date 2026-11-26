@@ -3,6 +3,7 @@
 
 // --- Grid cache (offscreen canvas) ---
 // Rebuilt only when canvas size changes; skipped entirely when shockwaves are active.
+const ROBOT_DISPLAY_SCALE = 1.35;
 let _gridCache = null;
 let _gridCacheW = 0;
 let _gridCacheH = 0;
@@ -175,7 +176,16 @@ export function drawArena(g, canvas, ctx, camera) {
   // Projectiles
   for (const p of ctx.projectiles) p.draw(g, scale);
   // Enemies
-  for (const e of ctx.enemies) e.draw(g, scale);
+  for (const enemy of ctx.enemies) {
+    if (!enemy.dead && enemy.bodyRadius * scale < 19) {
+      g.beginPath();
+      g.strokeStyle = '#a05845';
+      g.lineWidth = 1.5;
+      g.arc(enemy.x * scale, enemy.y * scale, Math.max(19, enemy.bodyRadius * scale + 4), 0, Math.PI * 2);
+      g.stroke();
+    }
+    enemy.draw(g, scale);
+  }
   // Particles (sparks, dust, text)
   for (const p of ctx.particles) p.draw(g, scale);
 
@@ -184,9 +194,9 @@ export function drawArena(g, canvas, ctx, camera) {
   if (robot && !robot.dead && robot.aimTarget && !robot.aimTarget.dead) {
     g.save();
     const turretAngle = Math.atan2(robot.aimTarget.y - robot.y, robot.aimTarget.x - robot.x);
-    const rPx = robot.bodyRadius * scale;
-    const startX = (robot.x + Math.cos(turretAngle) * robot.bodyRadius) * scale;
-    const startY = (robot.y + Math.sin(turretAngle) * robot.bodyRadius) * scale;
+    const radius = Math.max(robot.bodyRadius * scale * ROBOT_DISPLAY_SCALE, 11);
+    const startX = robot.x * scale + Math.cos(turretAngle) * radius;
+    const startY = robot.y * scale + Math.sin(turretAngle) * radius;
     const endX = robot.aimTarget.x * scale;
     const endY = robot.aimTarget.y * scale;
 
@@ -223,7 +233,7 @@ export function drawArena(g, canvas, ctx, camera) {
   }
 
   // Robot
-  drawRobot(g, ctx.robot, scale, _now);
+  drawRobot(g, ctx.robot, scale, _now, ROBOT_DISPLAY_SCALE);
 
   g.restore();
 
@@ -249,9 +259,9 @@ export function drawArena(g, canvas, ctx, camera) {
   }
 }
 
-export function drawRobot(g, robot, scale, _now) {
+export function drawRobot(g, robot, scale, _now, size = 1) {
   if (!robot) return;
-  const rPx = Math.max(robot.bodyRadius * scale, 11);
+  const rPx = Math.max(robot.bodyRadius * scale * size, 11);
   
   // 1. Draw base body (rotated to movement direction)
   g.save();

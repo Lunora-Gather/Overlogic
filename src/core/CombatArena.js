@@ -160,7 +160,7 @@ export class CombatArena {
     this.brain.setup(this.robot, this.ctx, this.executor, this.ctx.tracker, rules);
     this.ctx.tracker.setRuleSnapshot(rules);
     this.brain.onLabel = (label, rule, diagnostics, diagnosticReasons) => {
-      this.hud.setCurrentLogic(label, rule, this.ctx.overlogic.active);
+      this.hud.setCurrentLogic(label, rule, this.ctx.overlogic.active, diagnostics);
       if (diagnostics) {
         this.hud.updateDiagnostics(diagnostics, diagnosticReasons);
       }

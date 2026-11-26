@@ -103,7 +103,7 @@ export class RewardUI {
         `<span class="r-type"><span aria-hidden="true">[${index + 1}]</span> ${icon} ${escapeHtml(typeLabel)}</span>` +
         `<span class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
         `<span id="${descriptionId}" class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
-        (impact ? `<span id="${impactId}" class="r-impact">${escapeHtml(impact)}</span>` : '') +
+        (impact ? `<span id="${impactId}" class="r-impact${r.rewardType === 'passive' ? '' : ' compact'}">${escapeHtml(impact)}</span>` : '') +
         `<span class="r-pick-hint">${escapeHtml(t('reward.select'))}</span>`;
       const choose = () => {
         AudioManager.play('rule_add');

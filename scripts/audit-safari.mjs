@@ -32,7 +32,7 @@ async function play(frame, locale, width, height) {
     const el = find(selector);
     check(el.scrollWidth <= el.clientWidth + 1, selector + ' overflows horizontally');
   };
-  async function finishBattle() {
+  async function finishBattle({ shield = false } = {}) {
     await wait(() => onScreen('combat'), 'enter combat');
     if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') click('#btn-pause');
     check(find('#arena-feed-state').dataset.i18n === 'combat.paused', 'paused feed');
@@ -43,6 +43,16 @@ async function play(frame, locale, width, height) {
       }
     }
     click('#btn-step');
+    if (shield) {
+      const expected = locale === 'en' ? 'Shield' : locale === 'zh-CN' ? '护盾' : '護盾';
+      const step = find('#btn-step');
+      for (let i = 0; i < 5 && find('#current-logic').textContent !== expected && onScreen('combat'); i++) step.click();
+      check(find('#current-logic').textContent === expected && find('#decision-reason').textContent.includes('50%'), 'execution matches shield rule');
+      const time = find('#decision-time').textContent;
+      if (onScreen('combat')) step.click();
+      check(find('#decision-time').textContent === time && find('#current-logic').textContent === expected,
+        'cooldown did not erase last executed action');
+    }
     const step = find('#btn-step');
     for (let i = 0; i < 800 && onScreen('combat'); i++) {
       step.click();
@@ -64,13 +74,22 @@ async function play(frame, locale, width, height) {
     check(find('#preview-value').textContent === hp + '%', 'preview readout');
   }
   check(JSON.stringify(initial) === JSON.stringify(save()), 'preview altered save');
+  check(!find('.home-launch-column').open && !find('.home-dashboard').open, 'secondary home panels start closed');
+  click('.home-launch-column > summary');
+  check(find('#run-mode').offsetWidth > 0 && find('#run-selection').textContent, 'run mode remains discoverable');
+  click('.home-launch-column > summary');
   click('#btn-settings');
   check(find('#screen-main').inert, 'settings background');
   const muted = find('#setting-mute').checked;
   click('label[for="setting-mute"]');
   check(find('#setting-mute').checked !== muted, 'whole mute row toggles');
+  click('#settings-tab-data');
+  check(find('#settings-play').hidden && find('#btn-data-export').offsetWidth > 0 &&
+    doc.activeElement === find('#settings-tab-data'), 'save tools visible from their tab');
+  find('#settings-tab-data').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+  check(doc.activeElement === find('#settings-tab-play') && find('#settings-data').hidden, 'settings keyboard tabs');
   click('#btn-settings-close');
-  check(doc.activeElement === find('#btn-settings') && !find('#screen-main').inert, 'dismiss settings');
+  await wait(() => doc.activeElement === find('#btn-settings') && !find('#screen-main').inert, 'dismiss settings and restore focus');
   click('#btn-settings');
   check(find('#setting-mute').checked === muted, 'dismissed setting was discarded');
   click('#btn-settings-close');
@@ -107,9 +126,12 @@ async function play(frame, locale, width, height) {
     }
   }
   const before = save();
+  // Isolate the shield so an intervening attack cannot replace the decision readout.
+  click('.rule-row:nth-child(2) [data-focus-field="enabled"]');
+  click('.rule-row:nth-child(3) [data-focus-field="enabled"]');
   click('#btn-coach');
   check(find('#hp-text').textContent === '40 / 100' && find('#en-text').textContent === '100 / 100', 'drill starting resources');
-  await finishBattle();
+  await finishBattle({ shield: true });
   check(onScreen('editor'), 'return from drill');
   const drill = save();
   const shields = drill.lastReport.action_usage.shield;
@@ -117,7 +139,7 @@ async function play(frame, locale, width, height) {
     find('#coach-message').textContent.includes(String(shields)), 'drill result');
   check(drill.tutorialProgress.sandboxRun && drill.persistentHp === before.persistentHp &&
     drill.currentMapColumn === before.currentMapColumn && drill.runStats.battlesWon === 0, 'drill progression');
-  for (let i = 0; i < 3; i++) click('[data-focus-field="enabled"]:checked');
+  click('[data-focus-field="enabled"]:checked');
   click('#btn-mobile-run');
   await finishBattle();
   check(onScreen('report'), 'expected defeat');
@@ -132,12 +154,14 @@ async function play(frame, locale, width, height) {
   click('#btn-restart');
   check(find('#screen-report').inert && doc.activeElement === find('#btn-confirm-cancel'), 'restart confirmation');
   click('#btn-confirm-cancel');
-  check(!find('#screen-report').inert && doc.activeElement === find('#btn-restart') &&
-    save().runStats.runId === before.runStats.runId, 'cancel preserves run and focus');
+  await wait(() => !find('#screen-report').inert && doc.activeElement === find('#btn-restart'), 'restore focus after cancel');
+  check(save().runStats.runId === before.runStats.runId, 'cancel preserves run');
   click('#rep-suggest button');
   check(find('#rep-suggest button').disabled, 'recommendation applied once');
   click('#btn-edit');
   check(onScreen('editor') && save().rules.filter(rule => rule.enabled).length === 1, 'edit after loss');
+  check(doc.activeElement === expanded()[0] && expanded()[0]?.closest('.rule-row').dataset.id === save().rules.at(-1).id,
+    'new rule is open and focused after report');
   click('#btn-mobile-run');
   await finishBattle();
   check(onScreen('reward'), 'attack rule should win the retry');
@@ -167,10 +191,11 @@ const server = createServer(async (req, res) => {
             }
             const frame = document.createElement('iframe');
             frame.style.cssText = 'border:0;width:' + width + 'px;height:' + height + 'px';
-            const loaded = new Promise(resolve => frame.onload = resolve);
             frame.src = '/game/index.html?seed=136';
             document.body.prepend(frame);
-            await loaded;
+            for (let attempt = 0; !frame.contentDocument?.getElementById('app') && attempt < 300; attempt++) {
+              await new Promise(resolve => setTimeout(resolve, 50));
+            }
             results.push(await play(frame, locale, width, height));
             frame.remove();
           }
@@ -194,7 +219,9 @@ const server = createServer(async (req, res) => {
 await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const timeout = setTimeout(() => reject(new Error('Safari timed out')), 120000);
 try {
-  execFileSync('open', ['-b', 'com.apple.Safari', 'http://127.0.0.1:' + server.address().port]);
+  const url = 'http://127.0.0.1:' + server.address().port;
+  console.log('Safari audit: ' + url);
+  execFileSync('open', ['-b', 'com.apple.Safari', url]);
   const report = await promise;
   assert(!report.error, report.error);
   assert.match(report.browser, /Version\/.* Safari\//);
