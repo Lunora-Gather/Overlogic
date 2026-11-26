@@ -134,7 +134,7 @@
           <small id="run-season-status">Active</small>
         </section>
         <div class="menu-buttons">
-          <button type="button" id="btn-start" class="btn primary" data-i18n="menu.start">Open Logic Workstation</button>
+          <button type="button" id="btn-start" data-autofocus class="btn primary" data-i18n="menu.start">Open Logic Workstation</button>
           <button type="button" id="btn-new-run" class="btn secondary hidden" data-i18n="menu.newRun">Start New Run</button>
           <button type="button" id="btn-how" class="btn" data-i18n="menu.how">How to Play</button>
           <button type="button" id="btn-settings" class="btn" data-i18n="menu.settings">Settings ⚙️</button>
@@ -247,6 +247,10 @@
           <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
         </h3>
         
+        <div id="editor-coach" class="editor-coach hidden">
+          <p id="coach-message" role="status"></p>
+          <button type="button" id="btn-coach" class="btn small"></button>
+        </div>
         <details class="editor-library">
           <summary data-i18n="editor.libraryDetails">Templates &amp; saved loadouts</summary>
         <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
@@ -288,8 +292,8 @@
           <span id="f-cond-param"></span>
           <select id="f-op" style="width: 80px;" aria-label="Condition operator for new rule" data-i18n-aria-label="editor.formOperator">
             <option value="" data-i18n="common.none">None</option>
-            <option value="and">AND</option>
-            <option value="or">OR</option>
+            <option value="and" data-i18n="rule.and">AND</option>
+            <option value="or" data-i18n="rule.or">OR</option>
           </select>
           <select id="f-cond2" class="hidden" aria-label="Secondary condition for new rule" data-i18n-aria-label="editor.formCondition2"></select>
           <span id="f-cond2-param" class="hidden"></span>
@@ -324,7 +328,8 @@
         <button type="button" id="btn-import-rules" class="btn ghost" data-i18n="editor.importRules">Import</button>
         <button type="button" id="btn-export-rules" class="btn ghost" data-i18n="editor.exportRules">Share</button>
         <select id="sandbox-preset" class="sandbox-preset" aria-label="Sandbox scenario" data-i18n-aria-label="editor.sandboxScenario">
-          <option value="mixed" data-i18n="sandbox.mixed">Mixed Test</option>
+          <option value="calibration" data-i18n="sandbox.calibration">Shield drill</option>
+          <option value="mixed" selected data-i18n="sandbox.mixed">Mixed Test</option>
           <option value="projectiles" data-i18n="sandbox.projectiles">Projectile Grid</option>
           <option value="swarm" data-i18n="sandbox.swarm">Swarm Stress</option>
           <option value="boss" data-i18n="sandbox.boss">Boss Lab</option>
@@ -399,7 +404,13 @@
   <!-- ===== Post Battle Report ===== -->
   <section id="screen-report" class="screen hidden">
     <h2 class="fail-title" data-i18n="report.failed">Simulation Failed</h2>
-    <p class="muted" data-i18n="report.subtitle">Your logic failed. Debug and retry.</p>
+    <p class="muted" id="report-outcome"></p>
+    <div id="report-next-step" class="report-next-step" role="status" aria-live="polite"></div>
+    <div class="report-actions">
+      <button type="button" id="btn-edit" class="btn primary" data-autofocus data-i18n="report.edit">Edit Logic</button>
+      <button type="button" id="btn-retry" class="btn" data-i18n="report.retry">Retry Battle</button>
+      <button type="button" id="btn-restart" class="btn ghost" data-i18n="report.restart">Restart Run</button>
+    </div>
     <div class="run-integrity report-integrity" aria-live="polite">
       <div class="integrity-copy"><strong data-i18n="report.integrityTitle">Replay integrity</strong><small data-i18n="report.integrityHelp">A bounded client-side integrity hint for this battle.</small></div>
       <code id="rep-replay-digest">—</code>
@@ -419,11 +430,6 @@
         <canvas id="chart-report" class="report-chart" width="680" height="200" role="img" aria-label="Battle performance chart" data-i18n-aria-label="chart.reportAlt"></canvas>
       </div>
     </div>
-    <div class="report-actions">
-      <button type="button" id="btn-retry" class="btn primary" data-i18n="report.retry">Retry Battle</button>
-      <button type="button" id="btn-edit" class="btn" data-i18n="report.edit">Edit Logic</button>
-      <button type="button" id="btn-restart" class="btn ghost" data-i18n="report.restart">Restart Run</button>
-    </div>
   </section>
 
   <!-- ===== Victory ===== -->
@@ -432,6 +438,10 @@
     <p class="subtitle" data-i18n="victory.subtitle">// your logic survived</p>
     <p class="muted" data-i18n="victory.flavor">The machine learned from you.</p>
     <div id="victory-run-stats" class="victory-stats-grid"></div>
+    <div class="victory-challenge">
+      <input id="victory-challenge-link" readonly aria-label="Challenge link" data-i18n-aria-label="victory.challengeUrl">
+      <button type="button" class="btn small" id="btn-victory-challenge" data-i18n="victory.challengeLink">Copy challenge link</button>
+    </div>
     <div class="victory-receipt" aria-live="polite">
       <div>
         <span class="receipt-label" data-i18n="victory.receiptTitle">Run Receipt</span>

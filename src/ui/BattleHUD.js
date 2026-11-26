@@ -171,6 +171,8 @@ export class BattleHUD {
 
   _updateLiveSummary() {
     if (!this.srSummary || !this.arena?.robot) return;
+    const now = performance.now();
+    if (now - this._lastSummaryAt < 1200) return;
     const robot = this.arena.robot;
     const next = t('combat.statusSummary', {
       hp: Math.max(0, robot.hp | 0), maxHp: robot.maxHp | 0,
@@ -178,10 +180,9 @@ export class BattleHUD {
       temperature: this.olText?.textContent || '0',
       wave: t('combat.wave', { current: this.arena.currentWave, total: this.arena.totalWaves }),
     });
-    const now = performance.now();
-    if (next === this._lastSummaryText || now - this._lastSummaryAt < 1200) return;
-    this._lastSummaryText = next;
     this._lastSummaryAt = now;
+    if (next === this._lastSummaryText) return;
+    this._lastSummaryText = next;
     this.srSummary.textContent = next;
   }
   setShield(on)    { /* visual handled in renderer */ }
@@ -241,7 +242,7 @@ export class BattleHUD {
       let condStr = cond1Str;
       if (r.operator && r.conditionId2) {
         const cond2Str = formatCond(r.conditionId2, r.conditionValue2, GameDatabase, r.negateCondition2);
-        const opStr = r.operator.toUpperCase();
+        const opStr = t(`rule.${r.operator}`);
         condStr = `${cond1Str} ${opStr} ${cond2Str}`;
       }
       const a = GameDatabase.getAction(r.actionId);
@@ -257,7 +258,9 @@ export class BattleHUD {
     for (const [ruleId, state] of Object.entries(diagnostics)) {
       const li = document.getElementById(`combat-rule-${ruleId}`);
       if (!li) continue;
-      
+      const signature = state + '/' + (diagnosticReasons[ruleId] || '');
+      if (li.dataset.diagnostic === signature) continue;
+      li.dataset.diagnostic = signature;
       li.classList.remove('diag-disabled', 'diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing', 'diag-pursuing', 'diag-action_unavailable');
       
       const oldBadge = li.querySelector('.diag-status-badge');

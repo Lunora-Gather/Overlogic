@@ -26,7 +26,7 @@ export function formatLabel(rule, db) {
   let condStr = cond1Str;
   if (rule.operator && rule.conditionId2) {
     const cond2Str = formatCond(rule.conditionId2, rule.conditionValue2, db, rule.negateCondition2);
-    const opStr = rule.operator.toUpperCase();
+    const opStr = t(`rule.${rule.operator}`);
     condStr = `${cond1Str} ${opStr} ${cond2Str}`;
   }
   const a = db.getAction(rule.actionId);

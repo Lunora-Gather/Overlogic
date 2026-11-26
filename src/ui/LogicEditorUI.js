@@ -13,6 +13,7 @@ import { runModifiers } from '../systems/RunModifiers.js?v=20260725-4';
 import { RULE_TEMPLATES } from '../logic/RuleTemplates.js?v=20260725-4';
 import { featureEnabled } from '../systems/OperationsConfig.js?v=20260725-4';
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
+import { formatLabel } from '../logic/LogicRule.js?v=20260725-4';
 
 export class LogicEditorUI {
   constructor(codeModal = null) {
@@ -53,6 +54,10 @@ export class LogicEditorUI {
     prep?.addEventListener('toggle', () => { if (prep.open) this._followCurrentMapColumn(); });
     this.rulesSearch = document.getElementById('rules-search');
     this.missionBriefing = document.getElementById('mission-briefing');
+    this.editorCoach = document.getElementById('editor-coach');
+    this.coachMessage = document.getElementById('coach-message');
+    this.btnCoach = document.getElementById('btn-coach');
+    this.btnCoach.addEventListener('click', () => this.followCoach());
     this.synergyList = document.getElementById('synergy-list');
     this.mobileTabs = [...document.querySelectorAll('[data-editor-panel]')];
     this.btnImportRules = document.getElementById('btn-import-rules');
@@ -116,9 +121,9 @@ export class LogicEditorUI {
     this.lastSavedSlot = 1;
     this._bind();
     // re-render when state changes
-    GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); });
+    GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); this.renderCoach(); });
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); this.renderSynergies(); });
-    GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); });
+    GameState.on('progress', () => { this.renderHeader(); this.renderBriefing(); this.renderCoach(); });
     window.addEventListener('overlogic:localechange', () => this.renderAll());
     this.btnExportRules?.addEventListener('click', () => {
       const code = GameState.exportRulesCode();
@@ -195,6 +200,7 @@ export class LogicEditorUI {
     this._renderTemplateOptions();
     this.renderHeader();
     this.renderBriefing();
+    this.renderCoach();
     this.renderModules();
     this.renderRules();
     this.renderStats();
@@ -386,6 +392,49 @@ export class LogicEditorUI {
       rule.actionId === advice.actionId &&
       rule.targetPriority === advice.targetPriority
     );
+  }
+
+  coachShieldRule() {
+    return GameState.rules.find(rule => rule.enabled && rule.conditionId === 'hp_low' &&
+      rule.actionId === 'shield' && !rule.operator && !rule.negateCondition1 && rule.conditionValue < 0.5);
+  }
+
+  followCoach() {
+    if (GameState.tutorialProgress.editedRule) {
+      GameManager.goSandbox('calibration');
+      return;
+    }
+    const shield = this.coachShieldRule();
+    if (!shield) {
+      this._openAddForm(this.btnCoach);
+      return;
+    }
+    this.rulesSearch.value = '';
+    GameState.setRuleConditionValue(shield.id, 0.5);
+    const row = [...this.ruleList.children].find(item => item.dataset.id === shield.id);
+    row?.querySelector('[data-focus-field="parameter-primary"]')?.focus();
+    AudioManager.play('rule_add');
+  }
+
+  renderCoach() {
+    const { editedRule, sandboxRun } = GameState.tutorialProgress;
+    const report = GameState.lastReport;
+    const drillResult = report?._battleId === 'sandbox_calibration' && report._sandbox;
+    const visible = GameState.getActiveBattle()?.id === 'battle_1' &&
+      (!editedRule || featureEnabled('sandbox') && (!sandboxRun || drillResult));
+    this.editorCoach.classList.toggle('hidden', !visible);
+    if (!visible) return;
+    let message, action;
+    if (!editedRule) {
+      const shield = this.coachShieldRule();
+      message = shield ? t('coach.shield', { percent: Math.round(shield.conditionValue * 100) }) : t('coach.custom');
+      action = shield ? t('coach.raise') : t('editor.addRule');
+    } else {
+      message = drillResult ? t('coach.result', { count: report.action_usage?.shield || 0 }) : t('coach.drill');
+      action = t('sandbox.calibration');
+    }
+    this.coachMessage.textContent = message;
+    this.btnCoach.textContent = action;
   }
 
   renderBriefing() {
@@ -638,7 +687,7 @@ export class LogicEditorUI {
     this._syncHistoryControls();
     this._activeWarnings = this.analyzeRules();
 
-    const searchQuery = this.rulesSearch ? this.rulesSearch.value.toLowerCase() : '';
+    const searchQuery = this.rulesSearch ? this.rulesSearch.value.trim().toLowerCase() : '';
 
     if (GameState.rules.length === 0) {
       // Empty state guide card
@@ -658,23 +707,20 @@ export class LogicEditorUI {
       // Filter check
       if (searchQuery) {
         const c1 = GameDatabase.getCondition(r.conditionId);
-        const c1Name = c1 ? c1.displayName.toLowerCase() : '';
         const c2 = GameDatabase.getCondition(r.conditionId2);
-        const c2Name = c2 ? c2.displayName.toLowerCase() : '';
         const a = GameDatabase.getAction(r.actionId);
-        const aName = a ? a.displayName.toLowerCase() : '';
-        
-        const matches = 
-          c1Name.includes(searchQuery) ||
-          c2Name.includes(searchQuery) ||
-          aName.includes(searchQuery) ||
-          r.priority.toString().includes(searchQuery);
-          
+        const matches = formatLabel(r, GameDatabase).toLowerCase().includes(searchQuery) ||
+          [c1, c2, a].some(item => item?.displayName.toLowerCase().includes(searchQuery));
         if (!matches) continue;
       }
 
       const row = this._buildRow(r);
       this.ruleList.appendChild(row);
+    }
+    if (searchQuery && GameState.rules.length && !this.ruleList.childElementCount) {
+      const empty = document.createElement('li');
+      empty.textContent = t('editor.noMatches');
+      this.ruleList.appendChild(empty);
     }
     this._setupDragAndDrop();
     this._restoreRuleFocus(focusState, scrollContainer, scrollTop);
@@ -728,6 +774,12 @@ export class LogicEditorUI {
     const row = document.createElement('li');
     row.className = 'rule-row';
     row.dataset.id = r.id;
+    const readableSummary = formatLabel(r, GameDatabase);
+    row.setAttribute('aria-label', readableSummary);
+    const summary = document.createElement('div');
+    summary.className = 'rule-readable-summary';
+    summary.textContent = readableSummary;
+    summary.title = readableSummary;
     const toolbar = document.createElement('div');
     toolbar.className = 'rule-card-toolbar';
     const field = (parent, key, ...controls) => {
@@ -739,7 +791,7 @@ export class LogicEditorUI {
     const conditions = document.createElement('div');
     const actions = document.createElement('div');
     conditions.className = actions.className = 'rule-card-fields';
-    row.append(toolbar, conditions, actions);
+    row.append(summary, toolbar, conditions, actions);
 
     // 1. Drag handle (☰)
     const handle = document.createElement('span');
@@ -851,12 +903,12 @@ export class LogicEditorUI {
     opSel.appendChild(optNone);
 
     const optAnd = document.createElement('option');
-    optAnd.value = 'and'; optAnd.textContent = 'AND';
+    optAnd.value = 'and'; optAnd.textContent = t('rule.and');
     if (r.operator === 'and') optAnd.selected = true;
     opSel.appendChild(optAnd);
 
     const optOr = document.createElement('option');
-    optOr.value = 'or'; optOr.textContent = 'OR';
+    optOr.value = 'or'; optOr.textContent = t('rule.or');
     if (r.operator === 'or') optOr.selected = true;
     opSel.appendChild(optOr);
 
@@ -1031,6 +1083,7 @@ export class LogicEditorUI {
     // 7.1 Clone Button
     const clone = document.createElement('button');
     clone.type = 'button';
+    clone.disabled = GameState.rules.length >= 40;
     clone.className = 'clone-btn'; clone.innerHTML = '📋'; clone.title = t('editor.duplicate');
     clone.dataset.focusField = 'duplicate';
     clone.setAttribute('aria-label', t('editor.duplicate'));
@@ -1044,12 +1097,11 @@ export class LogicEditorUI {
     clone.addEventListener('mouseenter', () => { clone.style.color = 'var(--accent2)'; clone.style.transform = 'scale(1.15)'; });
     clone.addEventListener('mouseleave', () => { clone.style.color = 'var(--muted)'; clone.style.transform = 'scale(1)'; });
     clone.addEventListener('click', () => {
-      GameState.addRule(
+      if (GameState.addRule(
         r.conditionId, r.conditionValue, r.actionId, Math.max(0, r.priority - 1),
         r.conditionId2, r.conditionValue2, r.operator, r.targetPriority,
-        r.negateCondition1, r.negateCondition2
-      );
-      AudioManager.play('rule_add');
+        r.negateCondition1, r.negateCondition2, r.enabled
+      )) AudioManager.play('rule_add');
     });
     actionsContainer.appendChild(clone);
 
@@ -1347,7 +1399,7 @@ export class LogicEditorUI {
     this.fAdd.addEventListener('click', () => {
       const condId = this.fCond.value;
       const actId = this.fAct.value;
-      const prio = +this.fPrio.value || 50;
+      const prio = Number.isFinite(this.fPrio.valueAsNumber) ? this.fPrio.valueAsNumber : 50;
       const c = GameDatabase.getCondition(condId);
       const val = this._readFormParam(c);
 
@@ -1391,7 +1443,6 @@ export class LogicEditorUI {
     if (this.btnSandbox) {
       this.btnSandbox.addEventListener('click', () => {
         AudioManager.play('button_click');
-        GameState.markSandboxRun();
         GameManager.goSandbox();
       });
     }

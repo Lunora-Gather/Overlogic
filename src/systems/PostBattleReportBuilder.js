@@ -41,9 +41,10 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     ? entity('action', mostUsed, GameDatabase.getAction(mostUsed)?.displayName || mostUsed) : t('common.none');
   const mostUsedLine = t('report.mostUsed', { name: mostUsedName, count: mostUsedCount });
 
-  // Never used actions (from available set)
+  // Older reports predate the equipped-action snapshot.
   const neverUsed = [];
-  for (const act of availableActionIds) {
+  const equipped = Array.isArray(report.equipped_actions) ? report.equipped_actions : null;
+  for (const act of equipped ?? availableActionIds) {
     if (!actionUsage[act] || actionUsage[act] === 0) {
       neverUsed.push(entity('action', act, GameDatabase.getAction(act)?.displayName || act));
     }
@@ -65,6 +66,12 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
   // Suggestions (deterministic with auto-add metadata)
   const suggestions = [];
   
+  const offense = ['basic_attack', 'interrupt_shot', 'dash_through', 'drop_mine'];
+  if (equipped && !equipped.some(id => offense.includes(id)) &&
+      hasAction('basic_attack') && hasCondition('enemy_nearby')) {
+    suggestions.push({ text: t('report.suggestAttack'),
+      rule: { conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 } });
+  }
   if (interruptMisses >= 2 && hasCondition('enemy_casting') && hasAction('interrupt_shot')) {
     suggestions.push({
       text: t('report.suggestInterrupt'),
@@ -82,9 +89,9 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
       rule: { conditionId: 'enemy_nearby', conditionValue: 3.5, actionId: 'dash_away', priority: 85 }
     });
   }
-  if (shieldActivatedAtHp < 0 || shieldActivatedAtHp < 0.15) {
+  if (shieldActivatedAtHp < 0.15 && (!equipped || equipped.includes('shield'))) {
     suggestions.push({
-      text: t('report.suggestDefense')
+      text: t('report.shieldThreshold')
     });
   }
   if (energyOverflowTime > 5 && hasCondition('energy_high') && hasAction('overdrive')) {
@@ -96,7 +103,7 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
   
   if (suggestions.length === 0) {
     suggestions.push({
-      text: t('report.suggestDash')
+      text: t('report.reviewRules')
     });
   }
 
@@ -104,5 +111,9 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     damage_lines: damageLines,
     logic_lines: [mostUsedLine, neverUsedLine, shieldLine, energyLine, deathLine],
     suggestions,
+    outcome: sources.length && Number.isFinite(report.battle_time)
+      ? t('report.damageSummary', { seconds: report.battle_time.toFixed(1),
+        source: damageSourceLabel(sources[0]), amount: Math.round(damageBySource[sources[0]]) })
+      : t('report.subtitle'),
   };
 }

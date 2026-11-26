@@ -479,7 +479,9 @@ class GameStateClass {
 
   _normalizeConditionValue(conditionId, value) {
     const condition = GameDatabase.getCondition(conditionId);
-    if (!condition || condition.parameterType === 'none') return null;
+    // The singleton creates its first run before the content tables have loaded.
+    if (!condition) return value;
+    if (condition.parameterType === 'none') return null;
     if (condition.parameterType === 'vec2') {
       const fallback = Array.isArray(condition.defaultValue) ? condition.defaultValue : [1, 1];
       const incoming = Array.isArray(value) ? value : fallback;
@@ -492,8 +494,8 @@ class GameStateClass {
         return index === 1 ? Math.round(clamped) : clamped;
       });
     }
-    const numeric = Number(value);
     const fallback = Number(condition.defaultValue);
+    const numeric = value == null ? fallback : Number(value);
     const safe = Number.isFinite(numeric) ? numeric : (Number.isFinite(fallback) ? fallback : 0);
     const min = Number(condition.minValue);
     const max = Number(condition.maxValue);
@@ -678,12 +680,15 @@ class GameStateClass {
     return true;
   }
 
-  addRule(condId, condVal, actId, prio, condId2 = null, condVal2 = null, operator = null, targetPriority = 'nearest') {
+  addRule(condId, condVal, actId, prio, condId2 = null, condVal2 = null, operator = null, targetPriority = 'nearest', negateCondition1 = false, negateCondition2 = false, enabled = true) {
     if (this.rules.length >= MAX_RULES) return false;
     if (!this.availableConditionIds().includes(condId) || !this.availableActionIds().includes(actId)) return false;
     if ((operator === 'and' || operator === 'or') && !this.availableConditionIds().includes(condId2)) return false;
     this._pushState();
-    this.rules.push(this._newRule(condId, condVal, actId, prio, condId2, condVal2, operator, targetPriority));
+    const rule = this._newRule(condId, condVal, actId, Math.max(0, Math.min(100, Math.trunc(prio) || 0)),
+      condId2, condVal2, operator, targetPriority, negateCondition1, negateCondition2);
+    rule.enabled = enabled !== false;
+    this.rules.push(rule);
     this.saveToStorage();
     this._emit('rules');
     return true;
@@ -895,7 +900,7 @@ class GameStateClass {
         const target = TARGET_PRIORITIES.has(rule.targetPriority)
           ? rule.targetPriority
           : 'nearest';
-        return this._newRule(
+        const importedRule = this._newRule(
           rule.conditionId,
           rule.conditionValue,
           rule.actionId,
@@ -907,6 +912,8 @@ class GameStateClass {
           rule.negateCondition1,
           rule.negateCondition2,
         );
+        importedRule.enabled = rule.enabled !== false;
+        return importedRule;
       });
       if (imported.length === 0) return false;
       this._pushState();
@@ -921,7 +928,8 @@ class GameStateClass {
 
   normalizeRulePriorities() {
     const ordered = [...this.rules].sort((a, b) => b.priority - a.priority);
-    const next = ordered.map((rule, index) => Math.max(0, 100 - index * 10));
+    const spacing = Math.min(10, 100 / Math.max(1, ordered.length - 1));
+    const next = ordered.map((rule, index) => Math.round(100 - index * spacing));
     if (ordered.every((rule, index) => rule.priority === next[index])) return false;
     this._pushState();
     ordered.forEach((rule, index) => { rule.priority = next[index]; });

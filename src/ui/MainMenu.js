@@ -77,7 +77,7 @@ export class MainMenu {
       const now = Date.now();
       if (now - this._lastClockRefresh < 500) return;
       this._lastClockRefresh = now;
-      GameState.refreshIdlePeriodSeed(new Date());
+      GameState.refreshIdlePeriodSeed(new Date(), { preserveSeed: this._explicitPeriodSeed !== null });
       this.render();
     };
     window.addEventListener('focus', refreshClock, { passive: true });

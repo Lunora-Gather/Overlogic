@@ -16,6 +16,7 @@ export class PostBattleReportUI {
     this.repDamage = document.getElementById('rep-damage');
     this.repLogic  = document.getElementById('rep-logic');
     this.repSuggest = document.getElementById('rep-suggest');
+    this.repNextStep = document.getElementById('report-next-step');
     this.repTimeline = document.getElementById('rep-timeline');
     this.repReplayDigest = document.getElementById('rep-replay-digest');
     this.repSimulationFacts = document.getElementById('rep-simulation-facts');
@@ -71,6 +72,8 @@ export class PostBattleReportUI {
     const availableConditions = GameState.availableConditionIds();
     const built = buildReport(report, availableActions, availableConditions);
     this._renderIntegrity(report);
+    document.getElementById('report-outcome').textContent = built.outcome;
+    this.repNextStep.textContent = built.suggestions[0].text;
     
     this.repDamage.innerHTML = built.damage_lines.map(s => `<li>${escapeHtml(s)}</li>`).join('');
     
@@ -82,7 +85,6 @@ export class PostBattleReportUI {
     // Add action frequency section
     const usedActions = allActions.filter(a => actionUsage[a] > 0)
       .sort((a, b) => (actionUsage[b] || 0) - (actionUsage[a] || 0));
-    const unusedActions = allActions.filter(a => !actionUsage[a] && a !== 'basic_attack');
 
     if (usedActions.length > 0) {
       logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.frequency'))}</li>`;
@@ -128,9 +130,6 @@ export class PostBattleReportUI {
         logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #6ab8ff; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyShieldLine', { casts, value: Math.round(amount) }))}</li>`;
       }
     }
-    if (unusedActions.length > 0) {
-      logicHtml += `<li style="color: #ff6b6b; font-size: 10px; margin-top: 6px;">${escapeHtml(t('report.neverTriggered', { actions: unusedActions.map(a => entity('action', a, a)).join(', ') }))}</li>`;
-    }
     this.repLogic.innerHTML = logicHtml;
 
     this._renderTimeline(report.timeline || []);
@@ -156,7 +155,14 @@ export class PostBattleReportUI {
         addBtn.textContent = t('report.autoAdd');
         addBtn.style.padding = '3px 8px';
         addBtn.style.fontSize = '10px';
-        addBtn.style.minHeight = '24px';
+        addBtn.style.minHeight = '44px';
+        const existing = GameState.rules.some(rule => rule.enabled !== false && !rule.operator &&
+          !rule.negateCondition1 && rule.conditionId === sug.rule.conditionId && rule.actionId === sug.rule.actionId &&
+          rule.priority >= sug.rule.priority && JSON.stringify(rule.conditionValue) === JSON.stringify(sug.rule.conditionValue));
+        if (existing) {
+          addBtn.disabled = true;
+          addBtn.textContent = t('report.configured');
+        }
         addBtn.style.whiteSpace = 'nowrap';
         
         addBtn.addEventListener('click', () => {
@@ -179,7 +185,8 @@ export class PostBattleReportUI {
     
     // Draw performance charts
     drawStatsChart(this.canvas, report);
-    this.btnRetry?.focus();
+    this.el.scrollTop = 0;
+    this.btnEdit?.focus({ preventScroll: true });
   }
 
   _renderIntegrity(report) {

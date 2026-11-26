@@ -285,15 +285,16 @@ async function main() {
     arena.onFinished = (won) => GameManager.onBattleFinished(won);
     arena.start(battle);
   };
-  GameManager.goSandbox = () => {
+  GameManager.goSandbox = (requestedPreset) => {
     if (!featureEnabled('sandbox')) {
       showAppNotice('ops.featureUnavailable', { autoHide: 3500 });
       return;
     }
     bgAnim?.stop();
     origGoSandbox();
-    const preset = document.getElementById('sandbox-preset')?.value || 'mixed';
+    const preset = requestedPreset || document.getElementById('sandbox-preset')?.value || 'mixed';
     const scenarios = {
+      calibration: [{ enemyId: 'crawler', count: 2, wave: 1 }],
       mixed: [
         { enemyId: 'crawler', count: 2, wave: 1 },
         { enemyId: 'shooter', count: 1, wave: 1 },
@@ -326,8 +327,8 @@ async function main() {
     stopArena();
     arena = new CombatArena(canvas, battleHUD);
     battleHUD.arena = arena;
-    arena.onFinished = (won) => {
-      // Return straight to editor in sandbox mode
+    arena.onFinished = () => {
+      GameState.markSandboxRun();
       GameManager.goLogicEdit();
     };
     arena.start(sandboxBattle);

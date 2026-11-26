@@ -49,7 +49,9 @@ export class CombatStatsTracker {
     this._pushReplay({ kind: 'damage_dealt', source: kind, value: amount });
   }
   setRuleSnapshot(rules) {
-    this.activeRuleIds = (rules || []).filter(rule => rule.enabled !== false).map(rule => rule.id);
+    const enabled = (rules || []).filter(rule => rule.enabled !== false);
+    this.activeRuleIds = enabled.map(rule => rule.id);
+    this.equippedActions = [...new Set(enabled.map(rule => rule.actionId))];
   }
   recordAction(actionId, ruleId = null) {
     this.actionUsage.set(actionId, (this.actionUsage.get(actionId) || 0) + 1);
@@ -130,6 +132,7 @@ export class CombatStatsTracker {
       rule_usage: Object.fromEntries(this.ruleUsage),
       rule_diagnostics: Object.fromEntries(this.ruleDiagnostics),
       active_rule_ids: this.activeRuleIds,
+      equipped_actions: this.equippedActions,
       action_last_used_time: Object.fromEntries(this.actionLastUsedTime),
       interrupt_successes: this.interruptSuccesses,
       interrupt_misses: Math.max(0, this.castingEventsSeen - this.castingEventsInterrupted),

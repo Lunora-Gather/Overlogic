@@ -114,6 +114,7 @@ export class CombatArena {
     this.ctx.timeSpeed = this.speed;
     this.stats = new RobotStats();
     this.stats.loadFromGameState();
+    if (battle.id === 'sandbox_calibration') this.stats.startingHp = this.stats.stat('max_hp', 100) * 0.4;
     this.modifiers = runModifiers(this.runConfig);
     const modifiers = this.modifiers;
     if (modifiers.robotEnergyRegen !== 1) {

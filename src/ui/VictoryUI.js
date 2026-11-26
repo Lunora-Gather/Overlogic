@@ -26,6 +26,13 @@ export class VictoryUI {
     this.copyReceiptBtn = document.getElementById('btn-copy-victory-receipt');
     this.replayDigestEl = document.getElementById('victory-replay-digest');
     this.simulationFactsEl = document.getElementById('victory-simulation-facts');
+    this.challengeLink = document.getElementById('victory-challenge-link');
+    const copyChallenge = document.getElementById('btn-victory-challenge');
+    copyChallenge.addEventListener('click', async () => {
+      const copied = await copyText(this.challengeLink.value);
+      if (!copied) this.challengeLink.select();
+      copyChallenge.textContent = t(copied ? 'menu.copiedSeed' : 'menu.copySeedManual');
+    });
     this.copyReplayBtn = document.getElementById('btn-copy-victory-replay');
 
     this.btn.addEventListener('click', () => {
@@ -69,6 +76,10 @@ export class VictoryUI {
   show() {
     const report = GameState.lastReport || {};
     drawStatsChart(this.canvas, report);
+    const url = new URL('./', location.href);
+    url.searchParams.set('challenge', GameState.exportRunCode());
+    this.challengeLink.value = url.href;
+    document.getElementById('btn-victory-challenge').textContent = t('victory.challengeLink');
     this._renderStats(report);
     this._renderRulesSummary();
     this.replayBtn?.focus();
@@ -138,7 +149,7 @@ export class VictoryUI {
       const cond2 = r.operator && r.conditionId2
         ? formatCond(r.conditionId2, r.conditionValue2, GameDatabase, r.negateCondition2)
         : '';
-      const cond = cond2 ? `${cond1} ${r.operator.toUpperCase()} ${cond2}` : cond1;
+      const cond = cond2 ? `${cond1} ${t(`rule.${r.operator}`)} ${cond2}` : cond1;
       const act = entity('action', r.actionId, action?.displayName || r.actionId || '?');
       const target = r.targetPriority && r.targetPriority !== 'nearest'
         ? ` (${t(`target.${r.targetPriority}`)})`

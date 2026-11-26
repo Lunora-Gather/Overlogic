@@ -429,3 +429,78 @@ test('rule warnings allow negated conditions and lower-priority fallback actions
   shield.negateCondition1 = false;
   assert.match(analyze().get(attack.id)[0], /Redundant/);
 });
+
+test('cold boot keeps starter thresholds until the content tables are ready', () => {
+  const conditions = GameDatabase.conditions;
+  try {
+    GameDatabase.conditions = new Map();
+    GameState.resetRun();
+  } finally {
+    GameDatabase.conditions = conditions;
+  }
+  GameState.normalizeAfterDatabaseLoad();
+  assert.deepEqual(GameState.rules.map(rule => rule.conditionValue), [0.3, 2.5, 8]);
+  GameState.rules[0].conditionValue = null;
+  GameState.rules[1].conditionValue = 1;
+  GameState.normalizeAfterDatabaseLoad();
+  assert.deepEqual(GameState.rules.map(rule => rule.conditionValue), [0.3, 1, 8]);
+});
+
+test('shield drill uses real activations at 40% HP and leaves campaign progress intact', () => {
+  GameState.configureRun('standard', 'standard', 136);
+  GameState.persistentHp = 85;
+  const before = structuredClone(GameState.runStats);
+  const battle = { ...GameState.getActiveBattle(), id: 'sandbox_calibration',
+    enemySpawns: [{ enemyId: 'crawler', count: 2, wave: 1 }] };
+  for (const threshold of [0.3, 0.5]) {
+    GameState.setRuleConditionValue(GameState.rules[0].id, threshold);
+    const arena = startArena(battle);
+    assert.equal(arena.robot.hp, 40);
+    for (let step = 0; step < 3600 && !arena._finished; step++) arena._update(SIMULATION_STEP_SECONDS);
+    assert(arena._finished);
+    assert.equal(Boolean(GameState.lastReport.action_usage.shield), threshold === 0.5);
+    assert.equal(GameState.persistentHp, 85);
+    assert.deepEqual(GameState.runStats, before);
+    assert.equal(GameState.hasPendingBattleResolution(), false);
+    assert.equal(allBattles().length, 0);
+  }
+});
+
+test('copied and shared rules retain both negations, disabled state and zero priority', () => {
+  const fields = ['conditionId', 'conditionValue', 'actionId', 'priority', 'conditionId2',
+    'conditionValue2', 'operator', 'targetPriority', 'negateCondition1', 'negateCondition2', 'enabled'];
+  const values = ['hp_low', 0.45, 'shield', 0, 'enemy_nearby', 3, 'or', 'nearest', true, true, false];
+  assert(GameState.addRule(...values));
+  const code = GameState.exportRulesCode();
+  GameState.undo();
+  assert.equal(GameState.rules.length, 3);
+  GameState.redo();
+  assert.deepEqual(fields.map(key => GameState.rules.at(-1)[key]), values);
+  GameState.resetRun();
+  assert(GameState.importRulesCode(code));
+  assert.deepEqual(fields.map(key => GameState.rules.at(-1)[key]), values);
+  for (let i = 0; i < 36; i++) assert(GameState.addRule('enemy_nearby', 8, 'basic_attack', 0));
+  assert.equal(GameState.addRule(...values), false);
+  assert(GameState.normalizeRulePriorities());
+  assert.equal(new Set(GameState.rules.map(rule => rule.priority)).size, 40);
+});
+
+test('defeat summaries localize the largest damage source and use the equipped build for advice', () => {
+  const report = { battle_time: 7.25, damage_by_source: { crawler: 35, overlogic_heat: 5 },
+    equipped_actions: ['shield'], action_usage: {}, timeline: [{ kind: 'death', source: 'overlogic_heat' }] };
+  const actions = ['shield', 'basic_attack'];
+  const build = () => buildReport(report, actions, ['enemy_nearby']);
+  for (const [locale, attack, shield] of [['en', 'basic attack', 'Shield'], ['zh-CN', '基础攻击', '护盾'], ['zh-TW', '基礎攻擊', '護盾']]) {
+    setLocale(locale, { notify: false });
+    const result = build();
+    assert.match(result.outcome, /7\.3/);
+    assert.match(result.outcome, /35/);
+    assert(result.logic_lines[1].includes(shield));
+    assert(result.suggestions[0].text.toLowerCase().includes(attack));
+    assert.equal(result.suggestions[0].rule.actionId, 'basic_attack');
+  }
+  for (const snapshot of [undefined, {}, ['basic_attack']]) {
+    report.equipped_actions = snapshot;
+    assert(!build().suggestions.some(suggestion => suggestion.rule?.actionId === 'basic_attack'));
+  }
+});

@@ -6,10 +6,10 @@ Overlogic 是一款俯视角自动战斗策略 Roguelite。你不操作机器人
 
 ## 玩第一局
 
-1. 在首页保留标准模式和默认难度，选择「进入逻辑工作台」。此时不会开战。
-2. 看第一条规则的条件、阈值和动作。例如，把「生命值较低 → 护盾」的阈值调高，机器人就会更早尝试开盾。保留一条低优先级的基础攻击，防御动作冷却时它还有事可做。
-3. 选「沙盒测试」可以先试构筑，不消耗路线进度。准备好后选「启动战斗模拟」进入正式战斗。观察当前指令，或暂停查看规则为什么被跳过。
-4. 胜利后选择升级，带着剩余生命进入下一节点；失败后读伤害来源和规则使用情况，再回工作台调整。胜利待领奖时刷新，可以从首页继续领取。
+1. 从首页选择「进入逻辑工作台」。第一条规则默认在生命降到 30% 时尝试举盾。点「调至 50% 开盾」，可以看到规则摘要和数值一起更新，也可以撤销这次修改。
+2. 点「护盾演练」。机器人以 40% 生命面对两只爬行者，返回工作台时会显示实际举盾次数。演练保留战役生命、胜场和路线进度。
+3. 保留一条低优先级的基础攻击，选择「启动战斗模拟」。想看清一次判断，可以暂停后单步推进，查看规则触发或跳过的原因。
+4. 失败后先看坚持时间、最大伤害来源和调整建议。需要新增规则时，可直接在报告内添加，再返回编辑或重试。胜利后选择升级，带着剩余生命前往下一节点。领奖前刷新也可以从首页继续。
 
 | 想做什么 | 去哪里 |
 | --- | --- |
@@ -24,11 +24,11 @@ Overlogic 是一款俯视角自动战斗策略 Roguelite。你不操作机器人
 
 ## 繁體中文
 
-你負責編寫規則，機器人負責戰鬥。從首頁選「進入邏輯工作臺」，先調整條件與動作；「沙盒測試」不影響戰役進度，「啟動戰鬥模擬」才會開戰。戰後比較傷害來源與規則使用情況，再決定下一次升級。換裝置前，請從系統設定匯出完整存檔。
+從首頁選「進入邏輯工作臺」。按「調至 50% 開盾」，再進入「護盾演練」：機體會以 40% 生命面對兩隻爬行者，演練結束後可看到實際舉盾次數。戰役生命與路線進度會保留。準備好後選「啟動戰鬥模擬」。失敗時，報告會列出存活時間、主要傷害來源與下一步建議；你可以直接新增建議規則，回工作臺調整後再試。勝利後選擇升級。換裝置前，請從系統設定匯出完整存檔。
 
 ## English
 
-Program a robot instead of piloting it. Choose **Open Logic Workstation**, give defensive rules a higher priority than a fallback attack, and try your build in the sandbox without spending campaign progress. **Launch Battle** starts the encounter. Watch the active rule, then use the post-battle report to decide what to change. Seeded daily and weekly runs can be shared; saves and records stay in your browser unless you export a backup.
+Choose **Open Logic Workstation**, then **Set shield to 50%**. The **Shield drill** starts the robot at 40% HP against two crawlers. Back in the editor, check how often the shield activated. The drill preserves campaign HP and route progress. Leave a basic attack enabled and choose **Launch Battle**. After a loss, the report shows how long the robot survived, which source dealt the most damage, and a suggested change. Add a suggested rule from the report, edit your build, or retry. After a win, choose an upgrade. Saves stay in this browser unless you export a backup.
 
 ## 本地运行
 
@@ -50,6 +50,7 @@ npm run serve
 | `npm run balance` | 运行确定性平衡模拟。 |
 | `npm run build` | 生成带版本号和预缓存校验值的 `dist/`。 |
 | `npm run layout-audit` | 构建后用 Chrome 检查三语首页、规则可读性和战场遮挡。可用 `CHROME_BIN` 指定 Chromium 可执行文件；CI 会在部署前执行。 |
+| `npm run safari-audit` | 在 macOS 上先运行 `npm run build`。测试会打开系统 Safari，用三语实测引导、搜索、撤销与重做、演练、失败复盘和重试领奖。手机尺寸通过浏览器视口模拟。 |
 | `npm run check` | 不依赖浏览器的本地门禁（发布前另跑 `layout-audit`）：verify → balance → quality-audit → build → release-audit → http-audit → performance-audit。 |
 
 向 `main` 推送后，[Verify 工作流](https://github.com/Lunora-Gather/Overlogic/actions/workflows/verify.yml) 会检查并部署 `dist/` 到 GitHub Pages。用线上 [release.json](https://lunora-gather.github.io/Overlogic/release.json) 的 `release` 与提交 SHA 核对版本。已打开的 PWA 可能仍使用上一套缓存；新版本资源全部校验通过后，再按更新提示重新加载。无需清除存档。
