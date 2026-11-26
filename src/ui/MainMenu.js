@@ -3,7 +3,7 @@
 import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { GameState } from '../core/GameState.js?v=20260725-4';
-import { getLocale, setLocale, t } from '../i18n/I18n.js?v=20260725-4';
+import { entity, getLocale, setLocale, t } from '../i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './focusTrap.js?v=20260725-4';
 import { recentBattles, historySummary } from '../systems/RunHistory.js?v=20260725-4';
 import { profileSnapshot, profileRank, ACHIEVEMENTS } from '../systems/ProfileProgression.js?v=20260725-4';
@@ -21,7 +21,9 @@ import { drawRobot } from '../render/ArenaRenderer.js?v=20260725-4';
 export class MainMenu {
   constructor() {
     this.el = document.getElementById('screen-main');
+    this.preview = this.el.querySelector('.rule-preview');
     this.previewHp = document.getElementById('preview-hp');
+    this.runCard = document.getElementById('home-run');
     this.previewHp.addEventListener('input', () => this.renderPreview());
     this.btnStart = document.getElementById('btn-start');
     this.btnNewRun = document.getElementById('btn-new-run');
@@ -305,8 +307,13 @@ export class MainMenu {
   }
 
   render() {
-    this.renderPreview();
-    const activeRun = GameState.hasRunProgress() && !GameState.isDemoCleared();
+    const complete = GameState.isDemoCleared();
+    const pendingBattle = GameState.hasPendingBattleResolution();
+    const pendingUpgrade = GameState.hasPendingUpgradeReward();
+    const pendingFinal = GameState.isPendingFinalBattle();
+    const activeRun = !complete && (GameState.hasRunProgress() || pendingUpgrade);
+    const resume = activeRun || GameState.tutorialProgress?.editedRule ||
+      Number.isFinite(GameState.lastReport?.battle_time);
     if (this.runMode) this.runMode.value = activeRun ? GameState.runConfig.mode : GameState.settings.runMode;
     this._applyOperationsGates(activeRun);
     if (this.runDifficulty) this.runDifficulty.value = activeRun ? GameState.runConfig.difficulty : GameState.settings.difficulty;
@@ -316,15 +323,17 @@ export class MainMenu {
       button.setAttribute('aria-checked', selected ? 'true' : 'false');
       button.tabIndex = selected ? 0 : -1;
     }
-    const complete = GameState.isDemoCleared();
-    const active = activeRun;
-    const pending = GameState.hasPendingBattleResolution() || GameState.hasPendingUpgradeReward();
     this.btnStart.textContent = complete
       ? t('menu.replay')
-      : (pending ? t('menu.resumeReward') : (active ? t('menu.continue') : t('menu.start')));
-    this.btnNewRun?.classList.toggle('hidden', !active);
-    if (this.runMode) this.runMode.disabled = active;
-    if (this.runDifficulty) this.runDifficulty.disabled = active;
+      : (pendingFinal ? t('menu.viewResult')
+        : (pendingBattle || pendingUpgrade ? t('menu.resumeReward') : t(resume ? 'menu.continue' : 'menu.start')));
+    this.btnNewRun?.classList.toggle('hidden', !activeRun);
+    this.runMode.disabled = activeRun;
+    this.runDifficulty.disabled = activeRun;
+    this.preview.hidden = complete || resume;
+    this.runCard.hidden = !this.preview.hidden;
+    if (this.preview.hidden) this.renderRunCard({ complete, pendingBattle, pendingUpgrade, pendingFinal });
+    else this.renderPreview();
     if (this.howBody) {
       this.howBody.replaceChildren(...t('how.body').split('|').map(line => {
         const paragraph = document.createElement('p');
@@ -338,6 +347,36 @@ export class MainMenu {
     if (this.profileOverlay && !this.profileOverlay.classList.contains('hidden')) this.renderProfileDialog();
     this.renderChallenges();
     this.renderHistory();
+  }
+
+  renderRunCard({ complete, pendingBattle, pendingUpgrade, pendingFinal }) {
+    const battle = GameState.getActiveBattle();
+    const node = GameState.getActiveNode();
+    const status = complete || pendingFinal ? 'menu.runComplete'
+      : (pendingBattle || pendingUpgrade ? 'menu.rewardReady' : 'menu.currentRun');
+    const title = complete ? t('victory.title')
+      : battle ? entity('battle', battle.id, battle.displayName)
+        : t(node?.type === 'repair' ? 'map.repairName' : 'map.upgradeName');
+    this.runCard.querySelector('#home-run-status').textContent = complete ? '' : t(status);
+    this.runCard.querySelector('#home-run-title').textContent = title;
+    const total = GameState.mapNodes.length;
+    const current = Math.min(GameState.currentMapColumn + 1, total);
+    const progress = this.runCard.querySelector('#home-route-progress');
+    progress.max = total;
+    progress.value = current;
+    this.runCard.querySelector('#home-route-label').textContent = t('editor.routeProgress', { current, total });
+    const report = GameState.lastReport;
+    const hp = pendingBattle || complete ? report?._endHp : GameState.persistentHp;
+    const maxHp = GameState.stats.max_hp;
+    const time = complete ? GameState.runStats.totalBattleTime : report?.battle_time;
+    const facts = [
+      [t(pendingBattle || complete ? 'reward.endingHp' : 'combat.hitPoints'), `${Math.round(hp ?? maxHp)} / ${Math.round(maxHp)}`],
+      pendingBattle || complete
+        ? [t('victory.time'), Number.isFinite(time) ? t('reward.unit.seconds', { value: time.toFixed(1) }) : '—']
+        : [t('victory.battles'), GameState.runStats.battlesWon],
+    ];
+    this.runCard.querySelector('#home-run-facts').innerHTML = facts.map(([label, value]) =>
+      `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(String(value))}</dd></div>`).join('');
   }
 
   renderSeason() {

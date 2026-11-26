@@ -20,13 +20,15 @@ function wasExhausted(rewardId) {
 export function buildRewardOptions(battle) {
   const random = GameState.randomFor(`reward:${battle?.id || 'unknown'}:${GameState.currentMapColumn}`);
   const pool = battle?.rewardPool || [];
+  const actions = new Set(GameState.availableActionIds());
+  const conditions = new Set(GameState.availableConditionIds());
   const available = [];
   for (const rid of pool) {
     const r = GameDatabase.getReward(rid);
     if (!r) continue;
     if (wasExhausted(rid)) continue;
-    if (r.rewardType === 'new_action' && GameState.unlockedActionIds.includes(r.targetId)) continue;
-    if (r.rewardType === 'new_condition' && GameState.unlockedConditionIds.includes(r.targetId)) continue;
+    if (r.rewardType === 'new_action' && actions.has(r.targetId)) continue;
+    if (r.rewardType === 'new_condition' && conditions.has(r.targetId)) continue;
     available.push(rid);
   }
   // Ensure at least 1 passive
@@ -72,20 +74,23 @@ export function rewardDescription(reward) {
   if (reward.rewardType === 'passive') {
     return t(`rewardDesc.${reward.targetId}`, { target: reward.targetId });
   }
-  switch (reward.rewardType) {
-    case 'new_action': return t('rewardDesc.newAction', { name: entity('action', reward.targetId, reward.targetId) });
-    case 'new_condition': return t('rewardDesc.newCondition', { name: entity('condition', reward.targetId, reward.targetId) });
-    default: return '';
+  const { targetId, rewardType } = reward;
+  if (rewardType === 'new_action') {
+    return entity('action', targetId, GameDatabase.getAction(targetId)?.description, 'description');
   }
+  if (rewardType === 'new_condition') {
+    return entity('condition', targetId, GameDatabase.getCondition(targetId)?.description, 'description');
+  }
+  return '';
 }
 
 export function rewardDisplayName(reward) {
   if (reward.rewardType === 'passive') return t(`rewardName.${reward.targetId}`);
   if (reward.rewardType === 'new_action') {
-    return t('rewardName.newAction', { name: entity('action', reward.targetId, reward.targetId) });
+    return entity('action', reward.targetId, GameDatabase.getAction(reward.targetId)?.displayName);
   }
   if (reward.rewardType === 'new_condition') {
-    return t('rewardName.newCondition', { name: entity('condition', reward.targetId, reward.targetId) });
+    return entity('condition', reward.targetId, GameDatabase.getCondition(reward.targetId)?.displayName);
   }
   return reward.displayName;
 }

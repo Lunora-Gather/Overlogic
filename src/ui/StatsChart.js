@@ -1,145 +1,89 @@
-// StatsChart.js — Custom 2D Canvas chart renderer for cyberpunk run analytics.
-
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 import { damageSourceLabel } from '../systems/PostBattleReportBuilder.js?v=20260725-4';
 import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 
+const PADDING = 14;
+const ROW_HEIGHT = 27;
+
+function leadingEntries(values) {
+  return Object.entries(values || {}).sort((a, b) => b[1] - a[1]).slice(0, 4);
+}
+
+function seriesHeight(rows) {
+  return 38 + ROW_HEIGHT * Math.max(1, rows.length);
+}
+
+function drawSeries(g, { title, empty, color, rows }, x, y, width, font) {
+  const innerWidth = width - 2 * PADDING;
+  g.textAlign = 'left';
+  g.fillStyle = color;
+  g.font = `650 13px ${font}`;
+  g.fillText(title, x + PADDING, y + 19, innerWidth);
+
+  g.font = `12px ${font}`;
+  g.fillStyle = '#adc0d0';
+  if (!rows.length) {
+    g.fillText(empty, x + PADDING, y + 46, innerWidth);
+    return;
+  }
+
+  const labelWidth = Math.min(138, Math.round(innerWidth * 0.43));
+  const valueWidth = Math.max(...rows.map(row => g.measureText(row.label).width));
+  const barWidth = Math.max(0, innerWidth - labelWidth - valueWidth - 20);
+  const barX = x + PADDING + labelWidth + 10;
+  const maxValue = Math.max(1, ...rows.map(row => row.value));
+  for (const [index, row] of rows.entries()) {
+    const rowY = y + 46 + index * ROW_HEIGHT;
+    g.textAlign = 'left';
+    g.fillStyle = '#adc0d0';
+    g.fillText(row.name, x + PADDING, rowY, labelWidth);
+    g.fillStyle = '#243447';
+    g.fillRect(barX, rowY - 3, barWidth, 6);
+    g.fillStyle = color;
+    g.fillRect(barX, rowY - 3, barWidth * row.value / maxValue, 6);
+    g.textAlign = 'right';
+    g.fillStyle = '#eef8ff';
+    g.fillText(row.label, x + width - PADDING, rowY);
+  }
+}
+
 export function drawStatsChart(canvas, report) {
-  if (!canvas || !report) return;
+  if (!canvas || !report || !canvas.clientWidth) return;
   const g = canvas.getContext('2d');
-
-  // High DPI / Retina Support
+  const width = canvas.clientWidth;
   const dpr = window.devicePixelRatio || 1;
-  const rect = canvas.getBoundingClientRect();
-  const W = rect.width || 680;
-  
-  // Responsive layout: Stack vertically on small screens
-  const isMobile = W < 600;
-  const H = isMobile ? 380 : 200;
-
-  canvas.width = W * dpr;
-  canvas.height = H * dpr;
-  canvas.style.width = `${W}px`;
-  canvas.style.height = `${H}px`;
+  const stacked = width < 560;
+  const actionRows = leadingEntries(report.action_usage).map(([id, value]) => ({
+    name: entity('action', id, GameDatabase.getAction(id)?.displayName),
+    label: `×${value}`,
+    value,
+  }));
+  const damageRows = leadingEntries(report.damage_by_source).map(([source, value]) => ({
+    name: damageSourceLabel(source),
+    label: t('chart.damageShort', { value: Math.round(value) }),
+    value,
+  }));
+  const actionHeight = seriesHeight(actionRows);
+  const damageHeight = seriesHeight(damageRows);
+  const height = stacked ? actionHeight + damageHeight : Math.max(actionHeight, damageHeight);
+  canvas.width = Math.round(width * dpr);
+  canvas.height = Math.round(height * dpr);
+  canvas.style.height = `${height + 2}px`;
 
   g.scale(dpr, dpr);
+  g.fillStyle = '#0d1724';
+  g.fillRect(0, 0, width, height);
+  g.fillStyle = '#26384a';
+  if (stacked) g.fillRect(0, actionHeight, width, 1);
+  else g.fillRect(width / 2, 0, 1, height);
 
-  // Clear background
-  g.fillStyle = '#0a0d1a';
-  g.fillRect(0, 0, W, H);
-
-  // Draw background grid lines (cyberpunk style)
-  g.strokeStyle = 'rgba(0, 210, 255, 0.08)';
-  g.lineWidth = 1;
-  for (let x = 30; x < W; x += 40) {
-    g.beginPath(); g.moveTo(x, 0); g.lineTo(x, H); g.stroke();
-  }
-  for (let y = 20; y < H; y += 30) {
-    g.beginPath(); g.moveTo(0, y); g.lineTo(W, y); g.stroke();
-  }
-
-  // Split calculations
-  const colW = isMobile ? W : W / 2;
-  const maxActions = 4;
-  
-  // Font settings
-  g.font = '11px monospace';
-  g.textAlign = 'left';
+  const font = getComputedStyle(canvas).fontFamily;
+  const colWidth = stacked ? width : width / 2;
   g.textBaseline = 'middle';
-
-  // --- 1. Draw Action Usage ---
-  g.fillStyle = '#00d2ff';
-  g.font = 'bold 12px monospace';
-  const actionTitleY = 20;
-  g.fillText(t('chart.actionUsage'), 20, actionTitleY);
-  
-  g.font = '10px monospace';
-  const actions = Object.entries(report.action_usage || {}).sort((a, b) => b[1] - a[1]);
-  const slicedActions = actions.slice(0, maxActions);
-  const maxActionCount = Math.max(1, ...actions.map(a => a[1]));
-
-  let ay = 50;
-  if (slicedActions.length === 0) {
-    g.fillStyle = '#888';
-    g.fillText(t('chart.noActions'), 20, ay);
-  } else {
-    for (const [actId, count] of slicedActions) {
-      const act = GameDatabase.getAction(actId);
-      const name = act ? entity('action', actId, act.displayName) : actId;
-      
-      g.fillStyle = '#8892b0';
-      g.fillText(name.toUpperCase(), 20, ay);
-
-      // Draw bar
-      const barMaxW = colW - 140;
-      const barW = (count / maxActionCount) * barMaxW;
-      
-      // Bar background
-      g.fillStyle = 'rgba(0, 210, 255, 0.1)';
-      g.fillRect(110, ay - 6, barMaxW, 12);
-
-      // Glowing bar fill
-      g.save();
-      g.fillStyle = '#00ffc3';
-      g.shadowColor = '#00ffc3';
-      g.shadowBlur = 8;
-      g.fillRect(110, ay - 6, barW, 12);
-      g.restore();
-
-      // Count text
-      g.fillStyle = '#ffffff';
-      g.fillText(`x${count}`, 115 + barW, ay);
-
-      ay += isMobile ? 30 : 36;
-    }
-  }
-
-  // --- 2. Draw Damage Taken ---
-  g.fillStyle = '#ff4757';
-  g.font = 'bold 12px monospace';
-  const dmgTitleX = isMobile ? 20 : colW + 20;
-  const dmgTitleY = isMobile ? 200 : 20;
-  g.fillText(t('chart.damageSource'), dmgTitleX, dmgTitleY);
-
-  g.font = '10px monospace';
-  const damageSources = Object.entries(report.damage_by_source || {}).sort((a, b) => b[1] - a[1]);
-  const maxDmg = Math.max(1, ...damageSources.map(d => d[1]));
-  
-  let dy = isMobile ? 230 : 50;
-  const dmgLabelX = isMobile ? 20 : colW + 20;
-  const dmgBarX = isMobile ? 110 : colW + 110;
-
-  if (damageSources.length === 0) {
-    g.fillStyle = '#888';
-    g.fillText(t('chart.noDamage'), dmgLabelX, dy);
-  } else {
-    for (const [source, dmg] of damageSources.slice(0, maxActions)) {
-      const name = damageSourceLabel(source);
-
-      g.fillStyle = '#8892b0';
-      g.fillText(name.toUpperCase(), dmgLabelX, dy);
-
-      // Draw bar
-      const barMaxW = colW - 140;
-      const barW = (dmg / maxDmg) * barMaxW;
-      
-      // Bar background
-      g.fillStyle = 'rgba(255, 71, 87, 0.1)';
-      g.fillRect(dmgBarX, dy - 6, barMaxW, 12);
-
-      // Glowing bar fill
-      g.save();
-      g.fillStyle = '#ff4757';
-      g.shadowColor = '#ff4757';
-      g.shadowBlur = 8;
-      g.fillRect(dmgBarX, dy - 6, barW, 12);
-      g.restore();
-
-      // Dmg text
-      g.fillStyle = '#ffffff';
-      g.fillText(t('chart.damageShort', { value: Math.round(dmg) }), dmgBarX + 5 + barW, dy);
-
-      dy += isMobile ? 30 : 36;
-    }
-  }
+  drawSeries(g, {
+    title: t('chart.actionUsage'), empty: t('chart.noActions'), color: '#78e2d4', rows: actionRows,
+  }, 0, 0, colWidth, font);
+  drawSeries(g, {
+    title: t('chart.damageSource'), empty: t('chart.noDamage'), color: '#ff9b88', rows: damageRows,
+  }, stacked ? 0 : colWidth, stacked ? actionHeight : 0, colWidth, font);
 }

@@ -538,10 +538,7 @@ export class LogicEditorUI {
       }
       const li = document.createElement('li');
       li.innerHTML = `<span class="mod-name">${escapeHtml(entity('condition', id, c.displayName))}</span><span class="module-add-hint">${escapeHtml(t('editor.use'))}</span>` +
-        `<span class="mod-desc">${escapeHtml(entity('condition', id, c.description, 'description'))}</span>` +
-        (c.parameterType !== 'none'
-          ? `<span class="mod-meta">${escapeHtml(t('editor.parameterMeta', { type: c.parameterType }))}</span>`
-          : '');
+        `<span class="mod-desc">${escapeHtml(entity('condition', id, c.description, 'description'))}</span>`;
       li.style.cursor = 'pointer';
       li.dataset.tooltipType = 'condition';
       li.dataset.tooltipId = id;
@@ -601,6 +598,13 @@ export class LogicEditorUI {
         }
       });
       this.actList.appendChild(li);
+    }
+    for (const list of [this.condList, this.actList]) {
+      if (list.childElementCount) continue;
+      const empty = document.createElement('li');
+      empty.className = 'module-empty';
+      empty.textContent = t('editor.noMatchingModules');
+      list.appendChild(empty);
     }
   }
 

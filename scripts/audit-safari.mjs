@@ -8,10 +8,13 @@ import { extname, join } from 'node:path';
 
 async function play(frame, locale, width, height) {
   const win = frame.contentWindow;
-  const doc = win.document;
+  let doc = win.document;
   const errors = [];
-  win.addEventListener('error', event => errors.push(event.error?.stack || event.message));
-  win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
+  function watchErrors() {
+    win.addEventListener('error', event => errors.push(event.error?.stack || event.message));
+    win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
+  }
+  watchErrors();
   const find = selector => doc.querySelector(selector);
   const rect = selector => find(selector).getBoundingClientRect();
   const check = (ok, detail) => { if (!ok) throw new Error(locale + ' ' + width + '×' + height + ' ' + detail); };
@@ -68,11 +71,13 @@ async function play(frame, locale, width, height) {
     }
     check(!onScreen('combat'), 'battle did not finish');
   }
-  await wait(() => find('#btn-start')?.offsetWidth && !doc.documentElement.classList.contains('booting') &&
-    win.getComputedStyle(find('#screen-combat')).display === 'none', 'boot and stylesheet');
+  const ready = () => Boolean(find('#btn-start')?.offsetWidth) &&
+    !doc.documentElement.classList.contains('booting') && win.getComputedStyle(find('#screen-combat')).display === 'none';
+  await wait(ready, 'boot and stylesheet');
   check(win.innerWidth === width && win.innerHeight === height, 'unexpected viewport');
   await click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
+  check(find('#home-run').hidden && find('.rule-preview').offsetWidth, 'first visit shield preview');
   check(rect('#btn-start').bottom <= height, 'start button below fold');
   const preview = find('#preview-hp');
   const initial = save();
@@ -171,6 +176,14 @@ async function play(frame, locale, width, height) {
     outcome.includes(String(Math.round(Math.max(...Object.values(loss.damage_by_source))))), 'damage summary');
   check(find('#rep-suggest').textContent.toLowerCase().includes(labels[1]), 'actionable report');
   check(rect('#btn-edit').bottom <= height, 'edit button below fold');
+  const chart = find('#chart-report');
+  const chartWidth = rect('#chart-report').width;
+  frame.style.width = width === 320 ? '390px' : '320px';
+  await wait(() => rect('#chart-report').width !== chartWidth &&
+    Math.abs(chart.width / win.devicePixelRatio - chart.clientWidth) <= 1, 'responsive battle chart redraw');
+  frame.style.width = width + 'px';
+  await wait(() => rect('#chart-report').width === chartWidth &&
+    Math.abs(chart.width / win.devicePixelRatio - chart.clientWidth) <= 1, 'original chart size restored');
   await click('#btn-restart');
   check(find('#screen-report').inert && doc.activeElement === find('#btn-confirm-cancel'), 'restart confirmation');
   await click('#btn-confirm-cancel');
@@ -185,8 +198,31 @@ async function play(frame, locale, width, height) {
   await click('#btn-run');
   await finishBattle();
   check(onScreen('reward'), 'attack rule should win the retry');
-  await click('.reward-card');
+  fits('#screen-reward');
+  const offers = () => [...doc.querySelectorAll('.reward-card')].map(card => card.textContent);
+  const originalOffers = offers();
+  check(originalOffers.length === 3 && find('.r-before') && find('.r-impact strong'), 'visible before and after values');
+  check(find('#reward-facts dd').textContent.startsWith(String(Math.round(save().lastReport._endHp))), 'ending HP in upgrade header');
+  const previousDoc = doc;
+  frame.src += '&resume=1';
+  await wait(() => {
+    if (win.document === previousDoc) return false;
+    doc = win.document;
+    return ready();
+  }, 'reload pending reward');
+  watchErrors();
+  check(find('.rule-preview').hidden && find('#home-run').offsetWidth, 'returning player sees campaign card');
+  check(find('#home-run-facts dd').textContent.startsWith(String(Math.round(save().lastReport._endHp))), 'resume shows the winning HP');
+  await click('#btn-start');
+  check(onScreen('reward') && JSON.stringify(offers()) === JSON.stringify(originalOffers), 'same offers after refresh');
+  const shortcut = (repeat = false) => new win.KeyboardEvent('keydown', { key: '1', bubbles: true, repeat });
+  find('#reward-title').dispatchEvent(shortcut(true));
+  check(onScreen('reward') && save().runStats.battlesWon === 0, 'held key does not select');
+  find('#reward-title').dispatchEvent(shortcut());
   check(save().runStats.battlesWon === 1, 'reward settled');
+  await click('#btn-editor-menu');
+  check(find('#home-run').offsetWidth && find('#home-route-progress').value === 2, 'campaign card advances after claiming upgrade');
+  await click('#btn-start');
   await click('.editor-sandbox summary');
   find('#sandbox-preset').value = 'boss';
   await click('#btn-sandbox');

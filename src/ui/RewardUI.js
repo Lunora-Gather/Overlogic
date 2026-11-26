@@ -1,25 +1,35 @@
-// RewardUI.js — reward selection screen. Shows 3 cards, applies on click.
-// Enhanced with current passives display and richer card descriptions.
-// Mirrors scripts/ui/RewardUI.gd.
-
 import { GameState } from '../core/GameState.js?v=20260725-4';
 import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { buildRewardOptions, buildUpgradeOptions, rewardDescription, rewardDisplayName } from '../systems/RewardManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { escapeHtml } from './safeHtml.js?v=20260725-4';
-import { t } from '../i18n/I18n.js?v=20260725-4';
+import { entity, getLocale, t } from '../i18n/I18n.js?v=20260725-4';
 
-const TYPE_ICONS = {
-  passive: '⚙️',
-  new_action: '⚡',
-  new_condition: '🔍',
+const STAT_UNITS = {
+  max_hp: 'hp',
+  max_energy: 'energy',
+  move_speed: 'speed',
+  energy_regen: 'energyRate',
+  basic_dmg: 'damage',
+  dash_cd: 'seconds',
+  shield_cd: 'seconds',
+  shield_dur: 'seconds',
+  overdrive_dur: 'seconds',
+  interrupt_cd: 'seconds',
+  reflective_plating: 'percent',
+  nanite_repair: 'repairRate',
+  armor_piercing: 'armor',
 };
 
 export class RewardUI {
   constructor() {
     this.el = document.getElementById('screen-reward');
     this.optionsEl = document.getElementById('reward-options');
+    this.title = document.getElementById('reward-title');
+    this.source = document.getElementById('reward-source');
+    this.facts = document.getElementById('reward-facts');
+    this.instructions = document.getElementById('reward-instructions');
     this._currentOptions = [];
     this.el.addEventListener('keydown', (event) => {
       if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -27,10 +37,13 @@ export class RewardUI {
       const card = this.optionsEl.querySelectorAll('.reward-card')[Number(event.key) - 1];
       if (!card) return;
       event.preventDefault();
-      card.click();
+      if (!event.repeat) card.click();
     });
     window.addEventListener('overlogic:localechange', () => {
-      if (!this.el.classList.contains('hidden')) this._render();
+      if (this.el.classList.contains('hidden')) return;
+      const focusedOption = [...this.optionsEl.children].indexOf(document.activeElement);
+      this._render();
+      if (focusedOption >= 0) this.optionsEl.children[focusedOption]?.focus({ preventScroll: true });
     });
   }
 
@@ -42,39 +55,29 @@ export class RewardUI {
       this._currentOptions = buildRewardOptions(justWonBattle);
     }
     this._render();
-    this.optionsEl.querySelector('.reward-card, button')?.focus();
+    this.el.scrollTop = 0;
+    this.title.focus({ preventScroll: true });
   }
 
   _render() {
-    this.optionsEl.innerHTML = '';
+    this.optionsEl.replaceChildren();
+    this.instructions.hidden = this._currentOptions.length === 0;
 
-    // Remove old summary bar if re-rendering
-    const oldBar = this.el.querySelector('.reward-summary-bar');
-    if (oldBar) oldBar.remove();
-
-    // Current status summary bar (inserted before the options grid)
-    const report = GameState.lastReport || {};
-    const currentHp = report._endHp ?? GameState.persistentHp ?? GameState.stats.max_hp;
-    const hpPct = Math.round(currentHp / GameState.stats.max_hp * 100);
-    const actionCount = Object.values(report.action_usage || {}).reduce((sum, count) => sum + count, 0);
-    const hasCombatReport = Number.isFinite(report.battle_time) && report.battle_time > 0;
-    const summaryBar = document.createElement('div');
-    summaryBar.className = 'reward-summary-bar';
-    summaryBar.innerHTML = `
-      <span class="reward-summary-label">${t(hasCombatReport ? 'reward.lastCombat' : 'reward.currentState')}</span>
-      <span class="reward-summary-stat">❤️ HP ${Math.max(0, Math.round(currentHp))}/${Math.round(GameState.stats.max_hp)} (${hpPct}%)</span>
-      <span class="reward-summary-stat">⚡ ${GameState.stats.max_energy} EN</span>
-      <span class="reward-summary-stat">🗡️ ${Math.round(GameState.stats.basic_dmg * 10) / 10} ATK</span>
-      ${hasCombatReport ? `
-        <span class="reward-summary-stat">⏱️ ${report.battle_time.toFixed(1)}s</span>
-        <span class="reward-summary-stat">🎯 ${t('reward.damage', { value: Math.round(report.total_damage_dealt || 0) })}</span>
-        <span class="reward-summary-stat">⚙️ ${t('reward.actions', { value: actionCount })}</span>
-      ` : ''}
-      <span class="reward-summary-stat reward-summary-extra">
-        ${t('reward.extraModules', { actions: GameState.unlockedActionIds.length, conditions: GameState.unlockedConditionIds.length })}
-      </span>
-    `;
-    this.optionsEl.before(summaryBar);
+    const vault = GameState.hasPendingUpgradeReward();
+    const battle = GameState.getActiveBattle();
+    const report = GameState.lastReport;
+    this.source.textContent = vault ? t('map.upgradeName') : t('reward.wonAt', {
+      battle: entity('battle', battle?.id, battle?.displayName),
+    });
+    this.title.textContent = t(this._currentOptions.length ? 'reward.title' : 'reward.empty');
+    const maxHp = GameState.stats.max_hp;
+    const hp = (vault ? GameState.persistentHp : report?._endHp) ?? maxHp;
+    const facts = [[t(vault ? 'combat.hitPoints' : 'reward.endingHp'), `${Math.round(hp)} / ${Math.round(maxHp)}`]];
+    if (!vault && Number.isFinite(report?.battle_time) && report.battle_time > 0) {
+      facts.push([t('victory.time'), t('reward.unit.seconds', { value: report.battle_time.toFixed(1) })]);
+    }
+    this.facts.innerHTML = facts.map(([label, value]) =>
+      `<div><dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd></div>`).join('');
 
     if (this._currentOptions.length === 0) {
       const btn = document.createElement('button');
@@ -91,20 +94,23 @@ export class RewardUI {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'reward-card';
-      card.setAttribute('aria-label', `${index + 1}. ${rewardDisplayName(r)}`);
+      card.dataset.rewardType = r.rewardType;
       card.setAttribute('aria-keyshortcuts', String(index + 1));
-      const icon = TYPE_ICONS[r.rewardType] || '✦';
       const typeLabel = t(`rewardType.${r.rewardType}`);
       const impact = this._impactPreview(r);
-      const descriptionId = `reward-option-${index + 1}-description`;
-      const impactId = `reward-option-${index + 1}-impact`;
-      card.setAttribute('aria-describedby', impact ? `${descriptionId} ${impactId}` : descriptionId);
+      const nameId = `reward-option-${index + 1}-name`;
+      const detailId = `${nameId}-detail`;
+      card.setAttribute('aria-labelledby', nameId);
+      card.setAttribute('aria-describedby', detailId);
       card.innerHTML =
-        `<span class="r-type"><span aria-hidden="true">[${index + 1}]</span> ${icon} ${escapeHtml(typeLabel)}</span>` +
-        `<span class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
-        `<span id="${descriptionId}" class="r-desc">${escapeHtml(rewardDescription(r))}</span>` +
-        (impact ? `<span id="${impactId}" class="r-impact${r.rewardType === 'passive' ? '' : ' compact'}">${escapeHtml(impact)}</span>` : '') +
-        `<span class="r-pick-hint">${escapeHtml(t('reward.select'))}</span>`;
+        `<span class="r-type"><span>${escapeHtml(typeLabel)}</span><kbd aria-hidden="true">${index + 1}</kbd></span>` +
+        `<span id="${nameId}" class="r-name">${escapeHtml(rewardDisplayName(r))}</span>` +
+        (impact
+          ? `<span id="${detailId}" class="r-impact">` +
+            `<span class="sr-only">${escapeHtml(t('reward.projected', impact))}</span>` +
+            `<span aria-hidden="true" class="r-before">${escapeHtml(impact.before)}</span>` +
+            `<span aria-hidden="true" class="r-arrow">→</span><strong aria-hidden="true">${escapeHtml(impact.after)}</strong></span>`
+          : `<span id="${detailId}" class="r-desc">${escapeHtml(rewardDescription(r))}</span>`);
       const choose = () => {
         AudioManager.play('rule_add');
         GameManager.onRewardChosen(rid);
@@ -126,17 +132,15 @@ export class RewardUI {
   }
 
   _impactPreview(reward) {
-    if (reward.rewardType !== 'passive') return t('reward.unlocksDirective');
+    if (reward.rewardType !== 'passive') return null;
     const key = reward.targetId;
-    const before = Number(GameState.stats[key]);
-    if (!Number.isFinite(before)) return '';
-    const multiplicative = new Set([
-      'energy_regen', 'basic_dmg', 'dash_cd', 'shield_cd', 'interrupt_cd',
-    ]);
-    const after = multiplicative.has(key) ? before * reward.value : before + reward.value;
-    const format = (value) => Number.isInteger(value)
-      ? String(value)
-      : String(Math.round(value * 10) / 10);
-    return t('reward.projected', { before: format(before), after: format(after) });
+    const unit = STAT_UNITS[key];
+    if (!unit || !Number.isFinite(GameState.stats[key])) return null;
+    const number = new Intl.NumberFormat(getLocale(), { maximumFractionDigits: 2 });
+    const format = (value) => t(`reward.unit.${unit}`, { value: number.format(unit === 'percent' ? value * 100 : value) });
+    return {
+      before: format(GameState.stats[key]),
+      after: format(GameState.passiveUpgradeValue(key, reward.value)),
+    };
   }
 }

@@ -15,7 +15,7 @@ await GameDatabase.loadAll();
 const { GameState } = await import('../src/core/GameState.js?v=20260725-4');
 const { GameManager } = await import('../src/core/GameManager.js?v=20260725-4');
 const { CombatArena, SIMULATION_STEP_SECONDS } = await import('../src/core/CombatArena.js?v=20260725-4');
-const { buildUpgradeOptions } = await import('../src/systems/RewardManager.js?v=20260725-4');
+const { buildRewardOptions, buildUpgradeOptions } = await import('../src/systems/RewardManager.js?v=20260725-4');
 const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js?v=20260725-4');
 const { ARCHIVE_KEY, runArchiveSnapshot } = await import('../src/systems/RunArchive.js?v=20260725-4');
 const { allBattles } = await import('../src/systems/RunHistory.js?v=20260725-4');
@@ -161,6 +161,14 @@ test('Upgrade Vault persists the same choices and advances only after one claim'
   assert.equal(GameState.currentMapColumn, 6);
   assert.equal(GameState.mapNodes[5][0].completed, true);
   assert.equal(GameState.hasPendingUpgradeReward(), false);
+});
+
+test('rewards exclude conditions the tutorial has already unlocked', () => {
+  const battle = { id: 'unlock-test', rewardPool: ['pu_max_hp', 'new_condition_shield_active', 'new_condition_overdrive_ready'] };
+  GameState.teachNode = 3;
+  assert.deepEqual(buildRewardOptions(battle).sort(), ['new_condition_overdrive_ready', 'pu_max_hp']);
+  GameState.teachNode = 4;
+  assert.deepEqual(buildRewardOptions(battle), ['pu_max_hp']);
 });
 
 test('a failed primary write cannot persist partial victory rewards or teaching unlocks', () => {

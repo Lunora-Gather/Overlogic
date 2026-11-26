@@ -28,10 +28,19 @@ export class VictoryUI {
     this.simulationFactsEl = document.getElementById('victory-simulation-facts');
     this.challengeLink = document.getElementById('victory-challenge-link');
     const copyChallenge = document.getElementById('btn-victory-challenge');
+    const copyStatus = document.getElementById('victory-copy-status');
     copyChallenge.addEventListener('click', async () => {
       const copied = await copyText(this.challengeLink.value);
-      if (!copied) this.challengeLink.select();
-      copyChallenge.textContent = t(copied ? 'menu.copiedSeed' : 'menu.copySeedManual');
+      if (this.el.classList.contains('hidden')) return;
+      const message = t(copied ? 'victory.challengeCopied' : 'victory.challengeManual');
+      copyStatus.textContent = message;
+      if (copied) {
+        copyChallenge.textContent = message;
+      } else {
+        this.challengeLink.hidden = false;
+        this.challengeLink.focus();
+        this.challengeLink.select();
+      }
     });
     this.copyReplayBtn = document.getElementById('btn-copy-victory-replay');
 
@@ -79,16 +88,20 @@ export class VictoryUI {
     const url = new URL('./', location.href);
     url.searchParams.set('challenge', GameState.exportRunCode());
     this.challengeLink.value = url.href;
+    this.challengeLink.hidden = true;
+    document.getElementById('victory-copy-status').textContent = '';
     document.getElementById('btn-victory-challenge').textContent = t('victory.challengeLink');
     this._renderStats(report);
     this._renderRulesSummary();
-    this.replayBtn?.focus();
+    this.el.scrollTop = 0;
+    document.getElementById('victory-title').focus({ preventScroll: true });
   }
 
   _renderStats(report) {
     if (!this.statsEl) return;
     const rules = GameState.rules;
     const ruleCount = rules.length;
+    const activeRuleCount = rules.filter(rule => rule.enabled).length;
     const finalHp = report._endHp ?? null;
     const runStats = GameState.runStats || {};
     const dmgDealt = runStats.totalDamageDealt ?? 0;
@@ -124,16 +137,19 @@ export class VictoryUI {
     }
     if (this.copyReplayBtn) this.copyReplayBtn.disabled = !/^RPL\d+-[0-9A-F]{8}$/.test(replayDigest);
 
-    this.statsEl.innerHTML = `
-      <div class="victory-stat"><span class="stat-label">${t('victory.battles')}</span><span class="stat-value">${battlesWon}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.finalHp')}</span><span class="stat-value">${finalHp === null ? '—' : Math.round(finalHp)}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.totalDamage')}</span><span class="stat-value">${Math.round(dmgDealt)}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.time')}</span><span class="stat-value">${totalTime.toFixed(1)}s</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.activeRules')}</span><span class="stat-value">${ruleCount}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.upgrades')}</span><span class="stat-value">${upgrades}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.clears')}</span><span class="stat-value">${records.completions}</span></div>
-      <div class="victory-stat"><span class="stat-label">${t('victory.personalBest')}</span><span class="stat-value">${records.bestTime === null ? '—' : `${records.bestTime.toFixed(1)}s`}</span></div>
-    `;
+    const seconds = value => t('reward.unit.seconds', { value: value.toFixed(1) });
+    const stats = [
+      ['battles', battlesWon],
+      ['finalHp', finalHp === null ? '—' : `${Math.round(finalHp)} / ${Math.round(GameState.stats.max_hp)}`],
+      ['totalDamage', Math.round(dmgDealt)],
+      ['time', seconds(totalTime)],
+      ['activeRules', activeRuleCount],
+      ['upgrades', upgrades],
+      ['clears', records.completions],
+      ['personalBest', records.bestTime === null ? '—' : seconds(records.bestTime)],
+    ];
+    this.statsEl.innerHTML = stats.map(([key, value]) =>
+      `<div class="victory-stat"><dt>${escapeHtml(t(`victory.${key}`))}</dt><dd>${escapeHtml(value)}</dd></div>`).join('');
   }
 
   _renderRulesSummary() {

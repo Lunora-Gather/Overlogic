@@ -436,30 +436,45 @@ class GameStateClass {
     }
   }
 
+  passiveUpgradeValue(target, value) {
+    switch (target) {
+      case 'energy_regen':
+      case 'basic_dmg':
+      case 'dash_cd':
+      case 'shield_cd':
+      case 'interrupt_cd':
+        return this.stats[target] * value;
+      default:
+        return this.stats[target] + value;
+    }
+  }
+
   _applyPassive(target, value) {
     switch (target) {
       case 'max_hp':
-        this.stats.max_hp += value;
+        this.stats.max_hp = this.passiveUpgradeValue(target, value);
         if (this.persistentHp !== null) {
           this.persistentHp = Math.min(this.stats.max_hp, this.persistentHp + value);
         }
         break;
-      case 'max_energy':    this.stats.max_energy += value; break;
-      case 'move_speed':    this.stats.move_speed += value; break;
-      case 'energy_regen':  this.stats.energy_regen *= value; break;
-      case 'basic_dmg':     this.stats.basic_dmg *= value; break;
-      case 'dash_cd':       this.stats.dash_cd *= value; break;
-      case 'shield_cd':     this.stats.shield_cd *= value; break;
-      case 'shield_dur':    this.stats.shield_dur += value; break;
-      case 'overdrive_dur': this.stats.overdrive_dur += value; break;
-      case 'interrupt_cd':  this.stats.interrupt_cd *= value; break;
-      case 'reflective_plating': this.stats.reflective_plating += value; break;
-      case 'nanite_repair':      this.stats.nanite_repair += value; break;
-      case 'superconductors':    this.stats.superconductors += value; break;
-      case 'emergency_recall':   this.stats.emergency_recall += value; break;
-      case 'heavy_impact':       this.stats.heavy_impact += value; break;
-      case 'thermal_recycle':    this.stats.thermal_recycle += value; break;
-      case 'armor_piercing':     this.stats.armor_piercing += value; break;
+      case 'max_energy':
+      case 'move_speed':
+      case 'energy_regen':
+      case 'basic_dmg':
+      case 'dash_cd':
+      case 'shield_cd':
+      case 'shield_dur':
+      case 'overdrive_dur':
+      case 'interrupt_cd':
+      case 'reflective_plating':
+      case 'nanite_repair':
+      case 'superconductors':
+      case 'emergency_recall':
+      case 'heavy_impact':
+      case 'thermal_recycle':
+      case 'armor_piercing':
+        this.stats[target] = this.passiveUpgradeValue(target, value);
+        break;
       default: console.warn('GameState: unknown passive target', target);
     }
   }
