@@ -743,6 +743,8 @@ async function main() {
   recordProductEvent('app_boot', { source: operations.source });
   document.documentElement.classList.remove('booting');
   hideBootStatus();
+  // System fonts keep the controls usable while the optional display fonts load.
+  document.getElementById('game-fonts').media = 'all';
 }
 
 setupRuntimeSafety();

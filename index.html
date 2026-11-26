@@ -31,10 +31,10 @@
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
+<link rel="stylesheet" href="style.css?v=20260725-4">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="style.css?v=20260725-4">
+<link id="game-fonts" media="print" href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;600;700;800&family=Outfit:wght@400;600;800&family=Rajdhani:wght@500;600;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 </head>
 <body>
 <canvas id="bg-canvas"></canvas>
@@ -181,6 +181,28 @@
 
   <!-- ===== Logic Editor ===== -->
   <section id="screen-editor" class="screen hidden">
+    <div class="editor-command">
+      <div class="editor-command-tools">
+        <button type="button" id="btn-editor-menu" class="btn ghost" data-i18n="editor.menu">Command Center</button>
+        <button type="button" id="btn-editor-settings" class="btn ghost" title="Settings" data-i18n-title="common.settings" aria-label="Settings" data-i18n-aria-label="common.settings">⚙️</button>
+      </div>
+      <details class="editor-sandbox">
+        <summary data-i18n="editor.testBuild">Sandbox</summary>
+        <div class="editor-sandbox-options">
+          <select id="sandbox-preset" class="sandbox-preset" aria-label="Sandbox scenario" data-i18n-aria-label="editor.sandboxScenario">
+            <option value="calibration" data-i18n="sandbox.calibration">Shield drill</option>
+            <option value="mixed" selected data-i18n="sandbox.mixed">Mixed Test</option>
+            <option value="projectiles" data-i18n="sandbox.projectiles">Projectile Grid</option>
+            <option value="swarm" data-i18n="sandbox.swarm">Swarm Stress</option>
+            <option value="boss" data-i18n="sandbox.boss">Boss Lab</option>
+            <option value="support" data-i18n="sandbox.support">Support Protocol</option>
+          </select>
+          <button type="button" id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox">Sandbox Test ⚙️</button>
+        </div>
+      </details>
+      <button type="button" id="btn-run" class="btn primary big" data-i18n="editor.run">Launch Battle</button>
+    </div>
+
     <header class="editor-header">
       <div class="editor-header-top">
         <div class="battle-info">
@@ -215,7 +237,6 @@
       <button type="button" id="editor-tab-conditions" role="tab" aria-controls="panel-conditions" aria-selected="false" tabindex="-1" data-editor-panel="conditions" data-i18n="editor.tabConditions">Conditions</button>
       <button type="button" id="editor-tab-actions" role="tab" aria-controls="panel-actions" aria-selected="false" tabindex="-1" data-editor-panel="actions" data-i18n="editor.tabActions">Actions</button>
     </nav>
-    <button type="button" id="btn-mobile-run" class="btn primary editor-mobile-run" data-i18n="editor.run">Launch Battle ▶</button>
 
     <div class="editor-grid">
       <aside class="panel" id="panel-conditions" role="tabpanel" aria-labelledby="editor-tab-conditions">
@@ -273,27 +294,50 @@
 
         </details>
         <div id="rule-form" class="rule-form hidden">
-          <select id="f-cond" aria-label="Primary condition for new rule" data-i18n-aria-label="editor.formCondition1"></select>
-          <span id="f-cond-param"></span>
-          <select id="f-op" style="width: 80px;" aria-label="Condition operator for new rule" data-i18n-aria-label="editor.formOperator">
-            <option value="" data-i18n="common.none">None</option>
-            <option value="and" data-i18n="rule.and">AND</option>
-            <option value="or" data-i18n="rule.or">OR</option>
-          </select>
-          <select id="f-cond2" class="hidden" aria-label="Secondary condition for new rule" data-i18n-aria-label="editor.formCondition2"></select>
-          <span id="f-cond2-param" class="hidden"></span>
-          <span class="muted">→</span>
-          <select id="f-act" aria-label="Action for new rule" data-i18n-aria-label="editor.formAction"></select>
-          <select id="f-target" class="hidden" style="width: 100px;" aria-label="Target priority for new rule" data-i18n-aria-label="editor.formTarget">
-            <option value="nearest" data-i18n="target.nearest">Nearest</option>
-            <option value="lowest_hp" data-i18n="target.lowest_hp">Lowest HP</option>
-            <option value="caster" data-i18n="target.caster">Caster</option>
-            <option value="support" data-i18n="target.support">Support</option>
-            <option value="boss" data-i18n="target.boss">Boss</option>
-          </select>
-          <input id="f-prio" type="number" min="0" max="100" value="50" title="priority" data-i18n-title="editor.priorityHint" aria-label="Priority for new rule" data-i18n-aria-label="editor.formPriority">
-          <button type="button" id="f-add" class="btn small primary" data-i18n="common.add">Add</button>
-          <button type="button" id="f-cancel" class="btn small ghost" data-i18n="common.cancel">Cancel</button>
+          <div class="rule-form-condition">
+            <label for="f-cond" data-i18n="editor.condition1">If condition 1</label>
+            <div class="rule-form-controls">
+              <select id="f-cond" aria-label="Primary condition for new rule" data-i18n-aria-label="editor.formCondition1"></select>
+              <span id="f-cond-param"></span>
+            </div>
+          </div>
+          <div class="rule-form-operator">
+            <label for="f-op" data-i18n="editor.operator">Combine conditions</label>
+            <select id="f-op" aria-label="Condition operator for new rule" data-i18n-aria-label="editor.formOperator">
+              <option value="" data-i18n="common.none">None</option>
+              <option value="and" data-i18n="rule.and">AND</option>
+              <option value="or" data-i18n="rule.or">OR</option>
+            </select>
+          </div>
+          <div class="rule-form-condition">
+            <label for="f-cond2" data-i18n="editor.condition2">Condition 2</label>
+            <div class="rule-form-controls">
+              <select id="f-cond2" class="hidden" aria-label="Secondary condition for new rule" data-i18n-aria-label="editor.formCondition2"></select>
+              <span id="f-cond2-param" class="hidden"></span>
+            </div>
+          </div>
+          <div>
+            <label for="f-act" data-i18n="editor.thenAction">Then do</label>
+            <select id="f-act" aria-label="Action for new rule" data-i18n-aria-label="editor.formAction"></select>
+          </div>
+          <div class="rule-form-target">
+            <label for="f-target" data-i18n="editor.target">Target</label>
+            <select id="f-target" class="hidden" aria-label="Target priority for new rule" data-i18n-aria-label="editor.formTarget">
+              <option value="nearest" data-i18n="target.nearest">Nearest</option>
+              <option value="lowest_hp" data-i18n="target.lowest_hp">Lowest HP</option>
+              <option value="caster" data-i18n="target.caster">Caster</option>
+              <option value="support" data-i18n="target.support">Support</option>
+              <option value="boss" data-i18n="target.boss">Boss</option>
+            </select>
+          </div>
+          <div>
+            <label for="f-prio" data-i18n="editor.formPriority">Priority for new rule</label>
+            <input id="f-prio" type="number" min="0" max="100" value="50" data-i18n-title="editor.priorityHint" aria-label="Priority for new rule" data-i18n-aria-label="editor.formPriority">
+          </div>
+          <div class="rule-form-submit">
+            <button type="button" id="f-add" class="btn small primary" data-i18n="common.add">Add</button>
+            <button type="button" id="f-cancel" class="btn small ghost" data-i18n="common.cancel">Cancel</button>
+          </div>
         </div>
         <ul id="rule-list" class="rule-list"></ul>
       </main>
@@ -308,20 +352,8 @@
     <footer class="editor-footer">
       <div id="unit-stats" class="unit-stats"></div>
       <div class="editor-footer-actions">
-        <button type="button" id="btn-editor-settings" class="btn ghost" title="Settings" data-i18n-title="common.settings" aria-label="Settings" data-i18n-aria-label="common.settings">⚙️</button>
-        <button type="button" id="btn-editor-menu" class="btn ghost" data-i18n="editor.menu">Command Center</button>
         <button type="button" id="btn-import-rules" class="btn ghost" data-i18n="editor.importRules">Import</button>
         <button type="button" id="btn-export-rules" class="btn ghost" data-i18n="editor.exportRules">Share</button>
-        <select id="sandbox-preset" class="sandbox-preset" aria-label="Sandbox scenario" data-i18n-aria-label="editor.sandboxScenario">
-          <option value="calibration" data-i18n="sandbox.calibration">Shield drill</option>
-          <option value="mixed" selected data-i18n="sandbox.mixed">Mixed Test</option>
-          <option value="projectiles" data-i18n="sandbox.projectiles">Projectile Grid</option>
-          <option value="swarm" data-i18n="sandbox.swarm">Swarm Stress</option>
-          <option value="boss" data-i18n="sandbox.boss">Boss Lab</option>
-          <option value="support" data-i18n="sandbox.support">Support Protocol</option>
-        </select>
-        <button type="button" id="btn-sandbox" class="btn secondary big" data-i18n="editor.sandbox">Sandbox Test ⚙️</button>
-        <button type="button" id="btn-run" class="btn primary big" data-i18n="editor.run">Launch Battle ▶</button>
       </div>
     </footer>
   </section>

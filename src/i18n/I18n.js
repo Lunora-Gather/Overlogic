@@ -2,6 +2,8 @@ const SUPPORTED = new Set(['en', 'zh-CN', 'zh-TW']);
 const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继胁脉脱范装触记释阶项预号涌赢员阵档灾变虚]/;
 
 const EN = {
+  'editor.testBuild': 'Sandbox',
+  'editor.operator': 'Combine conditions',
   'menu.records': 'Records and challenges',
   'combat.lastAction': 'Last action',
   'combat.noActionYet': 'No rule has fired',
@@ -186,8 +188,8 @@ const EN = {
   'editor.undoHint': 'Undo (Ctrl/Cmd+Z)', 'editor.redoHint': 'Redo (Ctrl/Cmd+Y)',
   'editor.priorityHint': 'Rule priority from 0 to 100', 'editor.duplicate': 'Duplicate rule',
   'editor.sandbox': 'Sandbox Test ⚙️',
-  'editor.run': 'Launch Battle ▶',
-  'editor.menu': 'Command Center',
+  'editor.run': 'Launch Battle',
+  'editor.menu': 'Home',
   'editor.prio': 'PRIO',
   'editor.condition1': 'IF CONDITION 1',
   'editor.operator': 'AND/OR',
@@ -458,6 +460,8 @@ const EN = {
 
 const ZH_CN = {
   ...EN,
+  'editor.testBuild': '测试规则',
+  'editor.operator': '组合条件',
   'menu.records': '战绩与挑战',
   'combat.lastAction': '最近执行的动作',
   'combat.noActionYet': '规则尚未触发',
@@ -574,8 +578,8 @@ const ZH_CN = {
   'editor.slot1': '配置 1', 'editor.slot2': '配置 2', 'editor.slot3': '配置 3',
   'editor.undoHint': '撤销（Ctrl/Cmd+Z）', 'editor.redoHint': '重做（Ctrl/Cmd+Y）',
   'editor.priorityHint': '规则优先级，范围 0 至 100', 'editor.duplicate': '复制规则',
-  'editor.sandbox': '沙盒测试 ⚙️', 'editor.run': '启动战斗模拟 ▶',
-  'editor.menu': '返回指挥台',
+  'editor.sandbox': '沙盒测试 ⚙️', 'editor.run': '启动战斗模拟',
+  'editor.menu': '首页',
   'editor.prio': '优先级', 'editor.condition1': '如果 条件 1', 'editor.operator': '并且/或者', 'editor.condition2': '条件 2',
   'editor.thenAction': '则执行动作', 'editor.target': '目标', 'editor.delete': '删除', 'editor.use': '+ 使用',
   'editor.parameterMeta': '参数：{type}', 'editor.actionMeta': '冷却 {cooldown}s · 能量 {energy} · 范围 {range}',
@@ -837,6 +841,8 @@ function toTraditional(value) {
 
 const ZH_TW = {
   ...Object.fromEntries(Object.entries(ZH_CN).map(([key, value]) => [key, toTraditional(value)])),
+  'editor.testBuild': '測試規則',
+  'editor.operator': '組合條件',
   'menu.records': '戰績與挑戰',
   'combat.lastAction': '最近執行的動作',
   'combat.noActionYet': '規則尚未觸發',
@@ -919,8 +925,8 @@ const ZH_TW = {
   'template.burst.name': '超頻爆發', 'template.burst.description': '在能量充足時超頻，並收割脆弱目標。',
   'template.support.name': '支援集火', 'template.support.description': '優先消滅維修與護盾單位，再打斷它們的蓄力窗口。',
   'editor.load': '讀取', 'editor.save': '儲存', 'editor.saved': '已儲存！',
-  'editor.sandbox': '沙盒測試 ⚙️', 'editor.run': '啟動戰鬥模擬 ▶',
-  'editor.menu': '返回指揮台',
+  'editor.sandbox': '沙盒測試 ⚙️', 'editor.run': '啟動戰鬥模擬',
+  'editor.menu': '首頁',
   'editor.condition1': '如果 條件 1', 'editor.condition2': '條件 2', 'editor.thenAction': '則執行動作',
   'editor.target': '目標', 'editor.delete': '刪除', 'editor.use': '+ 使用',
   'editor.noRules': '尚未編寫規則', 'editor.noRulesDesc': '機器人目前沒有邏輯，請先新增一條指令。', 'editor.instantNode': '// 即時觸發節點',

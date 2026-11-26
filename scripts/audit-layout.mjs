@@ -89,7 +89,24 @@ try {
     })()`), `Expanded sections obstruct ${selector}`);
   }
   await click('.editor-library summary'); await click('.editor-prep summary');
-  await viewport(390, 844); await click('#btn-mobile-run');
+  for (const [width, height] of [[320, 568], [844, 390], [1024, 600]]) {
+    await viewport(width, height);
+    await evaluate("document.querySelector('#screen-editor').scrollTop = document.querySelector('#screen-editor').scrollHeight");
+    const reachable = selector => evaluate(`(() => {
+      const el = document.querySelector(${JSON.stringify(selector)});
+      const r = el.getBoundingClientRect();
+      return r.width > 0 && el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
+    })()`);
+    assert(await reachable('#btn-run'), `Launch control is unreachable at ${width}×${height}`);
+    await click('.editor-sandbox summary');
+    assert(await reachable('#sandbox-preset') && await reachable('#btn-sandbox'), `Sandbox controls are clipped at ${width}×${height}`);
+    await click('.editor-sandbox summary');
+    await click('#btn-add-rule');
+    await sleep(80);
+    assert(await reachable('#f-cond') && await reachable('#f-add'), `Add rule controls are split across the viewport at ${width}×${height}`);
+    await click('#f-cancel');
+  }
+  await viewport(390, 844); await click('#btn-run');
   await waitFor(`document.querySelector('#arena')?.offsetWidth && ${rect('#arena')}.width > 100`);
   await click('#btn-pause');
   assert(await evaluate(`(() => {

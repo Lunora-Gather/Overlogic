@@ -45,7 +45,6 @@ export class LogicEditorUI {
     this.edTeach = document.getElementById('ed-teach');
     this.unitStats = document.getElementById('unit-stats');
     this.btnRun = document.getElementById('btn-run');
-    this.btnMobileRun = document.getElementById('btn-mobile-run');
     this.btnSandbox = document.getElementById('btn-sandbox');
     this.btnEditorMenu = document.getElementById('btn-editor-menu');
     this.mapNodesContainer = document.getElementById('map-nodes');
@@ -65,7 +64,7 @@ export class LogicEditorUI {
     this.ruleTemplate = document.getElementById('rule-template');
     this.btnApplyTemplate = document.getElementById('btn-apply-template');
     this.templateTools = document.querySelector('.template-tools');
-    this.sandboxPreset = document.getElementById('sandbox-preset');
+    this.sandboxTools = document.querySelector('.editor-sandbox');
     this._formReturnFocus = null;
     this.el.dataset.mobilePanel = 'rules';
     this.mobilePanels = [...document.querySelectorAll('#panel-rules, #panel-conditions, #panel-actions')];
@@ -206,8 +205,7 @@ export class LogicEditorUI {
   }
 
   renderAll() {
-    this.btnSandbox?.classList.toggle('hidden', !featureEnabled('sandbox'));
-    this.sandboxPreset?.classList.toggle('hidden', !featureEnabled('sandbox'));
+    this.sandboxTools.classList.toggle('hidden', !featureEnabled('sandbox'));
     this._renderTemplateOptions();
     this.renderHeader();
     this.renderBriefing();
@@ -1489,7 +1487,6 @@ export class LogicEditorUI {
       AudioManager.play('button_click');
       GameManager.goCombat();
     });
-    this.btnMobileRun?.addEventListener('click', () => this.btnRun.click());
     this.btnEditorMenu?.addEventListener('click', () => {
       AudioManager.play('button_click');
       GameManager.goMainMenu();
@@ -1497,6 +1494,7 @@ export class LogicEditorUI {
     if (this.btnSandbox) {
       this.btnSandbox.addEventListener('click', () => {
         AudioManager.play('button_click');
+        this.sandboxTools.open = false;
         GameManager.goSandbox();
       });
     }
@@ -1610,9 +1608,7 @@ export class LogicEditorUI {
     this._refreshFormParam();
     this._refreshFormParam2();
     this.ruleForm.classList.remove('hidden');
-    if (window.matchMedia?.('(max-width: 760px)').matches) {
-      this._keepEditorTargetVisible(this.ruleForm);
-    }
+    this.ruleForm.scrollIntoView({ block: 'start' });
     this.fCond.focus({ preventScroll: true });
   }
 
@@ -1624,22 +1620,8 @@ export class LogicEditorUI {
     const target = returnFocus instanceof HTMLElement && !returnFocus.disabled ? returnFocus : this.btnAddRule;
     const panelId = target?.closest('[role="tabpanel"]')?.id;
     if (panelId && window.matchMedia?.('(max-width: 760px)').matches) this.selectMobilePanel(panelId.slice('panel-'.length));
+    target?.scrollIntoView({ block: 'nearest' });
     target?.focus({ preventScroll: true });
-    if (window.matchMedia?.('(max-width: 760px)').matches) {
-      this._keepEditorTargetVisible(target);
-    }
-  }
-
-  _keepEditorTargetVisible(target) {
-    if (!target || !this.el) return;
-    const viewport = this.el.getBoundingClientRect();
-    const rect = target.getBoundingClientRect();
-    const margin = 12;
-    if (rect.top < viewport.top + margin) {
-      this.el.scrollTop -= (viewport.top + margin) - rect.top;
-    } else if (rect.bottom > viewport.bottom - margin) {
-      this.el.scrollTop += rect.bottom - (viewport.bottom - margin);
-    }
   }
 
   _refreshFormParam() {

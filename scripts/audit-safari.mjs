@@ -9,21 +9,25 @@ import { extname, join } from 'node:path';
 async function play(frame, locale, width, height) {
   const win = frame.contentWindow;
   const doc = win.document;
+  const errors = [];
+  win.addEventListener('error', event => errors.push(event.error?.stack || event.message));
+  win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
   const find = selector => doc.querySelector(selector);
   const rect = selector => find(selector).getBoundingClientRect();
-  const check = (ok, detail) => { if (!ok) throw new Error(locale + ' ' + detail); };
+  const check = (ok, detail) => { if (!ok) throw new Error(locale + ' ' + width + '×' + height + ' ' + detail); };
   const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
   const wait = async (predicate, detail) => {
     for (let i = 0; i < 300; i++) { if (predicate()) return; await pause(50); }
-    throw new Error(locale + ' timeout: ' + detail);
+    throw new Error(locale + ' ' + width + '×' + height + ' timeout: ' + detail);
   };
-  const click = selector => {
+  const click = async selector => {
     const el = find(selector);
     check(el && !el.disabled && el.offsetWidth, 'control unavailable: ' + selector);
     el.scrollIntoView({ block: 'center', behavior: 'instant' });
-    const r = el.getBoundingClientRect();
-    const hit = doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
-    check(el.contains(hit), 'obstructed: ' + selector + ' by ' + (hit?.id || hit?.className));
+    await wait(() => {
+      const r = el.getBoundingClientRect();
+      return el.contains(doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
+    }, 'control unobstructed: ' + selector);
     el.click();
   };
   const save = () => JSON.parse(win.localStorage.getItem('overlogic_run_save'));
@@ -34,15 +38,19 @@ async function play(frame, locale, width, height) {
   };
   async function finishBattle({ shield = false } = {}) {
     await wait(() => onScreen('combat'), 'enter combat');
-    if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') click('#btn-pause');
+    if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') await click('#btn-pause');
+    check(!errors.length, errors.join('\\n'));
+    await wait(() => rect('#arena').top >= 0 && rect('#arena').bottom <= height + 1, 'arena within viewport');
     check(find('#arena-feed-state').dataset.i18n === 'combat.paused', 'paused feed');
     const canvas = rect('#arena');
     for (const x of [canvas.left + 8, canvas.right - 8]) {
       for (const y of [canvas.top + 8, canvas.bottom - 8]) {
-        check(doc.elementFromPoint(x, y) === find('#arena'), 'arena covered at ' + [x, y]);
+        const hit = doc.elementFromPoint(x, y);
+        check(hit === find('#arena'), 'arena covered at ' + [x, y] + ' by ' + (hit?.id || hit?.className) +
+          '. ' + errors.join(' '));
       }
     }
-    click('#btn-step');
+    await click('#btn-step');
     if (shield) {
       const expected = locale === 'en' ? 'Shield' : locale === 'zh-CN' ? '护盾' : '護盾';
       const step = find('#btn-step');
@@ -60,9 +68,10 @@ async function play(frame, locale, width, height) {
     }
     check(!onScreen('combat'), 'battle did not finish');
   }
-  await wait(() => find('#btn-start')?.offsetWidth && !doc.documentElement.classList.contains('booting'), 'boot');
+  await wait(() => find('#btn-start')?.offsetWidth && !doc.documentElement.classList.contains('booting') &&
+    win.getComputedStyle(find('#screen-combat')).display === 'none', 'boot and stylesheet');
   check(win.innerWidth === width && win.innerHeight === height, 'unexpected viewport');
-  click('button[data-locale="' + locale + '"]');
+  await click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
   check(rect('#btn-start').bottom <= height, 'start button below fold');
   const preview = find('#preview-hp');
@@ -75,25 +84,25 @@ async function play(frame, locale, width, height) {
   }
   check(JSON.stringify(initial) === JSON.stringify(save()), 'preview altered save');
   check(!find('.home-launch-column').open && !find('.home-dashboard').open, 'secondary home panels start closed');
-  click('.home-launch-column > summary');
+  await click('.home-launch-column > summary');
   check(find('#run-mode').offsetWidth > 0 && find('#run-selection').textContent, 'run mode remains discoverable');
-  click('.home-launch-column > summary');
-  click('#btn-settings');
+  await click('.home-launch-column > summary');
+  await click('#btn-settings');
   check(find('#screen-main').inert, 'settings background');
   const muted = find('#setting-mute').checked;
-  click('label[for="setting-mute"]');
+  await click('label[for="setting-mute"]');
   check(find('#setting-mute').checked !== muted, 'whole mute row toggles');
-  click('#settings-tab-data');
+  await click('#settings-tab-data');
   check(find('#settings-play').hidden && find('#btn-data-export').offsetWidth > 0 &&
     doc.activeElement === find('#settings-tab-data'), 'save tools visible from their tab');
   find('#settings-tab-data').dispatchEvent(new win.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
   check(doc.activeElement === find('#settings-tab-play') && find('#settings-data').hidden, 'settings keyboard tabs');
-  click('#btn-settings-close');
+  await click('#btn-settings-close');
   await wait(() => doc.activeElement === find('#btn-settings') && !find('#screen-main').inert, 'dismiss settings and restore focus');
-  click('#btn-settings');
+  await click('#btn-settings');
   check(find('#setting-mute').checked === muted, 'dismissed setting was discarded');
-  click('#btn-settings-close');
-  click('#btn-start');
+  await click('#btn-settings-close');
+  await click('#btn-start');
   await wait(() => onScreen('editor'), 'editor');
   fits('#screen-editor');
   const labels = {
@@ -106,13 +115,13 @@ async function play(frame, locale, width, height) {
   const disclosure = '.rule-readable-summary';
   const expanded = () => [...doc.querySelectorAll(disclosure)].filter(el => el.getAttribute('aria-expanded') === 'true');
   check(expanded().length === 1, 'initial disclosure');
-  click('.rule-row:nth-child(2) ' + disclosure);
+  await click('.rule-row:nth-child(2) ' + disclosure);
   check(expanded()[0] === find('.rule-row:nth-child(2) ' + disclosure) && !find(threshold).offsetWidth, 'switch rule');
-  click('#btn-coach');
+  await click('#btn-coach');
   check(find(threshold).value === '50' && doc.activeElement === find(threshold), 'guided change and focus');
-  click('#btn-undo');
+  await click('#btn-undo');
   check(find(threshold).value === '30', 'undo');
-  click('#btn-redo');
+  await click('#btn-redo');
   check(find(threshold).value === '50', 'redo');
   const search = find('#rules-search');
   for (const [query, count] of [[labels[0], 1], ['zzz', 0], ['', 3]]) {
@@ -121,15 +130,26 @@ async function play(frame, locale, width, height) {
     check(doc.querySelectorAll('.rule-row').length === count, 'filter ' + query);
     check(find('#rule-list').textContent.trim(), 'no filter feedback');
     if (!count) {
-      click('.rule-search-empty button');
+      await click('.rule-search-empty button');
       check(doc.activeElement === search && !search.value && doc.querySelectorAll('.rule-row').length === 3, 'clear filter');
     }
   }
+  await click('#btn-add-rule');
+  const operator = find('#f-op');
+  operator.value = 'and';
+  operator.dispatchEvent(new win.Event('change', { bubbles: true }));
+  check(find('#f-cond2').offsetWidth > 0, 'compound condition visible');
+  find('#f-prio').value = '0';
+  await click('#f-add');
+  const addedRule = save().rules.at(-1);
+  check(addedRule.operator === 'and' && addedRule.priority === 0, 'compound rule saved');
+  await click('#btn-undo');
+  check(save().rules.length === 3, 'added rule can be undone');
   const before = save();
   // Isolate the shield so an intervening attack cannot replace the decision readout.
-  click('.rule-row:nth-child(2) [data-focus-field="enabled"]');
-  click('.rule-row:nth-child(3) [data-focus-field="enabled"]');
-  click('#btn-coach');
+  await click('.rule-row:nth-child(2) [data-focus-field="enabled"]');
+  await click('.rule-row:nth-child(3) [data-focus-field="enabled"]');
+  await click('#btn-coach');
   check(find('#hp-text').textContent === '40 / 100' && find('#en-text').textContent === '100 / 100', 'drill starting resources');
   await finishBattle({ shield: true });
   check(onScreen('editor'), 'return from drill');
@@ -139,8 +159,8 @@ async function play(frame, locale, width, height) {
     find('#coach-message').textContent.includes(String(shields)), 'drill result');
   check(drill.tutorialProgress.sandboxRun && drill.persistentHp === before.persistentHp &&
     drill.currentMapColumn === before.currentMapColumn && drill.runStats.battlesWon === 0, 'drill progression');
-  click('[data-focus-field="enabled"]:checked');
-  click('#btn-mobile-run');
+  await click('[data-focus-field="enabled"]:checked');
+  await click('#btn-run');
   await finishBattle();
   check(onScreen('report'), 'expected defeat');
   fits('#screen-report');
@@ -151,28 +171,46 @@ async function play(frame, locale, width, height) {
     outcome.includes(String(Math.round(Math.max(...Object.values(loss.damage_by_source))))), 'damage summary');
   check(find('#rep-suggest').textContent.toLowerCase().includes(labels[1]), 'actionable report');
   check(rect('#btn-edit').bottom <= height, 'edit button below fold');
-  click('#btn-restart');
+  await click('#btn-restart');
   check(find('#screen-report').inert && doc.activeElement === find('#btn-confirm-cancel'), 'restart confirmation');
-  click('#btn-confirm-cancel');
+  await click('#btn-confirm-cancel');
   await wait(() => !find('#screen-report').inert && doc.activeElement === find('#btn-restart'), 'restore focus after cancel');
   check(save().runStats.runId === before.runStats.runId, 'cancel preserves run');
-  click('#rep-suggest button');
+  await click('#rep-suggest button');
   check(find('#rep-suggest button').disabled, 'recommendation applied once');
-  click('#btn-edit');
+  await click('#btn-edit');
   check(onScreen('editor') && save().rules.filter(rule => rule.enabled).length === 1, 'edit after loss');
   check(doc.activeElement === expanded()[0] && expanded()[0]?.closest('.rule-row').dataset.id === save().rules.at(-1).id,
     'new rule is open and focused after report');
-  click('#btn-mobile-run');
+  await click('#btn-run');
   await finishBattle();
   check(onScreen('reward'), 'attack rule should win the retry');
-  click('.reward-card');
+  await click('.reward-card');
   check(save().runStats.battlesWon === 1, 'reward settled');
+  await click('.editor-sandbox summary');
+  find('#sandbox-preset').value = 'boss';
+  await click('#btn-sandbox');
+  if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') await click('#btn-pause');
+  await click('#btn-step');
+  check(find('#boss-bar-wrap').offsetWidth > 0, 'boss health is visible');
+  const board = rect('#arena');
+  check(board.top >= 0 && board.bottom <= height + 1 &&
+    doc.elementFromPoint(board.right - 8, board.bottom - 8) === find('#arena'), 'boss health displaces rather than clips the arena');
+  await click('#btn-quit');
+  check(onScreen('editor') && save().runStats.battlesWon === 1, 'quit sandbox preserves campaign');
+  check(!errors.length, errors.join('\n'));
   return { locale, width, height, shields, outcome, release: find('#app-version').textContent };
 }
 
 const mime = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
-const files = new Set(await readdir('dist', { recursive: true }));
+const assets = await Promise.all((await readdir('dist', { recursive: true, withFileTypes: true }))
+  .filter(entry => entry.isFile())
+  .map(async entry => {
+    const file = join(entry.parentPath, entry.name);
+    return [file.slice('dist/'.length), await readFile(file)];
+  }));
+const files = new Map(assets);
 const { promise, resolve, reject } = Promise.withResolvers();
 const server = createServer(async (req, res) => {
   try {
@@ -185,7 +223,7 @@ const server = createServer(async (req, res) => {
         const play = ${play};
         let error;
         try {
-          for (const [locale, width, height] of [['en', 375, 667], ['zh-CN', 390, 844], ['zh-TW', 375, 812]]) {
+          for (const [locale, width, height] of [['en', 320, 568], ['zh-CN', 390, 844], ['zh-TW', 375, 812], ['en', 844, 390]]) {
             for (const key of Object.keys(localStorage)) {
               if (key.startsWith('overlogic_')) localStorage.removeItem(key);
             }
@@ -210,7 +248,7 @@ const server = createServer(async (req, res) => {
       res.end('OK');
       resolve(JSON.parse(body));
     } else if (path.startsWith('/game/') && files.has(path.slice(6))) {
-      const data = await readFile(join('dist', path.slice(6)));
+      const data = files.get(path.slice(6));
       res.setHeader('Content-Type', mime[extname(path)] || 'application/octet-stream');
       res.end(data);
     } else { res.writeHead(404).end(); }
@@ -225,7 +263,7 @@ try {
   const report = await promise;
   assert(!report.error, report.error);
   assert.match(report.browser, /Version\/.* Safari\//);
-  assert.equal(report.results.length, 3);
+  assert.equal(report.results.length, 4);
   console.log('SAFARI_FLOW_OK', JSON.stringify(report));
 } finally {
   clearTimeout(timeout);

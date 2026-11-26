@@ -1087,7 +1087,7 @@ function verifyUiSafetyContracts() {
   assert(html.includes('id="btn-data-support"') && mainUi.includes('exportSupportBundle'), 'settings should expose a privacy-safe support export');
   setLocale('zh-CN', { notify: false });
   assert.equal(t('menu.start'), '进入逻辑工作台');
-  assert.equal(t('editor.run'), '启动战斗模拟 ▶');
+  assert.equal(t('editor.run'), '启动战斗模拟');
   assert.equal(t('combat.temperature'), '核心温度');
   assert.equal(t('report.unavailable'), '当前不可用');
   assert.notEqual(t('menu.config.standard'), t('menu.config.modeStandard'));
@@ -1096,7 +1096,7 @@ function verifyUiSafetyContracts() {
   assert.equal(t('target.support'), '支援单位');
   setLocale('zh-TW', { notify: false });
   assert.equal(t('menu.start'), '進入邏輯工作臺');
-  assert.equal(t('editor.run'), '啟動戰鬥模擬 ▶');
+  assert.equal(t('editor.run'), '啟動戰鬥模擬');
   assert.equal(t('combat.temperature'), '核心溫度');
   assert.equal(t('report.unavailable'), '目前不可用');
   assert.equal(entity('action', 'shield', 'Shield'), '護盾');

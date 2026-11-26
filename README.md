@@ -18,7 +18,7 @@ Overlogic 是一款俯视角自动战斗策略 Roguelite。你不操作机器人
 | 看清一次决策 | 战斗中按 `P` 暂停或继续，暂停时按 `.` 单步，按 `S` 切换速度。也可使用屏幕上的战斗控件。 |
 | 换设备或浏览器 | 在系统设置的「存档数据」页签导出完整 JSON 备份，再在目标浏览器导入。规则分享码不是完整存档。 |
 
-点击规则摘要可展开或收起条件与动作，勾选框可直接启停该规则。窄屏工作台先显示规则，路线、准备度和协同可展开查看；模板和已存配置也可以单独打开。战场旁会保留最近实际执行的动作、触发条件和优先级。展开「指令与日志」可查看规则是否满足条件、正在冷却或被更高优先级的规则覆盖。
+点击规则摘要可展开或收起条件与动作，勾选框可直接启停该规则。工作台顶部始终可启动正式战斗，也可展开「测试规则」选择沙盒场景。窄屏工作台先显示规则，路线、准备度和协同可展开查看；模板和已存配置也可以单独打开。战场旁会保留最近实际执行的动作、触发条件和优先级。展开「指令与日志」可查看规则是否满足条件、正在冷却或被更高优先级的规则覆盖。
 
 存档在当前浏览器，不需要帐号，也不会自动同步。清理网站数据前请先备份。支持安装为 PWA；第一次在线加载并完成缓存后可离线游玩。本地产品指标默认关闭，不会自动上传。
 
@@ -49,8 +49,8 @@ npm run serve
 | `npm run verify` | 检查内容契约、存档和结算、无头战斗、三语 UI 与回归用例。 |
 | `npm run balance` | 运行确定性平衡模拟。 |
 | `npm run build` | 生成带版本号和预缓存校验值的 `dist/`。 |
-| `npm run layout-audit` | 构建后用 Chrome 检查三语首页、规则可读性和战场遮挡。可用 `CHROME_BIN` 指定 Chromium 可执行文件；CI 会在部署前执行。 |
-| `npm run safari-audit` | 在 macOS 上先运行 `npm run build`。测试会打开系统 Safari，用三语实测引导、搜索、撤销与重做、演练、失败复盘和重试领奖。手机尺寸通过浏览器视口模拟。 |
+| `npm run layout-audit` | 构建后用 Chrome 检查三语首页、短窗口编辑、操作栏可达性和横竖屏战场遮挡。可用 `CHROME_BIN` 指定 Chromium 可执行文件；CI 会在部署前执行。 |
+| `npm run safari-audit` | 在 macOS 上先运行 `npm run build`。测试会打开系统 Safari，用三语实测引导、搜索、撤销与重做、复合规则、演练、失败复盘、重试领奖和首领战场。手机尺寸通过浏览器视口模拟。 |
 | `npm run check` | 不依赖浏览器的本地门禁（发布前另跑 `layout-audit`）：verify → balance → quality-audit → build → release-audit → http-audit → performance-audit。 |
 
 向 `main` 推送后，[Verify 工作流](https://github.com/Lunora-Gather/Overlogic/actions/workflows/verify.yml) 会检查并部署 `dist/` 到 GitHub Pages。用线上 [release.json](https://lunora-gather.github.io/Overlogic/release.json) 的 `release` 与提交 SHA 核对版本。已打开的 PWA 可能仍使用上一套缓存；新版本资源全部校验通过后，再按更新提示重新加载。无需清除存档。
