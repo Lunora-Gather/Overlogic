@@ -249,7 +249,7 @@ export function drawArena(g, canvas, ctx, camera) {
   }
 }
 
-function drawRobot(g, robot, scale, _now) {
+export function drawRobot(g, robot, scale, _now) {
   if (!robot) return;
   const rPx = Math.max(robot.bodyRadius * scale, 11);
   

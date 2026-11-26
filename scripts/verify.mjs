@@ -1010,7 +1010,7 @@ function verifyUiSafetyContracts() {
   assert(editorUi.includes("t('brief.countermeasure')"), 'launch readiness must show the countermeasure check it scores');
   assert(editorUi.includes("t('brief.launchChecks')"), 'dynamic readiness checks must have a localized accessible label');
   assert(mainUi.includes('settingsOriginalVolume'), 'closing settings must restore an unapplied volume preview');
-  assert(menuUi.includes("this._requestConfirm('menu.newRunConfirm')") && menuUi.includes("this._requestConfirm('reset.confirm')"), 'destructive actions must use the themed confirm flow');
+  assert(menuUi.includes("this.requestConfirm('menu.newRunConfirm', this.btnNewRun)") && menuUi.includes("this.requestConfirm('reset.confirm', this.btnReset)"), 'destructive actions must use the themed confirm flow');
   assert(menuUi.includes('hasPendingBattleResolution') && menuUi.includes('resumePendingBattle'), 'main menu must recover an unresolved victory after refresh');
   assert(gameManager.includes('resumePendingBattle') && gameManager.includes('isPendingFinalBattle'), 'game manager must route pending victories safely');
   assert(editorUi.includes('this.codeModal.openExport') && editorUi.includes('this.codeModal.openImport'), 'build sharing must use the themed code dialog');

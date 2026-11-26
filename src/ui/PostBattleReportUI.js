@@ -11,12 +11,12 @@ import { entity, t } from '../i18n/I18n.js?v=20260725-4';
 import { copyText } from './Clipboard.js?v=20260725-4';
 
 export class PostBattleReportUI {
-  constructor() {
+  constructor(requestConfirm) {
+    this.requestConfirm = requestConfirm;
     this.el = document.getElementById('screen-report');
     this.repDamage = document.getElementById('rep-damage');
     this.repLogic  = document.getElementById('rep-logic');
     this.repSuggest = document.getElementById('rep-suggest');
-    this.repNextStep = document.getElementById('report-next-step');
     this.repTimeline = document.getElementById('rep-timeline');
     this.repReplayDigest = document.getElementById('rep-replay-digest');
     this.repSimulationFacts = document.getElementById('rep-simulation-facts');
@@ -48,9 +48,9 @@ export class PostBattleReportUI {
       AudioManager.play('button_click');
       GameManager.onReportEditLogic();
     });
-    this.btnRestart.addEventListener('click', () => {
+    this.btnRestart.addEventListener('click', async () => {
       AudioManager.play('button_click');
-      GameManager.onReportRestartRun();
+      if (await this.requestConfirm('report.restartConfirm', this.btnRestart)) GameManager.onReportRestartRun();
     });
     this.btnTimelineToggle?.addEventListener('click', () => {
       this._showAllTimeline = !this._showAllTimeline;
@@ -67,13 +67,13 @@ export class PostBattleReportUI {
 
   show() {
     this._showAllTimeline = false;
+    for (const details of this.el.querySelectorAll('details')) details.open = false;
     const report = GameState.lastReport || {};
     const availableActions = GameState.availableActionIds();
     const availableConditions = GameState.availableConditionIds();
     const built = buildReport(report, availableActions, availableConditions);
     this._renderIntegrity(report);
     document.getElementById('report-outcome').textContent = built.outcome;
-    this.repNextStep.textContent = built.suggestions[0].text;
     
     this.repDamage.innerHTML = built.damage_lines.map(s => `<li>${escapeHtml(s)}</li>`).join('');
     
@@ -87,11 +87,12 @@ export class PostBattleReportUI {
       .sort((a, b) => (actionUsage[b] || 0) - (actionUsage[a] || 0));
 
     if (usedActions.length > 0) {
-      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.frequency'))}</li>`;
+      logicHtml += `<li class="report-metric-heading">${escapeHtml(t('report.frequency'))}</li>`;
       for (const a of usedActions) {
         const count = actionUsage[a] || 0;
-        const bar = '█'.repeat(Math.min(count, 20)) + '░'.repeat(Math.max(0, 20 - count));
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #4be1ff; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(entity('action', a, a))}</span> ${escapeHtml(count)}× <span style="color: #1a4a55;">${bar}</span></li>`;
+        logicHtml += `<li class="report-metric"><span>${escapeHtml(entity('action', a, a))}</span>
+          <strong>${escapeHtml(count)}×</strong>
+          <meter aria-hidden="true" min="0" max="${Number(actionUsage[usedActions[0]])}" value="${Number(count)}"></meter></li>`;
       }
     }
     const enemyKills = report.enemy_kills || {};
@@ -99,35 +100,35 @@ export class PostBattleReportUI {
       .filter(([, count]) => Number(count) > 0)
       .sort((a, b) => Number(b[1]) - Number(a[1]));
     if (killEntries.length > 0) {
-      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.kills'))}</li>`;
+      logicHtml += `<li class="report-metric-heading">${escapeHtml(t('report.kills'))}</li>`;
       for (const [enemyId, count] of killEntries) {
         const enemy = GameDatabase.getEnemy(enemyId);
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #ff9d6c; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
+        logicHtml += `<li class="report-metric"><span>${escapeHtml(name)}</span> ${escapeHtml(Number(count))}×</li>`;
       }
     }
     const repairEntries = Object.entries(report.enemy_repairs || {})
       .filter(([, amount]) => Number(amount) > 0)
       .sort((a, b) => Number(b[1]) - Number(a[1]));
     if (repairEntries.length > 0) {
-      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.enemyRepairs'))}</li>`;
+      logicHtml += `<li class="report-metric-heading">${escapeHtml(t('report.enemyRepairs'))}</li>`;
       for (const [enemyId, amount] of repairEntries) {
         const enemy = GameDatabase.getEnemy(enemyId);
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #55ffb0; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyRepairLine', { value: Math.round(amount) }))}</li>`;
+        logicHtml += `<li class="report-metric"><span>${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyRepairLine', { value: Math.round(amount) }))}</li>`;
       }
     }
     const shieldEntries = Object.entries(report.enemy_shield_mitigation || {})
       .filter(([, amount]) => Number(amount) > 0)
       .sort((a, b) => Number(b[1]) - Number(a[1]));
     if (shieldEntries.length > 0) {
-      logicHtml += `<li style="margin-top: 8px; border-top: 1px solid var(--line); padding-top: 8px; color: var(--muted); font-size: 10px;">${escapeHtml(t('report.enemyShields'))}</li>`;
+      logicHtml += `<li class="report-metric-heading">${escapeHtml(t('report.enemyShields'))}</li>`;
       for (const [enemyId, amount] of shieldEntries) {
         const enemy = GameDatabase.getEnemy(enemyId);
         const name = entity('enemy', enemyId, enemy?.displayName || enemyId);
         const castInfo = report.enemy_shields?.[enemyId];
         const casts = Number(castInfo?.casts) || 0;
-        logicHtml += `<li style="font-family: monospace; font-size: 10px;"><span style="color: #6ab8ff; display: inline-block; width: min(130px, 34vw); max-width: 100%; overflow: hidden; text-overflow: ellipsis; vertical-align: middle;">${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyShieldLine', { casts, value: Math.round(amount) }))}</li>`;
+        logicHtml += `<li class="report-metric"><span>${escapeHtml(name)}</span> ${escapeHtml(t('report.enemyShieldLine', { casts, value: Math.round(amount) }))}</li>`;
       }
     }
     this.repLogic.innerHTML = logicHtml;
@@ -136,14 +137,11 @@ export class PostBattleReportUI {
     
     // Clear and build suggestions with interactive Auto-Add buttons
     this.repSuggest.innerHTML = '';
-    for (const sug of built.suggestions) {
+    const others = document.getElementById('rep-other-suggest');
+    others.replaceChildren();
+    others.parentElement.hidden = built.suggestions.length < 2;
+    for (const [index, sug] of built.suggestions.entries()) {
       const li = document.createElement('li');
-      li.style.display = 'flex';
-      li.style.justifyContent = 'space-between';
-      li.style.alignItems = 'center';
-      li.style.gap = '12px';
-      li.style.padding = '4px 0';
-
       const spanText = document.createElement('span');
       spanText.textContent = sug.text;
       li.appendChild(spanText);
@@ -153,9 +151,6 @@ export class PostBattleReportUI {
         addBtn.type = 'button';
         addBtn.className = 'btn small primary';
         addBtn.textContent = t('report.autoAdd');
-        addBtn.style.padding = '3px 8px';
-        addBtn.style.fontSize = '10px';
-        addBtn.style.minHeight = '44px';
         const existing = GameState.rules.some(rule => rule.enabled !== false && !rule.operator &&
           !rule.negateCondition1 && rule.conditionId === sug.rule.conditionId && rule.actionId === sug.rule.actionId &&
           rule.priority >= sug.rule.priority && JSON.stringify(rule.conditionValue) === JSON.stringify(sug.rule.conditionValue));
@@ -163,7 +158,7 @@ export class PostBattleReportUI {
           addBtn.disabled = true;
           addBtn.textContent = t('report.configured');
         }
-        addBtn.style.whiteSpace = 'nowrap';
+
         
         addBtn.addEventListener('click', () => {
           const added = GameState.addRule(
@@ -176,11 +171,11 @@ export class PostBattleReportUI {
           addBtn.disabled = true;
           addBtn.textContent = t(added ? 'report.added' : 'report.unavailable');
           addBtn.classList.remove('primary');
-          addBtn.style.opacity = '0.6';
+
         });
         li.appendChild(addBtn);
       }
-      this.repSuggest.appendChild(li);
+      (index === 0 ? this.repSuggest : others).appendChild(li);
     }
     
     // Draw performance charts

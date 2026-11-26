@@ -119,7 +119,7 @@ export class RewardUI {
         const next = e.key === 'Home' ? 0
           : e.key === 'End' ? cards.length - 1
             : (current + (['ArrowRight', 'ArrowDown'].includes(e.key) ? 1 : -1) + cards.length) % cards.length;
-        cards[next]?.focus({ preventScroll: true });
+        cards[next]?.focus();
       });
       this.optionsEl.appendChild(card);
     }

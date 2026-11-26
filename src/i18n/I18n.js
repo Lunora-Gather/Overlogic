@@ -2,6 +2,16 @@ const SUPPORTED = new Set(['en', 'zh-CN', 'zh-TW']);
 const TRADITIONAL_LEAK_RE = /[严侦储属录态拟检毁没热状盖紧终继胁脉脱范装触记释阶项预号涌赢员阵档灾变虚]/;
 
 const EN = {
+  'menu.ruleIntro': 'Give your robot rules. Watch it fight. After each battle, change what it does next.',
+  'menu.tryShield': 'Test the shield rule',
+  'menu.shieldPreviewHint': 'Lower HP to 30% or less to trigger the shield.',
+  'menu.previewOn': 'Shield active',
+  'menu.previewOff': 'Shield on standby',
+  'menu.runSettings': 'Run settings',
+  'editor.clearFilter': 'Clear filter',
+  'report.moreAdvice': 'More suggestions',
+  'report.restartConfirm': 'Restart this run? Your current route and upgrades will be reset.',
+  'combat.paused': 'Paused',
   'coach.shield': 'Your shield triggers at {percent}% HP. Raise the threshold to make it open sooner.',
   'coach.custom': 'Try changing one rule, then test the robot.',
   'coach.raise': 'Set shield to 50%',
@@ -436,6 +446,16 @@ const EN = {
 
 const ZH_CN = {
   ...EN,
+  'menu.ruleIntro': '编写规则，让机器人自己战斗。看完一场，再决定它下次该怎么做。',
+  'menu.tryShield': '试试护盾规则',
+  'menu.shieldPreviewHint': '将生命值拖到 30% 或以下，观察护盾。',
+  'menu.previewOn': '护盾已开启',
+  'menu.previewOff': '护盾待命',
+  'menu.runSettings': '战役设置',
+  'editor.clearFilter': '清除筛选',
+  'report.moreAdvice': '其他建议',
+  'report.restartConfirm': '重新开始这次战役？当前路线和已获得的升级将重置。',
+  'combat.paused': '已暂停',
   'coach.shield': '护盾现在会在生命降至 {percent}% 时开启。调高阈值，它就会更早举盾。',
   'coach.custom': '试着修改一条规则，再测试机器人。',
   'coach.raise': '调至 50% 开盾',
@@ -793,6 +813,16 @@ function toTraditional(value) {
 
 const ZH_TW = {
   ...Object.fromEntries(Object.entries(ZH_CN).map(([key, value]) => [key, toTraditional(value)])),
+  'menu.ruleIntro': '編寫規則，讓機器人自己戰鬥。看完一場，再決定它下次該怎麼做。',
+  'menu.tryShield': '試試護盾規則',
+  'menu.shieldPreviewHint': '將生命值拖到 30% 或以下，觀察護盾。',
+  'menu.previewOn': '護盾已開啟',
+  'menu.previewOff': '護盾待命',
+  'menu.runSettings': '戰役設定',
+  'editor.clearFilter': '清除篩選',
+  'report.moreAdvice': '其他建議',
+  'report.restartConfirm': '重新開始這次戰役？目前路線與已取得的升級將重設。',
+  'combat.paused': '已暫停',
   'coach.shield': '護盾目前會在生命降至 {percent}% 時開啟。調高門檻，它就會更早舉盾。',
   'coach.custom': '試著修改一條規則，再測試機器人。',
   'coach.raise': '調至 50% 開盾',

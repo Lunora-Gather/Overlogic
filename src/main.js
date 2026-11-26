@@ -244,7 +244,7 @@ async function main() {
   const logicEditor = new LogicEditorUI(codeModal);
   const battleHUD = new BattleHUD(null);
   const rewardUI = new RewardUI();
-  const reportUI = new PostBattleReportUI();
+  const reportUI = new PostBattleReportUI(mainMenu.requestConfirm.bind(mainMenu));
   const victoryUI = new VictoryUI();
 
   const canvas = document.getElementById('arena');
@@ -355,9 +355,7 @@ async function main() {
       visibilityPausedCombat = true;
       bgAnim?.stop();
       arena.setPaused(true);
-      battleHUD.btnPause.textContent = t('combat.resume');
-      battleHUD.btnPause.setAttribute('aria-pressed', 'true');
-      battleHUD.btnStep.classList.remove('hidden');
+      battleHUD.syncPauseControls();
     } else if (!document.hidden && visibilityPausedCombat) {
       visibilityPausedCombat = false;
       if (!settingsOverlay.classList.contains('hidden')) {
@@ -365,9 +363,7 @@ async function main() {
         return;
       }
       arena.setPaused(false);
-      battleHUD.btnPause.textContent = t('combat.pause');
-      battleHUD.btnPause.setAttribute('aria-pressed', 'false');
-      battleHUD.btnStep.classList.add('hidden');
+      battleHUD.syncPauseControls();
     }
   });
 
@@ -424,7 +420,9 @@ async function main() {
     settingsStorageStatusCopy.textContent = t(key);
   }
 
-  function openSettings() {
+  let settingsBackground = null;
+
+  function openSettings(event) {
     AudioManager.resume();
     // Load current values from GameState
     settingsOriginalVolume = GameState.settings.volume;
@@ -439,13 +437,13 @@ async function main() {
     if (btnDataRestore) btnDataRestore.disabled = !GameState.hasBackup();
     refreshSettingsStorageStatus();
 
-    settingsReturnFocus = document.activeElement;
+    settingsReturnFocus = event?.currentTarget || document.activeElement;
+    settingsBackground = document.querySelector('.screen:not(.hidden)');
+    if (settingsBackground) settingsBackground.inert = true;
     resumeCombatAfterSettings = GameManager.state === 'combat' && arena && !arena.paused;
     if (resumeCombatAfterSettings) {
       arena.setPaused(true);
-      battleHUD.btnPause.textContent = t('combat.resume');
-      battleHUD.btnPause.setAttribute('aria-pressed', 'true');
-      battleHUD.btnStep.classList.remove('hidden');
+      battleHUD.syncPauseControls();
     }
     settingsOverlay.classList.remove('hidden');
     settingsOverlay.setAttribute('aria-hidden', 'false');
@@ -467,12 +465,12 @@ async function main() {
         visibilityPausedCombat = true;
       } else {
         arena.setPaused(false);
-        battleHUD.btnPause.textContent = t('combat.pause');
-        battleHUD.btnPause.setAttribute('aria-pressed', 'false');
-        battleHUD.btnStep.classList.add('hidden');
+        battleHUD.syncPauseControls();
       }
     }
     resumeCombatAfterSettings = false;
+    if (settingsBackground) settingsBackground.inert = settingsBackground.classList.contains('hidden');
+    settingsBackground = null;
     if (settingsReturnFocus instanceof HTMLElement) settingsReturnFocus.focus();
     settingsReturnFocus = null;
     AudioManager.play('button_click');

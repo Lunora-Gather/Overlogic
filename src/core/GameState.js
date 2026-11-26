@@ -858,14 +858,14 @@ class GameStateClass {
     const ordered = [...this.rules].sort((a, b) => b.priority - a.priority);
     const index = ordered.findIndex(rule => rule.id === ruleId);
     const target = index + direction;
-    if (index < 0 || target < 0 || target >= ordered.length) return false;
+    if (!Number.isInteger(target) || index < 0 || target < 0 || target >= ordered.length || index === target) return false;
     this._pushState();
-    const currentPriority = ordered[index].priority;
-    ordered[index].priority = ordered[target].priority;
-    ordered[target].priority = currentPriority;
-    if (ordered[index].priority === ordered[target].priority) {
-      ordered[index].priority = Math.max(0, Math.min(100, ordered[index].priority - direction));
-    }
+    const priorities = ordered.map(rule => rule.priority);
+    const [moved] = ordered.splice(index, 1);
+    ordered.splice(target, 0, moved);
+    // Keep the priority slots; array order resolves ties in the evaluator's stable sort.
+    ordered.forEach((rule, position) => { rule.priority = priorities[position]; });
+    this.rules = ordered;
     this.saveToStorage();
     this._emit('rules');
     return true;

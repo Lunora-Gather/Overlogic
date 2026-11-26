@@ -15,9 +15,14 @@ import { featureEnabled, operationsConfig } from '../systems/OperationsConfig.js
 import { recordProductEvent } from '../systems/ProductTelemetry.js?v=20260725-4';
 import { copyText } from './Clipboard.js?v=20260725-4';
 
+import { ConditionEvaluator } from '../logic/ConditionEvaluator.js?v=20260725-4';
+import { drawRobot } from '../render/ArenaRenderer.js?v=20260725-4';
+
 export class MainMenu {
   constructor() {
     this.el = document.getElementById('screen-main');
+    this.previewHp = document.getElementById('preview-hp');
+    this.previewHp.addEventListener('input', () => this.renderPreview());
     this.btnStart = document.getElementById('btn-start');
     this.btnNewRun = document.getElementById('btn-new-run');
     this.btnHow = document.getElementById('btn-how');
@@ -129,7 +134,7 @@ export class MainMenu {
     this.btnNewRun?.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
-      this._requestConfirm('menu.newRunConfirm').then((confirmed) => {
+      this.requestConfirm('menu.newRunConfirm', this.btnNewRun).then((confirmed) => {
         if (!confirmed) return;
         GameState.resetRun();
         GameState.configureRun(this.runMode.value, this.runDifficulty.value, this._selectedSeed());
@@ -184,7 +189,7 @@ export class MainMenu {
     this.btnReset.addEventListener('click', () => {
       AudioManager.resume();
       AudioManager.play('button_click');
-      this._requestConfirm('reset.confirm').then((confirmed) => {
+      this.requestConfirm('reset.confirm', this.btnReset).then((confirmed) => {
         if (!confirmed) return;
         const cleared = GameState.clearStorage();
         this.render();
@@ -243,6 +248,12 @@ export class MainMenu {
     };
     this.runMode?.addEventListener('change', () => updateRunConfig('mode'));
     this.runDifficulty?.addEventListener('change', () => updateRunConfig('difficulty'));
+    this.runSeedInput?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' && !event.isComposing) {
+        event.preventDefault();
+        this.btnStart.click();
+      }
+    });
     this.runSeedInput?.addEventListener('change', () => updateRunConfig('seed'));
     this.runSeedInput?.addEventListener('input', () => updateRunConfig('seed'));
     this.btnCopyRunSeed?.addEventListener('click', async () => {
@@ -262,7 +273,38 @@ export class MainMenu {
     });
   }
 
+  renderPreview() {
+    const hp = this.previewHp.valueAsNumber;
+    const robot = { hp, maxHp: 100, x: 0, y: 0, bodyRadius: 1, chassisAngle: -Math.PI / 6 };
+    const active = new ConditionEvaluator().evaluateSingle(robot, null, 'hp_low', 0.3);
+    robot.shieldTimer = active ? 1 : 0;
+    const canvas = document.getElementById('preview-robot');
+    const g = canvas.getContext('2d');
+    g.clearRect(0, 0, canvas.width, canvas.height);
+    g.save();
+    g.translate(canvas.width / 2, canvas.height / 2);
+    // The instrument dial uses the same chassis and force field as the arena.
+    for (let i = 0; i < 60; i++) {
+      g.strokeStyle = i / 60 < hp / 100 ? '#134e5b' : '#96aeba';
+      g.lineWidth = i % 5 ? 2 : 4;
+      g.beginPath();
+      g.moveTo(0, -129);
+      g.lineTo(0, i % 5 ? -120 : -114);
+      g.stroke();
+      g.rotate(Math.PI / 30);
+    }
+    drawRobot(g, robot, 64, 0);
+    g.restore();
+    const state = document.getElementById('preview-state');
+    const label = t(active ? 'menu.previewOn' : 'menu.previewOff');
+    if (state.textContent !== label) state.textContent = label;
+    state.dataset.active = String(active);
+    document.getElementById('preview-value').textContent = hp + '%';
+    this.previewHp.setAttribute('aria-valuetext', hp + '%');
+  }
+
   render() {
+    this.renderPreview();
     const activeRun = GameState.hasRunProgress() && !GameState.isDemoCleared();
     if (this.runMode) this.runMode.value = activeRun ? GameState.runConfig.mode : GameState.settings.runMode;
     this._applyOperationsGates(activeRun);
@@ -319,7 +361,7 @@ export class MainMenu {
       ? t('menu.profileNoBestRun')
       : t('menu.profileBestRun', { time: `${records.bestTime.toFixed(1)}s` });
     this.runProfile.innerHTML = `
-      <div class="profile-heading"><span>${t('menu.profileTitle')}</span><span>${t('menu.profileRank', { level: rank.level })}</span></div>
+      <div class="profile-heading"><strong>${t('menu.profileRank', { level: rank.level })}</strong><span>${t('menu.profileXp', { current: rank.current, required: rank.required })}</span></div>
       <div class="profile-progress" aria-label="${t('menu.profileXp', { current: rank.current, required: rank.required })}">
         <span style="width:${progress}%"></span>
       </div>
@@ -502,17 +544,19 @@ export class MainMenu {
     }, delay);
   }
 
-  _requestConfirm(key) {
+  requestConfirm(key, returnFocus = document.activeElement) {
     if (!this.confirmOverlay || !this.btnConfirmAccept || !this.btnConfirmCancel) {
       return Promise.resolve(false);
     }
     if (this._confirmResolver) this._closeConfirm(false);
     this._confirmKey = key;
-    this._confirmReturnFocus = document.activeElement;
+    this._confirmReturnFocus = returnFocus;
     this.confirmMessage.textContent = t(key);
     this.confirmOverlay.classList.remove('hidden');
     this.confirmOverlay.setAttribute('aria-hidden', 'false');
-    this.btnConfirmAccept.focus();
+    this.confirmBackground = document.querySelector('.screen:not(.hidden)');
+    if (this.confirmBackground) this.confirmBackground.inert = true;
+    this.btnConfirmCancel.focus();
     return new Promise((resolve) => { this._confirmResolver = resolve; });
   }
 
@@ -523,6 +567,8 @@ export class MainMenu {
     this._confirmKey = null;
     this.confirmOverlay.classList.add('hidden');
     this.confirmOverlay.setAttribute('aria-hidden', 'true');
+    if (this.confirmBackground) this.confirmBackground.inert = this.confirmBackground.classList.contains('hidden');
+    this.confirmBackground = null;
     if (this._confirmReturnFocus instanceof HTMLElement) this._confirmReturnFocus.focus();
     this._confirmReturnFocus = null;
     resolve(result === true);

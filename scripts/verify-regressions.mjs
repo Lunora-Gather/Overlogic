@@ -504,3 +504,20 @@ test('defeat summaries localize the largest damage source and use the equipped b
     assert(!build().suggestions.some(suggestion => suggestion.rule?.actionId === 'basic_attack'));
   }
 });
+
+test('moving tied priorities changes execution order without losing slots, including after undo and reload', () => {
+  const [first, second, third] = GameState.rules;
+  first.priority = second.priority = 100;
+  third.priority = 0;
+  const order = () => [...GameState.rules].sort((a, b) => b.priority - a.priority).map(rule => rule.id);
+  assert.equal(GameState.moveRule(second.id, -1), true);
+  assert.deepEqual(order(), [second.id, first.id, third.id]);
+  assert.equal(GameState.moveRule(third.id, -2), true);
+  assert.deepEqual(order(), [third.id, second.id, first.id]);
+  assert.equal(GameState.moveRule(third.id, 0), false);
+  GameState.undo();
+  assert.deepEqual(order(), [second.id, first.id, third.id]);
+  assert(GameState.loadFromStorage());
+  assert.deepEqual(order(), [second.id, first.id, third.id]);
+  assert.deepEqual(GameState.rules.map(rule => rule.priority), [100, 100, 0]);
+});

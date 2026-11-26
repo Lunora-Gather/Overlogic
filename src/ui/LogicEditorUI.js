@@ -28,7 +28,7 @@ export class LogicEditorUI {
     this.btnUndo = document.getElementById('btn-undo');
     this.btnRedo = document.getElementById('btn-redo');
     this.btnUndo.setAttribute('aria-keyshortcuts', 'Control+Z Meta+Z');
-    this.btnRedo.setAttribute('aria-keyshortcuts', 'Control+Y Meta+Y');
+    this.btnRedo.setAttribute('aria-keyshortcuts', 'Control+Y Meta+Y Control+Shift+Z Meta+Shift+Z');
     this.ruleForm = document.getElementById('rule-form');
     this.fCond = document.getElementById('f-cond');
     this.fCondParam = document.getElementById('f-cond-param');
@@ -410,6 +410,7 @@ export class LogicEditorUI {
       return;
     }
     this.rulesSearch.value = '';
+    this.expandedRuleId = shield.id;
     GameState.setRuleConditionValue(shield.id, 0.5);
     const row = [...this.ruleList.children].find(item => item.dataset.id === shield.id);
     row?.querySelector('[data-focus-field="parameter-primary"]')?.focus();
@@ -703,6 +704,11 @@ export class LogicEditorUI {
 
     // Sort rules by priority descending first so they display in order in the editor
     const sortedRules = [...GameState.rules].sort((a, b) => b.priority - a.priority);
+    if (this.editorRun !== GameState.runStats.runId || (this.expandedRuleId !== null &&
+        !sortedRules.some(rule => rule.id === this.expandedRuleId))) {
+      this.editorRun = GameState.runStats.runId;
+      this.expandedRuleId = sortedRules[0]?.id;
+    }
     for (const r of sortedRules) {
       // Filter check
       if (searchQuery) {
@@ -719,11 +725,28 @@ export class LogicEditorUI {
     }
     if (searchQuery && GameState.rules.length && !this.ruleList.childElementCount) {
       const empty = document.createElement('li');
-      empty.textContent = t('editor.noMatches');
+      empty.className = 'rule-search-empty';
+      const clear = document.createElement('button');
+      clear.type = 'button';
+      clear.className = 'btn small';
+      clear.textContent = t('editor.clearFilter');
+      clear.addEventListener('click', () => {
+        this.rulesSearch.value = '';
+        this.renderRules();
+        this.rulesSearch.focus();
+      });
+      empty.append(t('editor.noMatches'), clear);
       this.ruleList.appendChild(empty);
     }
     this._setupDragAndDrop();
     this._restoreRuleFocus(focusState, scrollContainer, scrollTop);
+  }
+
+  focusNewRule() {
+    this.rulesSearch.value = '';
+    this.expandedRuleId = GameState.rules.at(-1)?.id;
+    this.renderRules();
+    this.ruleList.querySelector('.rule-readable-summary[aria-expanded="true"]')?.focus();
   }
 
   _syncHistoryControls() {
@@ -776,7 +799,24 @@ export class LogicEditorUI {
     row.dataset.id = r.id;
     const readableSummary = formatLabel(r, GameDatabase);
     row.setAttribute('aria-label', readableSummary);
-    const summary = document.createElement('div');
+    const overview = document.createElement('div');
+    overview.className = 'rule-overview';
+    const detail = document.createElement('div');
+    detail.id = 'rule-detail-' + r.id;
+    detail.className = 'rule-detail';
+    detail.hidden = this.expandedRuleId !== r.id;
+    const summary = document.createElement('button');
+    summary.type = 'button';
+    summary.dataset.focusField = 'disclosure';
+    summary.setAttribute('aria-controls', detail.id);
+    summary.setAttribute('aria-expanded', String(!detail.hidden));
+    summary.addEventListener('click', () => {
+      this.expandedRuleId = detail.hidden ? r.id : null;
+      this.renderRules();
+      const header = document.getElementById(detail.id)?.previousElementSibling?.querySelector('button');
+      header?.focus({ preventScroll: true });
+      header?.scrollIntoView({ block: 'nearest' });
+    });
     summary.className = 'rule-readable-summary';
     summary.textContent = readableSummary;
     summary.title = readableSummary;
@@ -791,7 +831,10 @@ export class LogicEditorUI {
     const conditions = document.createElement('div');
     const actions = document.createElement('div');
     conditions.className = actions.className = 'rule-card-fields';
-    row.append(summary, toolbar, conditions, actions);
+    overview.appendChild(summary);
+    detail.append(conditions, actions, toolbar);
+    row.append(overview, detail);
+    row.classList.toggle('rule-disabled', r.enabled === false);
 
     // 1. Drag handle (☰)
     const handle = document.createElement('span');
@@ -813,7 +856,10 @@ export class LogicEditorUI {
     row.addEventListener('dragend', () => {
       row.removeAttribute('draggable');
       row.classList.remove('dragging');
-      this._saveNewPriorities();
+      if (this._draggedRuleId) {
+        this._draggedRuleId = null;
+        this.renderRules();
+      }
     });
     toolbar.appendChild(handle);
 
@@ -863,7 +909,11 @@ export class LogicEditorUI {
     tog.title = t('editor.enableRule');
     tog.setAttribute('aria-label', t('editor.enableRule'));
     tog.addEventListener('change', () => GameState.setRuleEnabled(r.id, tog.checked));
-    cond1Wrap.appendChild(tog);
+    const toggleLabel = document.createElement('label');
+    toggleLabel.className = 'rule-enable';
+    tog.setAttribute('aria-label', t('editor.enableRule') + ' · ' + readableSummary);
+    toggleLabel.append(tog);
+    overview.prepend(toggleLabel);
 
     const not1 = document.createElement('button');
     not1.type = 'button';
@@ -1101,7 +1151,10 @@ export class LogicEditorUI {
         r.conditionId, r.conditionValue, r.actionId, Math.max(0, r.priority - 1),
         r.conditionId2, r.conditionValue2, r.operator, r.targetPriority,
         r.negateCondition1, r.negateCondition2, r.enabled
-      )) AudioManager.play('rule_add');
+      )) {
+        this.focusNewRule();
+        AudioManager.play('rule_add');
+      }
     });
     actionsContainer.appendChild(clone);
 
@@ -1111,7 +1164,11 @@ export class LogicEditorUI {
     del.dataset.focusField = 'delete';
     del.setAttribute('aria-label', t('editor.delete'));
     del.addEventListener('click', () => {
+      const neighbor = row.nextElementSibling || row.previousElementSibling;
+      this.expandedRuleId = neighbor?.dataset.id;
       GameState.removeRule(r.id);
+      const next = this.ruleList.querySelector('.rule-readable-summary[aria-expanded="true"]') || this.btnUndo;
+      next.focus();
       AudioManager.play('rule_add');
     });
     actionsContainer.appendChild(del);
@@ -1210,6 +1267,11 @@ export class LogicEditorUI {
     const container = this.ruleList;
     if (container.dataset.dragBound === 'true') return;
     container.dataset.dragBound = 'true';
+    container.addEventListener('drop', event => {
+      if (!this._draggedRuleId) return;
+      event.preventDefault();
+      this._saveNewPriorities();
+    });
     container.addEventListener('dragover', (e) => {
       e.preventDefault();
       const dragging = container.querySelector('.rule-row.dragging');
@@ -1245,37 +1307,12 @@ export class LogicEditorUI {
     const index = rows.findIndex(row => row.dataset.id === draggedId);
     if (index === -1) return;
 
-    const draggedRule = GameState.rules.find(r => r.id === draggedId);
-    if (!draggedRule) return;
-
-    let prioAbove = null;
-    let prioBelow = null;
-
-    if (index > 0) {
-      const rowAbove = rows[index - 1];
-      const ruleAbove = GameState.rules.find(r => r.id === rowAbove.dataset.id);
-      if (ruleAbove) prioAbove = ruleAbove.priority;
-    }
-    if (index < rows.length - 1) {
-      const rowBelow = rows[index + 1];
-      const ruleBelow = GameState.rules.find(r => r.id === rowBelow.dataset.id);
-      if (ruleBelow) prioBelow = ruleBelow.priority;
-    }
-
-    let newPrio = draggedRule.priority;
-    if (prioAbove !== null && prioBelow !== null) {
-      newPrio = Math.round((prioAbove + prioBelow) / 2);
-    } else if (prioBelow !== null) {
-      newPrio = Math.min(100, prioBelow + 5);
-    } else if (prioAbove !== null) {
-      newPrio = Math.max(0, prioAbove - 5);
-    }
-
-    GameState.pushUndoState();
-    draggedRule.priority = newPrio;
-    GameState.saveToStorage();
-    GameState._emit('rules');
-    AudioManager.play('button_click');
+    const ordered = [...GameState.rules].sort((a, b) => b.priority - a.priority);
+    const visibleIds = new Set(rows.map(row => row.dataset.id));
+    const previousOccupant = ordered.filter(rule => visibleIds.has(rule.id))[index];
+    const origin = ordered.findIndex(rule => rule.id === draggedId);
+    const offset = ordered.indexOf(previousOccupant) - origin;
+    if (origin >= 0 && previousOccupant && GameState.moveRule(draggedId, offset)) AudioManager.play('button_click');
   }
 
   renderStats() {
@@ -1344,17 +1381,17 @@ export class LogicEditorUI {
       if (GameState.redo()) AudioManager.play('button_click');
     });
     document.addEventListener('keydown', (e) => {
-      if (this.el.classList.contains('hidden')) return;
-      
+      if (this.el.classList.contains('hidden') || document.querySelector('.overlay:not(.hidden)')) return;
+
       const activeElement = document.activeElement;
       const isTextEditing = activeElement?.matches?.('input:not([type="checkbox"]):not([type="radio"]), textarea, [contenteditable="true"]');
       const modifier = e.ctrlKey || e.metaKey;
 
       // Keep native text editing undo/redo intact inside fields. The editor
       // shortcut only owns the document canvas when no text is being edited.
-      if (modifier && !isTextEditing && !e.shiftKey && e.key.toLowerCase() === 'z') {
+      if (modifier && !isTextEditing && e.key.toLowerCase() === 'z') {
         e.preventDefault();
-        if (GameState.undo()) AudioManager.play('button_click');
+        if (e.shiftKey ? GameState.redo() : GameState.undo()) AudioManager.play('button_click');
       }
       // Ctrl/Cmd + Y (Redo)
       if (modifier && !isTextEditing && !e.shiftKey && e.key.toLowerCase() === 'y') {
@@ -1417,6 +1454,7 @@ export class LogicEditorUI {
       if (GameState.addRule(condId, val, actId, prio, condId2, val2, op, targetPrio)) {
         AudioManager.play('rule_add');
         this._closeAddForm();
+        this.focusNewRule();
       }
     });
     this.fCond.addEventListener('change', () => this._refreshFormParam());

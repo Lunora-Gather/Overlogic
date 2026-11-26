@@ -6,7 +6,7 @@ Overlogic 是一款俯视角自动战斗策略 Roguelite。你不操作机器人
 
 ## 玩第一局
 
-1. 从首页选择「进入逻辑工作台」。第一条规则默认在生命降到 30% 时尝试举盾。点「调至 50% 开盾」，可以看到规则摘要和数值一起更新，也可以撤销这次修改。
+1. 首页的护盾预览可以直接拖动生命值。降到 30% 时护盾会亮起；预览独立于存档。选择「进入逻辑工作台」。第一条规则默认在生命降到 30% 时尝试举盾。点「调至 50% 开盾」，可以看到规则摘要和数值一起更新，也可以撤销这次修改。
 2. 点「护盾演练」。机器人以 40% 生命面对两只爬行者，返回工作台时会显示实际举盾次数。演练保留战役生命、胜场和路线进度。
 3. 保留一条低优先级的基础攻击，选择「启动战斗模拟」。想看清一次判断，可以暂停后单步推进，查看规则触发或跳过的原因。
 4. 失败后先看坚持时间、最大伤害来源和调整建议。需要新增规则时，可直接在报告内添加，再返回编辑或重试。胜利后选择升级，带着剩余生命前往下一节点。领奖前刷新也可以从首页继续。
@@ -18,17 +18,17 @@ Overlogic 是一款俯视角自动战斗策略 Roguelite。你不操作机器人
 | 看清一次决策 | 战斗中按 `P` 暂停或继续，暂停时按 `.` 单步，按 `S` 切换速度。也可使用屏幕上的战斗控件。 |
 | 换设备或浏览器 | 在系统设置导出完整 JSON 备份，再在目标浏览器导入。规则分享码不是完整存档。 |
 
-窄屏工作台先显示规则，路线、准备度和协同可展开查看；模板和已存配置也可以单独打开。战斗中，状态栏和战场分别占一行，展开指令与日志即可查看每次判断。
+点击规则摘要可展开或收起条件与动作，勾选框可直接启停该规则。窄屏工作台先显示规则，路线、准备度和协同可展开查看；模板和已存配置也可以单独打开。战斗中，状态栏和战场分别占一行，展开指令与日志即可查看每次判断。
 
 存档在当前浏览器，不需要帐号，也不会自动同步。清理网站数据前请先备份。支持安装为 PWA；第一次在线加载并完成缓存后可离线游玩。本地产品指标默认关闭，不会自动上传。
 
 ## 繁體中文
 
-從首頁選「進入邏輯工作臺」。按「調至 50% 開盾」，再進入「護盾演練」：機體會以 40% 生命面對兩隻爬行者，演練結束後可看到實際舉盾次數。戰役生命與路線進度會保留。準備好後選「啟動戰鬥模擬」。失敗時，報告會列出存活時間、主要傷害來源與下一步建議；你可以直接新增建議規則，回工作臺調整後再試。勝利後選擇升級。換裝置前，請從系統設定匯出完整存檔。
+首頁可拖動生命值，在 30% 時看到護盾啟動。選「進入邏輯工作臺」，點規則摘要即可展開編輯。按「調至 50% 開盾」，再進入「護盾演練」：機體會以 40% 生命面對兩隻爬行者，演練結束後可看到實際舉盾次數。戰役生命與路線進度會保留。準備好後選「啟動戰鬥模擬」。失敗時，報告會列出存活時間、主要傷害來源與下一步建議；你可以直接新增建議規則，回工作臺調整後再試。勝利後選擇升級。換裝置前，請從系統設定匯出完整存檔。
 
 ## English
 
-Choose **Open Logic Workstation**, then **Set shield to 50%**. The **Shield drill** starts the robot at 40% HP against two crawlers. Back in the editor, check how often the shield activated. The drill preserves campaign HP and route progress. Leave a basic attack enabled and choose **Launch Battle**. After a loss, the report shows how long the robot survived, which source dealt the most damage, and a suggested change. Add a suggested rule from the report, edit your build, or retry. After a win, choose an upgrade. Saves stay in this browser unless you export a backup.
+Drag the HP slider on the home screen to trigger the shield at 30%. Choose **Open Logic Workstation**, expand a rule to edit it, then **Set shield to 50%**. The **Shield drill** starts the robot at 40% HP against two crawlers. Back in the editor, check how often the shield activated. The drill preserves campaign HP and route progress. Leave a basic attack enabled and choose **Launch Battle**. After a loss, the report shows how long the robot survived, which source dealt the most damage, and a suggested change. Add a suggested rule from the report, edit your build, or retry. After a win, choose an upgrade. Saves stay in this browser unless you export a backup.
 
 ## 本地运行
 

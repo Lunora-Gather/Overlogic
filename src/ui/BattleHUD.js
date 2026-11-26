@@ -42,8 +42,7 @@ export class BattleHUD {
     window.addEventListener('overlogic:localechange', () => {
       this.renderRulesPanel();
       if (this.arena) {
-        this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
-        this.btnPause.setAttribute('aria-pressed', this.arena.paused ? 'true' : 'false');
+        this.syncPauseControls();
         this.btnSpeed.textContent = t('combat.speed', { speed: this.arena.speed });
         this.setWave(this.arena.currentWave, this.arena.totalWaves);
       }
@@ -77,9 +76,7 @@ export class BattleHUD {
     this.btnPause.addEventListener('click', () => {
       if (!this.arena) return;
       this.arena.togglePause();
-      this.btnPause.textContent = t(this.arena.paused ? 'combat.resume' : 'combat.pause');
-      this.btnPause.setAttribute('aria-pressed', this.arena.paused ? 'true' : 'false');
-      this.btnStep.classList.toggle('hidden', !this.arena.paused);
+      this.syncPauseControls();
       AudioManager.play('button_click');
     });
     this.btnStep.addEventListener('click', () => {
@@ -116,11 +113,19 @@ export class BattleHUD {
     });
   }
 
+  syncPauseControls() {
+    const paused = this.arena?.paused === true;
+    this.btnPause.textContent = t(paused ? 'combat.resume' : 'combat.pause');
+    this.btnPause.setAttribute('aria-pressed', String(paused));
+    this.btnStep.classList.toggle('hidden', !paused);
+    const signal = document.getElementById('arena-feed-state');
+    signal.dataset.i18n = paused ? 'combat.paused' : 'combat.liveSignal';
+    signal.textContent = t(signal.dataset.i18n);
+  }
+
   onBattleStart(battle) {
     this.inspectorToggle.setAttribute('aria-expanded', 'false');
-    this.btnPause.textContent = t('combat.pause');
-    this.btnPause.setAttribute('aria-pressed', 'false');
-    this.btnStep.classList.add('hidden');
+    this.syncPauseControls();
     this.btnSpeed.textContent = t('combat.speed', { speed: 1 });
     this.curLogic.textContent = t('combat.current', { label: '—' });
     this.curLogic.classList.remove('overlogic');

@@ -35,6 +35,7 @@ async function play(frame, locale, width, height) {
   async function finishBattle() {
     await wait(() => onScreen('combat'), 'enter combat');
     if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') click('#btn-pause');
+    check(find('#arena-feed-state').dataset.i18n === 'combat.paused', 'paused feed');
     const canvas = rect('#arena');
     for (const x of [canvas.left + 8, canvas.right - 8]) {
       for (const y of [canvas.top + 8, canvas.bottom - 8]) {
@@ -54,6 +55,25 @@ async function play(frame, locale, width, height) {
   click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
   check(rect('#btn-start').bottom <= height, 'start button below fold');
+  const preview = find('#preview-hp');
+  const initial = save();
+  for (const [hp, active] of [[31, false], [30, true], [5, true], [60, false]]) {
+    preview.value = hp;
+    preview.dispatchEvent(new win.Event('input', { bubbles: true }));
+    check(find('#preview-state').dataset.active === String(active), 'preview threshold ' + hp);
+    check(find('#preview-value').textContent === hp + '%', 'preview readout');
+  }
+  check(JSON.stringify(initial) === JSON.stringify(save()), 'preview altered save');
+  click('#btn-settings');
+  check(find('#screen-main').inert, 'settings background');
+  const muted = find('#setting-mute').checked;
+  click('label[for="setting-mute"]');
+  check(find('#setting-mute').checked !== muted, 'whole mute row toggles');
+  click('#btn-settings-close');
+  check(doc.activeElement === find('#btn-settings') && !find('#screen-main').inert, 'dismiss settings');
+  click('#btn-settings');
+  check(find('#setting-mute').checked === muted, 'dismissed setting was discarded');
+  click('#btn-settings-close');
   click('#btn-start');
   await wait(() => onScreen('editor'), 'editor');
   fits('#screen-editor');
@@ -64,6 +84,11 @@ async function play(frame, locale, width, height) {
   }[locale];
   const threshold = '.rule-row [data-focus-field="parameter-primary"]';
   check(find(threshold).value === '30' && find('#coach-message').textContent.includes('30%'), 'starter shield');
+  const disclosure = '.rule-readable-summary';
+  const expanded = () => [...doc.querySelectorAll(disclosure)].filter(el => el.getAttribute('aria-expanded') === 'true');
+  check(expanded().length === 1, 'initial disclosure');
+  click('.rule-row:nth-child(2) ' + disclosure);
+  check(expanded()[0] === find('.rule-row:nth-child(2) ' + disclosure) && !find(threshold).offsetWidth, 'switch rule');
   click('#btn-coach');
   check(find(threshold).value === '50' && doc.activeElement === find(threshold), 'guided change and focus');
   click('#btn-undo');
@@ -76,9 +101,14 @@ async function play(frame, locale, width, height) {
     search.dispatchEvent(new win.Event('input', { bubbles: true }));
     check(doc.querySelectorAll('.rule-row').length === count, 'filter ' + query);
     check(find('#rule-list').textContent.trim(), 'no filter feedback');
+    if (!count) {
+      click('.rule-search-empty button');
+      check(doc.activeElement === search && !search.value && doc.querySelectorAll('.rule-row').length === 3, 'clear filter');
+    }
   }
   const before = save();
   click('#btn-coach');
+  check(find('#hp-text').textContent === '40 / 100' && find('#en-text').textContent === '100 / 100', 'drill starting resources');
   await finishBattle();
   check(onScreen('editor'), 'return from drill');
   const drill = save();
@@ -97,8 +127,13 @@ async function play(frame, locale, width, height) {
   const outcome = find('#report-outcome').textContent;
   check(outcome.includes(loss.battle_time.toFixed(1)) &&
     outcome.includes(String(Math.round(Math.max(...Object.values(loss.damage_by_source))))), 'damage summary');
-  check(find('#report-next-step').textContent.toLowerCase().includes(labels[1]), 'actionable report');
+  check(find('#rep-suggest').textContent.toLowerCase().includes(labels[1]), 'actionable report');
   check(rect('#btn-edit').bottom <= height, 'edit button below fold');
+  click('#btn-restart');
+  check(find('#screen-report').inert && doc.activeElement === find('#btn-confirm-cancel'), 'restart confirmation');
+  click('#btn-confirm-cancel');
+  check(!find('#screen-report').inert && doc.activeElement === find('#btn-restart') &&
+    save().runStats.runId === before.runStats.runId, 'cancel preserves run and focus');
   click('#rep-suggest button');
   check(find('#rep-suggest button').disabled, 'recommendation applied once');
   click('#btn-edit');

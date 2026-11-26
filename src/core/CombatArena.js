@@ -193,7 +193,11 @@ export class CombatArena {
       this.pendingWaves.push({ wave: +w, spawns: waves[w] });
     }
 
-    // Boss wiring
+    // Publish starting values before the first decision, even if the player pauses immediately.
+    this.hud.setOverlogic(this.ctx.overlogic.value, this.ctx.overlogic.active);
+    this.hud.setHp(this.robot.hp, this.robot.maxHp);
+    this.hud.setEnergy(this.robot.energy, this.robot.maxEnergy);
+    this.hud.setWave(this.currentWave, this.totalWaves);
     this.lastTs = performance.now();
     this._loop(this.lastTs);
   }
