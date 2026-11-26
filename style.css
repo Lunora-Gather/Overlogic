@@ -926,12 +926,6 @@ z-index: 13000;
   letter-spacing: 0.1em;
   text-transform: uppercase;
 }
-.history-summary {
-  color: var(--muted);
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  text-transform: none;
-}
 .history-list {
   display: grid;
   gap: 5px;
@@ -4901,6 +4895,22 @@ body::before {
 .home-disclosure > summary small { color: #a8becf; font: 500 13px/1.3 var(--font-ui); }
 .home-disclosure > :not(summary) { margin-block-end: 10px; }
 
+.home-records { display: grid; gap: 16px; padding-block: 4px 10px; }
+#screen-main .home-records > section {
+  min-width: 0;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  background: none;
+}
+#screen-main .home-records > section::before { content: none; }
+#screen-main .home-records #run-history { border-block-start: 1px solid var(--border-mid); padding-block-start: 14px; }
+#screen-main .home-records .profile-actions .btn { min-height: 44px; }
+.home-records :is(.history-heading, .challenge-heading) { font: 650 14px/1.35 var(--font-ui); }
+.home-records :is(.challenge-heading, .challenge-entry-heading) > span:last-child { font-size: 12px; letter-spacing: 0; }
+.home-records .history-entry { font-size: 13px; min-height: 32px; }
+.home-records .history-meta { font-size: 12px; }
+
 @media (max-width: 680px) {
   .home-stage, .home-shell { grid-template-columns: minmax(0, 1fr); }
   .home-primary { border-start-end-radius: 11px; }
@@ -4918,7 +4928,22 @@ body::before {
   #screen-main .launch-actions .btn { padding-inline: 11px; font-size: 14px; }
 }
 @media (min-width: 901px) and (min-height: 700px) {
-  #screen-main { padding-block-start: clamp(32px, calc((100svh - 600px) * .32), 92px); }
+  #screen-main { padding-block-start: clamp(24px, 4vh, 52px); }
+  .home-shell { grid-template-columns: minmax(0, 1fr); }
+  .home-disclosure + .home-disclosure { border-inline-start: 0; border-block-start: 1px solid var(--border-mid); }
+  .home-disclosure > summary {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    min-height: 50px;
+    gap: 4px 12px;
+  }
+  .home-records:not(:has(#run-challenges.hidden)) {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+  #screen-main .home-records #run-challenges { border-inline-start: 1px solid var(--border-mid); padding-inline-start: 24px; }
+  #run-history { grid-column: 1 / -1; }
 }
 @media (max-height: 520px) and (min-width: 681px) {
   #screen-main { gap: 10px; }

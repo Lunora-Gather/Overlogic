@@ -91,7 +91,19 @@ async function play(frame, locale, width, height) {
     check(find('#preview-value').textContent === hp + '%', 'preview readout');
   }
   check(JSON.stringify(initial) === JSON.stringify(save()), 'preview altered save');
-  check(!find('.home-launch-column').open && !find('.home-dashboard').open, 'secondary home panels start closed');
+  const roomyHome = width >= 901 && height >= 700;
+  check(!find('.home-launch-column').open, 'run setup starts closed');
+  check(find('.home-dashboard').open === roomyHome, 'record visibility matches the available space');
+  if (roomyHome) {
+    check(rect('#run-profile').top > rect('.home-stage').bottom &&
+      rect('#run-profile').top < height, 'profile visible below launch controls on desktop');
+    check(rect('#run-profile').top === rect('#run-challenges').top, 'daily goals sit beside the profile');
+    frame.style.width = '844px';
+    await wait(() => !find('.home-dashboard').open, 'records collapse in a narrower window');
+    frame.style.width = width + 'px';
+    await wait(() => find('.home-dashboard').open, 'records return when there is room again');
+    await click('.home-dashboard > summary');
+  }
   await click('.home-launch-column > summary');
   check(find('#run-mode').offsetWidth > 0 && find('#run-selection').textContent, 'run mode remains discoverable');
   await click('.home-launch-column > summary');
@@ -218,6 +230,7 @@ async function play(frame, locale, width, height) {
   }, 'reload pending reward');
   watchErrors();
   check(find('.rule-preview').hidden && find('#home-run').offsetWidth, 'returning player sees campaign card');
+  check(find('.home-dashboard').open === roomyHome, 'record visibility after resuming');
   check(find('.home-stage').contains(find('#home-run')) && find('.home-stage').contains(find('#btn-start')) &&
     find('#launch-intro').hidden && rect('#btn-start').bottom <= height, 'one campaign panel with a visible resume action');
   fits('.home-frame');

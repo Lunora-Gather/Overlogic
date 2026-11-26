@@ -3,6 +3,7 @@
 import { GameManager } from '../core/GameManager.js?v=20260725-4';
 import { AudioManager } from '../systems/AudioManager.js?v=20260725-4';
 import { GameState } from '../core/GameState.js?v=20260725-4';
+import { GameDatabase } from '../core/GameDatabase.js?v=20260725-4';
 import { entity, getLocale, setLocale, t } from '../i18n/I18n.js?v=20260725-4';
 import { trapDialogFocus } from './focusTrap.js?v=20260725-4';
 import { recentBattles, historySummary } from '../systems/RunHistory.js?v=20260725-4';
@@ -28,6 +29,12 @@ export class MainMenu {
     this.homeStatus = document.getElementById('home-run-status');
     this.homeIntro = document.getElementById('launch-intro');
     this.homeRecords = document.getElementById('home-record-summary');
+    const dashboard = this.el.querySelector('.home-dashboard');
+    const roomyHome = window.matchMedia('(min-width: 901px) and (min-height: 700px)');
+    dashboard.open = roomyHome.matches;
+    roomyHome.addEventListener('change', ({ matches }) => {
+      if (matches || !dashboard.matches(':focus-within')) dashboard.open = matches;
+    });
     this.previewHp.addEventListener('input', () => this.renderPreview());
     this.btnStart = document.getElementById('btn-start');
     this.btnNewRun = document.getElementById('btn-new-run');
@@ -548,7 +555,8 @@ export class MainMenu {
     this.homeRecords.textContent = entries.length ? t('menu.historySummary', summary) : t('menu.profileTitle');
     if (this.runHistory.hidden) return;
     const cards = entries.map((entry) => {
-      const battle = entry.battleId.replace(/^battle_/, '#');
+      const battleData = GameDatabase.battles.find(candidate => candidate.id === entry.battleId);
+      const battle = entity('battle', entry.battleId, battleData?.displayName || entry.battleId);
       const result = entry.won ? t('menu.historyWin') : t('menu.historyLoss');
       const resultClass = entry.won ? 'win' : 'loss';
       return `<li class="history-entry ${resultClass}">
@@ -558,7 +566,7 @@ export class MainMenu {
       </li>`;
     }).join('');
     this.runHistory.innerHTML = `
-      <div class="history-heading"><span>${t('menu.historyTitle')}</span><span class="history-summary">${t('menu.historySummary', { wins: summary.wins, losses: summary.losses })}</span></div>
+      <div class="history-heading">${t('menu.historyTitle')}</div>
       <ul class="history-list">${cards}</ul>`;
     }
 
