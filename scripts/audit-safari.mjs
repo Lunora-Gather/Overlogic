@@ -78,6 +78,9 @@ async function play(frame, locale, width, height) {
   await click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
   check(find('#home-run').hidden && find('.rule-preview').offsetWidth, 'first visit shield preview');
+  const stage = find('.home-stage');
+  for (const selector of ['.home-masthead', '.home-frame', '.home-stage']) fits(selector);
+  check(stage.contains(find('#btn-start')) && stage.contains(find('.rule-preview')), 'single first-visit panel');
   check(rect('#btn-start').bottom <= height, 'start button below fold');
   const preview = find('#preview-hp');
   const initial = save();
@@ -92,6 +95,9 @@ async function play(frame, locale, width, height) {
   await click('.home-launch-column > summary');
   check(find('#run-mode').offsetWidth > 0 && find('#run-selection').textContent, 'run mode remains discoverable');
   await click('.home-launch-column > summary');
+  await click('.home-dashboard > summary');
+  check(find('#run-profile').offsetWidth > 0 && find('#home-record-summary').textContent, 'records visible in launcher');
+  await click('.home-dashboard > summary');
   await click('#btn-settings');
   check(find('#screen-main').inert, 'settings background');
   const muted = find('#setting-mute').checked;
@@ -212,7 +218,16 @@ async function play(frame, locale, width, height) {
   }, 'reload pending reward');
   watchErrors();
   check(find('.rule-preview').hidden && find('#home-run').offsetWidth, 'returning player sees campaign card');
+  check(find('.home-stage').contains(find('#home-run')) && find('.home-stage').contains(find('#btn-start')) &&
+    find('#launch-intro').hidden && rect('#btn-start').bottom <= height, 'one campaign panel with a visible resume action');
+  fits('.home-frame');
+  check(doc.querySelectorAll('#home-route-segments span').length === find('#home-route-progress').max &&
+    find('#home-route-segments [data-step="current"]') === find('#home-route-segments').firstElementChild, 'first route segment is current');
   check(find('#home-run-facts dd').textContent.startsWith(String(Math.round(save().lastReport._endHp))), 'resume shows the winning HP');
+  const pendingSave = save();
+  await click('#btn-new-run');
+  await click('#btn-confirm-cancel');
+  check(JSON.stringify(save()) === JSON.stringify(pendingSave), 'cancel new run preserves pending reward');
   await click('#btn-start');
   check(onScreen('reward') && JSON.stringify(offers()) === JSON.stringify(originalOffers), 'same offers after refresh');
   const shortcut = (repeat = false) => new win.KeyboardEvent('keydown', { key: '1', bubbles: true, repeat });
@@ -222,6 +237,8 @@ async function play(frame, locale, width, height) {
   check(save().runStats.battlesWon === 1, 'reward settled');
   await click('#btn-editor-menu');
   check(find('#home-run').offsetWidth && find('#home-route-progress').value === 2, 'campaign card advances after claiming upgrade');
+  check(find('#home-route-segments [data-step="completed"]') === find('#home-route-segments').firstElementChild &&
+    doc.querySelectorAll('#home-route-segments [data-step="completed"]').length === 1, 'the completed route is marked');
   await click('#btn-start');
   await click('.editor-sandbox summary');
   find('#sandbox-preset').value = 'boss';
@@ -259,7 +276,7 @@ const server = createServer(async (req, res) => {
         const play = ${play};
         let error;
         try {
-          for (const [locale, width, height] of [['en', 320, 568], ['zh-CN', 390, 844], ['zh-TW', 375, 812], ['en', 844, 390]]) {
+          for (const [locale, width, height] of [['en', 320, 568], ['zh-CN', 390, 844], ['zh-TW', 375, 812], ['en', 844, 390], ['zh-CN', 1280, 776]]) {
             for (const key of Object.keys(localStorage)) {
               if (key.startsWith('overlogic_')) localStorage.removeItem(key);
             }
@@ -299,7 +316,7 @@ try {
   const report = await promise;
   assert(!report.error, report.error);
   assert.match(report.browser, /Version\/.* Safari\//);
-  assert.equal(report.results.length, 4);
+  assert.equal(report.results.length, 5);
   console.log('SAFARI_FLOW_OK', JSON.stringify(report));
 } finally {
   clearTimeout(timeout);

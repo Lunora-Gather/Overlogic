@@ -24,6 +24,10 @@ export class MainMenu {
     this.preview = this.el.querySelector('.rule-preview');
     this.previewHp = document.getElementById('preview-hp');
     this.runCard = document.getElementById('home-run');
+    this.homeTitle = document.getElementById('home-run-title');
+    this.homeStatus = document.getElementById('home-run-status');
+    this.homeIntro = document.getElementById('launch-intro');
+    this.homeRecords = document.getElementById('home-record-summary');
     this.previewHp.addEventListener('input', () => this.renderPreview());
     this.btnStart = document.getElementById('btn-start');
     this.btnNewRun = document.getElementById('btn-new-run');
@@ -274,6 +278,9 @@ export class MainMenu {
       if (this._confirmKey && this.confirmMessage) this.confirmMessage.textContent = t(this._confirmKey);
       this.render();
     });
+    window.addEventListener('overlogic:screenchange', ({ detail }) => {
+      if (detail.id === 'main') this.el.scrollTop = 0;
+    });
   }
 
   renderPreview() {
@@ -330,10 +337,17 @@ export class MainMenu {
     this.btnNewRun?.classList.toggle('hidden', !activeRun);
     this.runMode.disabled = activeRun;
     this.runDifficulty.disabled = activeRun;
-    this.preview.hidden = complete || resume;
-    this.runCard.hidden = !this.preview.hidden;
-    if (this.preview.hidden) this.renderRunCard({ complete, pendingBattle, pendingUpgrade, pendingFinal });
-    else this.renderPreview();
+    const showRun = complete || resume;
+    this.preview.hidden = showRun;
+    this.homeIntro.hidden = showRun;
+    this.runCard.hidden = !showRun;
+    this.homeStatus.hidden = !showRun || complete;
+    if (showRun) {
+      this.renderRunCard({ complete, pendingBattle, pendingUpgrade, pendingFinal });
+    } else {
+      this.homeTitle.textContent = t('menu.firstTitle');
+      this.renderPreview();
+    }
     if (this.howBody) {
       this.howBody.replaceChildren(...t('how.body').split('|').map(line => {
         const paragraph = document.createElement('p');
@@ -357,14 +371,21 @@ export class MainMenu {
     const title = complete ? t('victory.title')
       : battle ? entity('battle', battle.id, battle.displayName)
         : t(node?.type === 'repair' ? 'map.repairName' : 'map.upgradeName');
-    this.runCard.querySelector('#home-run-status').textContent = complete ? '' : t(status);
-    this.runCard.querySelector('#home-run-title').textContent = title;
+    this.homeStatus.textContent = t(status);
+    this.homeTitle.textContent = title;
     const total = GameState.mapNodes.length;
     const current = Math.min(GameState.currentMapColumn + 1, total);
     const progress = this.runCard.querySelector('#home-route-progress');
     progress.max = total;
     progress.value = current;
     this.runCard.querySelector('#home-route-label').textContent = t('editor.routeProgress', { current, total });
+    const segments = this.runCard.querySelector('#home-route-segments');
+    segments.replaceChildren(...GameState.mapNodes.map((_, index) => {
+      const segment = document.createElement('span');
+      const step = index + 1;
+      segment.dataset.step = complete || step < current ? 'completed' : step === current ? 'current' : 'upcoming';
+      return segment;
+    }));
     const report = GameState.lastReport;
     const hp = pendingBattle || complete ? report?._endHp : GameState.persistentHp;
     const maxHp = GameState.stats.max_hp;
@@ -523,8 +544,9 @@ export class MainMenu {
     if (!this.runHistory) return;
     const entries = recentBattles();
     this.runHistory.hidden = entries.length === 0;
-    if (this.runHistory.hidden) return;
     const summary = historySummary();
+    this.homeRecords.textContent = entries.length ? t('menu.historySummary', summary) : t('menu.profileTitle');
+    if (this.runHistory.hidden) return;
     const cards = entries.map((entry) => {
       const battle = entry.battleId.replace(/^battle_/, '#');
       const result = entry.won ? t('menu.historyWin') : t('menu.historyLoss');

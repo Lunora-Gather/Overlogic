@@ -56,7 +56,8 @@
 
   <!-- ===== Main Menu ===== -->
   <section id="screen-main" class="screen">
-    <div class="home-masthead">
+    <header class="home-masthead">
+      <h1 class="home-wordmark">Overlogic</h1>
       <div class="locale-switcher" id="locale-switcher">
         <div class="locale-options" role="radiogroup" aria-label="Language options" data-i18n-aria-label="menu.language">
           <button type="button" role="radio" aria-checked="false" data-locale="en">EN</button>
@@ -70,81 +71,81 @@
         <button type="button" id="btn-install" class="btn ghost hidden" data-i18n="menu.install">Install App</button>
         <button type="button" id="btn-exit" class="btn ghost" data-i18n="menu.exit">Exit</button>
       </div>
-    </div>
-    <header class="home-header">
-      <div class="title-block">
-        <h1 class="logo">OVERLOGIC</h1>
-        <p class="launch-intro" data-i18n="menu.ruleIntro">Give your robot rules. Watch it fight. After each battle, change what it does next.</p>
-        <div class="launch-actions">
-          <button type="button" id="btn-start" data-autofocus class="btn primary" data-i18n="menu.start">Open Logic Workstation</button>
-          <button type="button" id="btn-new-run" class="btn ghost hidden" data-i18n="menu.newRun">Start New Run</button>
-        </div>
-      </div>
-      <section class="rule-preview" aria-labelledby="preview-title">
-        <canvas id="preview-robot" width="400" height="300" aria-hidden="true"></canvas>
-        <div class="preview-controls">
-          <h2 id="preview-title" data-i18n="menu.tryShield">Test the shield rule</h2>
-          <p id="preview-hint" data-i18n="menu.shieldPreviewHint">Lower HP to 30% or less to trigger the shield.</p>
-          <label for="preview-hp"><span data-i18n="combat.hitPoints">Hit points</span><span aria-hidden="true" id="preview-value">60%</span></label>
-          <input id="preview-hp" type="range" min="5" max="100" step="1" value="60" aria-describedby="preview-hint">
-          <p id="preview-state" role="status"></p>
-        </div>
-      </section>
-      <section id="home-run" class="home-run" aria-labelledby="home-run-title" hidden>
-        <div>
-          <p id="home-run-status"></p>
-          <h2 id="home-run-title"></h2>
-        </div>
-        <div class="home-run-route">
-          <label for="home-route-progress" id="home-route-label"></label>
-          <progress id="home-route-progress"></progress>
-        </div>
-        <dl id="home-run-facts" class="run-facts"></dl>
-      </section>
     </header>
-    <div class="home-shell">
-      <details class="home-disclosure home-launch-column">
-        <summary><span data-i18n="menu.runSettings">Run settings</span> <small id="run-selection"></small></summary>
-        <div class="run-config-panel">
-          <label><span data-i18n="menu.mode">Run Mode</span>
-            <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
-              <option value="standard" data-i18n="mode.standard">Standard</option>
-              <option value="daily" data-i18n="mode.daily">Daily Seed</option>
-              <option value="weekly" data-i18n="mode.weekly">Weekly Gauntlet</option>
-            </select>
-          </label>
-          <label><span data-i18n="menu.difficulty">Difficulty</span>
-            <select id="run-difficulty" aria-label="Difficulty" data-i18n-aria-label="menu.difficulty">
-              <option value="casual" data-i18n="difficulty.casual">Casual</option>
-              <option value="standard" data-i18n="difficulty.standard">Standard</option>
-              <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
-            </select>
-          </label>
-          <span id="period-seed-label" class="period-seed-label hidden"></span>
-          <div class="run-seed-row">
-            <label for="run-seed-input" class="run-seed-field">
-              <span data-i18n="menu.seed">Challenge Seed</span>
-              <input id="run-seed-input" type="text" inputmode="text" autocapitalize="characters" enterkeyhint="go" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.seedPlaceholder" data-i18n-aria-label="menu.seed" placeholder="Seed or OLR1 challenge code">
-            </label>
-            <button id="btn-copy-run-seed" type="button" class="btn ghost small" data-i18n="menu.copySeed">Copy</button>
+    <div class="home-frame">
+      <section class="home-stage" aria-labelledby="home-run-title">
+        <div class="home-primary">
+          <p id="home-run-status" hidden></p>
+          <h2 id="home-run-title" data-i18n="menu.firstTitle">Program your robot</h2>
+          <p id="launch-intro" class="launch-intro" data-i18n="menu.ruleIntro">Let it fight on its own, then tune its rules after each battle.</p>
+          <div class="launch-actions">
+            <button type="button" id="btn-start" data-autofocus class="btn primary" data-i18n="menu.start">Open Logic Workstation</button>
+            <button type="button" id="btn-new-run" class="btn ghost hidden" data-i18n="menu.newRun">Start New Run</button>
           </div>
-          <p id="run-config-hint" class="run-config-hint"></p>
         </div>
-        <section id="run-season" class="run-season" aria-live="polite">
-          <span data-i18n="menu.seasonLabel">LIVE PROTOCOL</span>
-          <strong id="run-season-name">Foundry Protocol</strong>
-          <small id="run-season-status">Active</small>
+        <section class="rule-preview" aria-labelledby="preview-title">
+          <canvas id="preview-robot" width="400" height="300" aria-hidden="true"></canvas>
+          <div class="preview-controls">
+            <h2 id="preview-title" data-i18n="menu.tryShield">Test the shield rule</h2>
+            <p id="preview-hint" data-i18n="menu.shieldPreviewHint">Lower HP to 30% or less to trigger the shield.</p>
+            <label for="preview-hp"><span data-i18n="combat.hitPoints">Hit points</span><span aria-hidden="true" id="preview-value">60%</span></label>
+            <input id="preview-hp" type="range" min="5" max="100" step="1" value="60" aria-describedby="preview-hint">
+            <p id="preview-state" role="status"></p>
+          </div>
         </section>
-        <div class="home-reset">
-          <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
+        <div id="home-run" class="home-run" hidden>
+          <div class="home-run-route">
+            <label for="home-route-progress" id="home-route-label"></label>
+            <progress class="sr-only" id="home-route-progress"></progress>
+            <div id="home-route-segments" aria-hidden="true"></div>
+          </div>
+          <dl id="home-run-facts" class="run-facts"></dl>
         </div>
-      </details>
-      <details class="home-disclosure home-dashboard">
-        <summary data-i18n="menu.records">Records &amp; challenges</summary>
-        <section id="run-profile" class="run-profile"></section>
-        <section id="run-challenges" class="run-challenges"></section>
-        <section id="run-history" class="run-history"></section>
-      </details>
+      </section>
+      <div class="home-shell">
+        <details class="home-disclosure home-launch-column">
+          <summary><span data-i18n="menu.runSettings">Run settings</span> <small id="run-selection"></small></summary>
+          <div class="run-config-panel">
+            <label><span data-i18n="menu.mode">Run Mode</span>
+              <select id="run-mode" aria-label="Run mode" data-i18n-aria-label="menu.mode">
+                <option value="standard" data-i18n="mode.standard">Standard</option>
+                <option value="daily" data-i18n="mode.daily">Daily Seed</option>
+                <option value="weekly" data-i18n="mode.weekly">Weekly Gauntlet</option>
+              </select>
+            </label>
+            <label><span data-i18n="menu.difficulty">Difficulty</span>
+              <select id="run-difficulty" aria-label="Difficulty" data-i18n-aria-label="menu.difficulty">
+                <option value="casual" data-i18n="difficulty.casual">Casual</option>
+                <option value="standard" data-i18n="difficulty.standard">Standard</option>
+                <option value="veteran" data-i18n="difficulty.veteran">Veteran</option>
+              </select>
+            </label>
+            <span id="period-seed-label" class="period-seed-label hidden"></span>
+            <div class="run-seed-row">
+              <label for="run-seed-input" class="run-seed-field">
+                <span data-i18n="menu.seed">Challenge Seed</span>
+                <input id="run-seed-input" type="text" inputmode="text" autocapitalize="characters" enterkeyhint="go" autocomplete="off" spellcheck="false" data-i18n-placeholder="menu.seedPlaceholder" data-i18n-aria-label="menu.seed" placeholder="Seed or OLR1 challenge code">
+              </label>
+              <button id="btn-copy-run-seed" type="button" class="btn ghost small" data-i18n="menu.copySeed">Copy</button>
+            </div>
+            <p id="run-config-hint" class="run-config-hint"></p>
+          </div>
+          <section id="run-season" class="run-season" aria-live="polite">
+            <span data-i18n="menu.seasonLabel">LIVE PROTOCOL</span>
+            <strong id="run-season-name">Foundry Protocol</strong>
+            <small id="run-season-status">Active</small>
+          </section>
+          <div class="home-reset">
+            <button type="button" id="btn-reset" class="btn ghost" data-i18n="menu.reset">Reset Progress</button>
+          </div>
+        </details>
+        <details class="home-disclosure home-dashboard">
+          <summary><span data-i18n="menu.records">Records and challenges</span> <small id="home-record-summary"></small></summary>
+          <section id="run-profile" class="run-profile"></section>
+          <section id="run-challenges" class="run-challenges"></section>
+          <section id="run-history" class="run-history"></section>
+        </details>
+      </div>
     </div>
     <div id="how-overlay" class="overlay hidden" aria-hidden="true">
       <div class="overlay-card how-card" role="dialog" aria-modal="true" aria-labelledby="how-title">
