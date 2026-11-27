@@ -228,24 +228,26 @@
           </span>
           <span class="editor-prep-caption" data-i18n="editor.prepDetails">Route &amp; prep</span>
         </summary>
-        <div class="map-panel">
-          <div class="editor-route-heading">
-            <span id="map-route-label" class="label" data-i18n="editor.routeMap">Protocol route map</span>
-            <span class="teach-info">
-              <span class="label" data-i18n="editor.directiveLayer">Directive Layer</span>
-              <span id="ed-teach" class="value">1</span>
-            </span>
+        <div class="editor-prep-content">
+          <div class="map-panel">
+            <div class="editor-route-heading">
+              <span id="map-route-label" class="label" data-i18n="editor.routeMap">Protocol route map</span>
+              <span class="teach-info">
+                <span class="label" data-i18n="editor.directiveLayer">Directive Layer</span>
+                <span id="ed-teach" class="value">1</span>
+              </span>
+            </div>
+            <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
           </div>
-          <div id="map-nodes" class="map-nodes" role="list" aria-label="Protocol route map" data-i18n-aria-label="editor.routeMap"></div>
+          <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
+          <details id="synergy-panel" class="synergy-panel">
+            <summary class="synergy-heading">
+              <span id="synergy-title" data-i18n="synergy.title">Protocol Synergies</span>
+            </summary>
+            <p class="synergy-hint" data-i18n="synergy.hint">Combine upgrades to unlock build-defining effects.</p>
+            <div id="synergy-list" class="synergy-list"></div>
+          </details>
         </div>
-        <section id="mission-briefing" class="mission-briefing" aria-live="polite"></section>
-        <details id="synergy-panel" class="synergy-panel">
-          <summary class="synergy-heading">
-            <span id="synergy-title" data-i18n="synergy.title">Protocol Synergies</span>
-          </summary>
-          <p class="synergy-hint" data-i18n="synergy.hint">Combine upgrades to unlock build-defining effects.</p>
-          <div id="synergy-list" class="synergy-list"></div>
-        </details>
       </details>
     </header>
 
@@ -267,49 +269,49 @@
           <button type="button" id="btn-add-rule" class="btn small" data-i18n="editor.addRule">+ Add Rule</button>
           <button type="button" id="btn-undo" class="btn small ghost compact-tool" title="Undo (Ctrl+Z)" data-i18n="editor.undo" data-i18n-title="editor.undoHint">Undo</button>
           <button type="button" id="btn-redo" class="btn small ghost compact-tool" title="Redo (Ctrl+Y)" data-i18n="editor.redo" data-i18n-title="editor.redoHint">Redo</button>
-          <input type="text" id="rules-search" class="search-input" style="width: 140px; margin-bottom: 0; margin-left: auto; height: 28px; padding: 2px 8px;" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
         </div>
-        
+        <div class="rules-controls">
+          <input type="text" id="rules-search" class="search-input" data-i18n-placeholder="editor.filterRules" aria-label="Filter rules" data-i18n-aria-label="editor.filterRules" placeholder="Filter rules...">
+          <details class="editor-library">
+            <summary data-i18n="editor.libraryDetails">Templates &amp; saved loadouts</summary>
+            <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
+              <span data-i18n="editor.loadouts" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
+              <div class="template-tools" style="display: flex; align-items: center; gap: 6px; flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 8px;">
+                <label for="rule-template" data-i18n="editor.templates" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Templates</label>
+                <select id="rule-template" class="template-select" aria-label="Rule template" data-i18n-aria-label="editor.templateSelect">
+                  <option value="" data-i18n="editor.templatePlaceholder">Choose a template…</option>
+                  <option value="defensive_core" data-i18n="template.defensive.name">Defensive Core</option>
+                  <option value="ranged_control" data-i18n="template.ranged.name">Ranged Control</option>
+                  <option value="interrupt_protocol" data-i18n="template.interrupt.name">Interrupt Protocol</option>
+                  <option value="overdrive_burst" data-i18n="template.burst.name">Overdrive Burst</option>
+                </select>
+                <button type="button" id="btn-apply-template" class="btn small" data-i18n="editor.applyTemplate">Add Template</button>
+              </div>
+              <div class="slot-item" style="display: flex; align-items: center; gap: 6px;">
+                <span id="slot-led-1" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
+                <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot1">Slot 1</span>
+                <button type="button" id="btn-load-1" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+                <button type="button" id="btn-save-1" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+              </div>
+              <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
+                <span id="slot-led-2" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
+                <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot2">Slot 2</span>
+                <button type="button" id="btn-load-2" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+                <button type="button" id="btn-save-2" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+              </div>
+              <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
+                <span id="slot-led-3" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
+                <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot3">Slot 3</span>
+                <button type="button" id="btn-load-3" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
+                <button type="button" id="btn-save-3" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
+              </div>
+            </div>
+          </details>
+        </div>
         <div id="editor-coach" class="editor-coach hidden">
           <p id="coach-message" role="status"></p>
           <button type="button" id="btn-coach" class="btn small"></button>
         </div>
-        <details class="editor-library">
-          <summary data-i18n="editor.libraryDetails">Templates &amp; saved loadouts</summary>
-        <div class="slots-bar" style="display: flex; gap: 10px; align-items: center; margin-bottom: 12px; padding: 8px 12px; background: rgba(75, 225, 255, 0.03); border: 1px solid var(--line); border-radius: 4px; flex-wrap: wrap;">
-          <span data-i18n="editor.loadouts" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-right: auto;">Loadout Slots:</span>
-          <div class="template-tools" style="display: flex; align-items: center; gap: 6px; flex-basis: 100%; border-top: 1px solid var(--line); padding-top: 8px;">
-            <label for="rule-template" data-i18n="editor.templates" style="font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px;">Templates</label>
-            <select id="rule-template" class="template-select" aria-label="Rule template" data-i18n-aria-label="editor.templateSelect">
-              <option value="" data-i18n="editor.templatePlaceholder">Choose a template…</option>
-              <option value="defensive_core" data-i18n="template.defensive.name">Defensive Core</option>
-              <option value="ranged_control" data-i18n="template.ranged.name">Ranged Control</option>
-              <option value="interrupt_protocol" data-i18n="template.interrupt.name">Interrupt Protocol</option>
-              <option value="overdrive_burst" data-i18n="template.burst.name">Overdrive Burst</option>
-            </select>
-            <button type="button" id="btn-apply-template" class="btn small" data-i18n="editor.applyTemplate">Add Template</button>
-          </div>
-          <div class="slot-item" style="display: flex; align-items: center; gap: 6px;">
-            <span id="slot-led-1" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
-            <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot1">Slot 1</span>
-            <button type="button" id="btn-load-1" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button type="button" id="btn-save-1" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
-          </div>
-          <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
-            <span id="slot-led-2" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
-            <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot2">Slot 2</span>
-            <button type="button" id="btn-load-2" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button type="button" id="btn-save-2" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
-          </div>
-          <div class="slot-item" style="display: flex; align-items: center; gap: 6px; border-left: 1px solid var(--line); padding-left: 10px;">
-            <span id="slot-led-3" class="slot-led" style="width: 7px; height: 7px; border-radius: 50%; background: #222; box-shadow: 0 0 4px rgba(0,0,0,0.5); display: inline-block; transition: background 0.3s, box-shadow 0.3s;"></span>
-            <span style="font-size: 11px; color: var(--txt); margin-right: 4px;" data-i18n="editor.slot3">Slot 3</span>
-            <button type="button" id="btn-load-3" class="btn small" data-i18n="editor.load" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px; border-color: rgba(75,225,255,0.25);">LOAD</button>
-            <button type="button" id="btn-save-3" class="btn small primary" data-i18n="editor.save" style="padding: 4px 8px; font-size: 10px; min-width: 48px; min-height: 28px;">SAVE</button>
-          </div>
-        </div>
-
-        </details>
         <div id="rule-form" class="rule-form hidden">
           <div class="rule-form-condition">
             <label for="f-cond" data-i18n="editor.condition1">Condition</label>

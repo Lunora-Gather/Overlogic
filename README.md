@@ -56,7 +56,7 @@ npm run serve
 | `npm run balance` | 运行确定性平衡模拟。 |
 | `npm run build` | 生成带版本号和预缓存校验值的 `dist/`。 |
 | `npm run layout-audit` | 构建后用 Chrome 检查三语首页、短窗口编辑、操作栏可达性和横竖屏战场遮挡。可用 `CHROME_BIN` 指定 Chromium 可执行文件；CI 会在部署前执行。 |
-| `npm run safari-audit` | 在 macOS 上先运行 `npm run build`。测试会打开系统 Safari，检查三语引导、规则编辑、沙盒演练、失败复盘、图表缩放、刷新后继续领奖、数字键领奖和首领界面。手机尺寸通过浏览器视口模拟。 |
+| `npm run safari-audit` | 在 macOS 上先运行 `npm run build`。系统 Safari 会检查三语引导、规则编辑、路线间距、桌面三栏对齐、沙盒演练、失败复盘、图表缩放、刷新后继续领奖、数字键领奖和首领界面。手机尺寸通过浏览器视口模拟。 |
 | `npm run safari-audit -- --campaign` | 在系统 Safari 从新存档打完标准与休闲两条路线，覆盖超时复盘、修复后重试、分支、通关归档和重新开局。 |
 | `npm run check` | 不依赖浏览器的本地门禁（发布前另跑 `layout-audit`）：verify → balance → quality-audit → build → release-audit → http-audit → performance-audit。 |
 

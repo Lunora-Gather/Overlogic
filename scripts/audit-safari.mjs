@@ -48,6 +48,7 @@ async function play(frame, locale, width, height, campaignDifficulty) {
     try {
       await wait(() => {
         if (hasMarker()) return true;
+        if (!doc.hasFocus()) win.focus();
         from.focus({ preventScroll: true });
         from.dispatchEvent(new win.KeyboardEvent('keydown', { key, bubbles: true }));
         return hasMarker();
@@ -62,6 +63,21 @@ async function play(frame, locale, width, height, campaignDifficulty) {
     check(rect('#synergy-panel').bottom <= rect('.editor-header').bottom + 1 &&
       rect('.editor-header').bottom <= rect('.editor-grid').top + 1, 'expanded prep fits above the rule workspace');
     check(rect('.brief-score').right <= rect('.brief-copy').left, 'readiness score does not overlap the briefing text');
+    const branch = find('.map-col:has(.map-node:nth-child(2))');
+    const columns = doc.querySelectorAll('.map-col');
+    const gap = columns[1].getBoundingClientRect().left - columns[0].getBoundingClientRect().right;
+    const gaps = [
+      branch.children[1].getBoundingClientRect().top - branch.children[0].getBoundingClientRect().bottom,
+      rect('#mission-briefing').top - rect('#map-nodes').bottom,
+      rect('#synergy-panel').top - rect('#mission-briefing').bottom,
+    ];
+    check(gap > 0 && gaps.every(value => Math.abs(value - gap) <= 1),
+      'route branches and prep sections should share a gap: ' + [gap, ...gaps].join(', '));
+    const briefing = rect('#mission-briefing');
+    const content = [...find('#mission-briefing').children].map(el => el.getBoundingClientRect()).filter(box => box.height);
+    const topInset = Math.min(...content.map(box => box.top)) - briefing.top;
+    const bottomInset = briefing.bottom - Math.max(...content.map(box => box.bottom));
+    check(Math.abs(topInset - bottomInset) <= 1, 'readiness summary has uneven top and bottom padding');
   };
   async function inspectPrep() {
     await click('.editor-prep > summary');
@@ -347,6 +363,16 @@ async function play(frame, locale, width, height, campaignDifficulty) {
     doc.querySelectorAll('#home-route-segments [data-step="completed"]').length === 1, 'the completed route is marked');
   await click('#btn-start');
   await inspectPrep();
+  if (width > 900) {
+    for (const row of [
+      ['#panel-conditions h3', '#panel-rules h3', '#panel-actions h3'],
+      ['#cond-search', '#rules-search', '#act-search'],
+      ['#cond-list li', '#rule-list li', '#act-list li'],
+    ]) {
+      const tops = row.map(selector => rect(selector).top);
+      check(Math.max(...tops) - Math.min(...tops) <= 1, 'workbench columns misaligned: ' + row.join(', '));
+    }
+  }
   await click('.editor-sandbox summary');
   find('#sandbox-preset').value = 'boss';
   await click('#btn-sandbox');

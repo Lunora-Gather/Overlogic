@@ -79,6 +79,9 @@ try {
     const el = document.querySelector('${first}'), css = getComputedStyle(el), ctx = document.createElement('canvas').getContext('2d');
     ctx.font = css.font; return el.clientWidth >= ctx.measureText(el.selectedOptions[0].text).width + parseFloat(css.paddingLeft) + 16;
   })()`), 'Desktop condition label clipped');
+  const searchTops = await evaluate(`['#cond-search', '#rules-search', '#act-search']
+    .map(selector => document.querySelector(selector).getBoundingClientRect().top)`);
+  assert(Math.max(...searchTops) - Math.min(...searchTops) <= 1, 'Desktop editor searches sit on different rows');
   await viewport(1024, 600);
   await click('.editor-library > summary'); await click('.editor-prep > summary');
   await click('#synergy-panel > summary');
