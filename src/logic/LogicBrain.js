@@ -139,7 +139,7 @@ export class LogicBrain {
         diagnostics[chosen.id] = 'pursuing';
         this._emit(chosen, t('combat.pursuingLabel', {
           label: formatLabel(chosen, GameDatabase),
-        }), diagnostics);
+        }), diagnostics, diagnosticReasons);
       } else {
         diagnostics[chosen.id] = 'action_unavailable';
         diagnosticReasons[chosen.id] = this.executor.unavailableReason(chosen.actionId, chosen) || 'unknown';

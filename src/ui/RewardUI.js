@@ -94,6 +94,7 @@ export class RewardUI {
       const card = document.createElement('button');
       card.type = 'button';
       card.className = 'reward-card';
+      card.dataset.rewardId = rid;
       card.dataset.rewardType = r.rewardType;
       card.setAttribute('aria-keyshortcuts', String(index + 1));
       const typeLabel = t(`rewardType.${r.rewardType}`);

@@ -32,8 +32,10 @@ const WAVE_CLEAR_DELAY = 1.15;
 // keeps a seeded run identical on 60 Hz, 120 Hz, and throttled mobile tabs;
 // the renderer may interpolate later without changing gameplay facts.
 export const SIMULATION_STEP_SECONDS = 1 / 60;
+// Time-based rules can be set as late as 180 seconds.
+export const BATTLE_TIME_LIMIT_SECONDS = 240;
 const MAX_CATCH_UP_STEPS = 120;
-const SIMULATION_VERSION = 3;
+const SIMULATION_VERSION = 4;
 const ENEMY_CLASSES = {
   crawler: CrawlerEnemy,
   shooter: ShooterEnemy,
@@ -288,6 +290,8 @@ export class CombatArena {
     // Win check: all waves spawned AND no live enemies
     if (this.pendingWaves.length === 0 && this.ctx.liveEnemies() === 0 && !this.robot.dead) {
       this._finish(true);
+    } else if (this.battleTime >= BATTLE_TIME_LIMIT_SECONDS) {
+      this._finish(false, { timedOut: true });
     }
   }
 
@@ -347,10 +351,10 @@ export class CombatArena {
 
   _render() {
     drawArena(this.g, this.canvas, this.ctx, this.camera);
-    this.hud.setTimer(this.battleTime);
+    this.hud.setTimer(this.battleTime, BATTLE_TIME_LIMIT_SECONDS);
   }
 
-  _finish(won) {
+  _finish(won, { timedOut = false } = {}) {
     if (this._finished) return;
     this._finished = true;
     cancelAnimationFrame(this._rafId);
@@ -363,6 +367,7 @@ export class CombatArena {
     report._difficulty = this.runConfig.difficulty || 'standard';
     report._battleId = this.battle?.id || null;
     report._won = won === true;
+    if (timedOut) report._timedOut = true;
     report._sandbox = String(this.battle?.id || '').startsWith('sandbox_');
     report._simulationVersion = SIMULATION_VERSION;
     report._simulationStep = SIMULATION_STEP_SECONDS;
@@ -381,7 +386,7 @@ export class CombatArena {
       // snapshotDeath mutates the tracker, so rebuild after the final event.
       Object.assign(report, this.ctx.tracker.toReport());
       GameState.lastReport = report;
-      this.hud.logConsole(t('log.failed'), 'danger');
+      this.hud.logConsole(t(timedOut ? 'log.timedOut' : 'log.failed'), 'danger');
     } else {
       AudioManager.play('victory');
       GameState.lastReport = report;

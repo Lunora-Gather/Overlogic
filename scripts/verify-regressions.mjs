@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import { beforeEach, test } from 'node:test';
 import vm from 'node:vm';
 import { installBrowserShims } from './test-env.mjs';
+import { CAMPAIGN_SEED, campaignRoute } from './campaign-fixture.mjs';
 
 installBrowserShims();
 globalThis.requestAnimationFrame = () => 0;
@@ -14,7 +15,7 @@ const { GameDatabase } = await import('../src/core/GameDatabase.js?v=20260725-4'
 await GameDatabase.loadAll();
 const { GameState } = await import('../src/core/GameState.js?v=20260725-4');
 const { GameManager } = await import('../src/core/GameManager.js?v=20260725-4');
-const { CombatArena, SIMULATION_STEP_SECONDS } = await import('../src/core/CombatArena.js?v=20260725-4');
+const { BATTLE_TIME_LIMIT_SECONDS, CombatArena, SIMULATION_STEP_SECONDS } = await import('../src/core/CombatArena.js?v=20260725-4');
 const { buildRewardOptions, buildUpgradeOptions } = await import('../src/systems/RewardManager.js?v=20260725-4');
 const { buildReport } = await import('../src/systems/PostBattleReportBuilder.js?v=20260725-4');
 const { ARCHIVE_KEY, runArchiveSnapshot } = await import('../src/systems/RunArchive.js?v=20260725-4');
@@ -116,9 +117,110 @@ test('the real arena produces identical results across render schedules and shak
       results.push([report._won, arena.robot.hp, report.battle_time, report._replayDigest, report._simulationVersion]);
     }
     for (const result of results) assert.deepEqual(result, results[0], battle.id);
-    assert.equal(results[0][4], 3);
+    assert.equal(results[0][4], 4);
   }
 });
+
+for (const difficulty of ['standard', 'casual', 'veteran']) {
+  test(`a fresh ${difficulty} campaign can reach Singularity Core and record its victory`, () => {
+    GameState.configureRun('standard', difficulty, CAMPAIGN_SEED);
+    const nullBranch = difficulty === 'standard';
+    const playBattle = (battle) => {
+      GameManager.goCombat();
+      const arena = startArena(battle);
+      arena.onFinished = won => GameManager.onBattleFinished(won);
+      const maxSteps = Math.ceil(BATTLE_TIME_LIMIT_SECONDS / SIMULATION_STEP_SECONDS) + 1;
+      for (let step = 0; step < maxSteps && !arena._finished; step += 1) arena._update(SIMULATION_STEP_SECONDS);
+      assert(arena._finished, `${battle.id} must finish within the limit`);
+      assert.equal(GameState.lastReport._battleId, battle.id);
+      return arena;
+    };
+    const claim = (offered, reward) => {
+      assert(offered.includes(reward), `missing campaign reward ${reward}`);
+      GameManager.onRewardChosen(reward);
+      assert.equal(GameManager.state, 'editor');
+      assert.equal(GameState.runStats.rewardsChosen.at(-1), reward);
+    };
+    for (const [node, battleId, reward] of campaignRoute(difficulty)) {
+      GameState.selectMapNode(node);
+      if (node === '3_b') {
+        assert.equal(GameState.persistentHp, GameState.stats.max_hp);
+        assert.equal(GameState.stats.max_hp, 125);
+        continue;
+      }
+      if (node === '5_upgrade') {
+        assert(GameManager.resumePendingBattle());
+        claim(buildUpgradeOptions(), reward);
+        continue;
+      }
+      const battle = GameState.getActiveBattle();
+      assert.equal(battle?.id, battleId);
+      if (node === '0_start') {
+        GameState.setRuleConditionValue(GameState.rules.find(r => r.actionId === 'shield').id, 0.5);
+      }
+      if (node === '1_a') {
+        GameState.setRuleConditionValue(GameState.rules.find(r => r.actionId === 'dash_toward').id, 8);
+      }
+      if (node === '2_a') assert(GameState.addRule('hp_low', 0.75, 'repair', 99));
+      if (node === (nullBranch ? '8_singularity' : '7_relay')) {
+        assert(GameState.applyRuleTemplate('support_focus').added > 0);
+      }
+      if (node === '8_singularity' && difficulty === 'veteran') {
+        GameState.setRuleConditionValue(GameState.rules.find(r => r.actionId === 'shield').id, 0.35);
+      }
+      if (node === '7_null') {
+        // Leave the final Shield Relay alive using a legal, narrower attack rule.
+        const attack = GameState.rules.find(r => r.actionId === 'basic_attack');
+        GameState.setRuleCondition(attack.id, 'support_present');
+        GameState.toggleRuleNegation(attack.id, false);
+        const previousHp = GameState.persistentHp;
+        const previousWins = GameState.runStats.battlesWon;
+        const arena = playBattle(battle);
+        const report = GameState.lastReport;
+        assert.equal(arena.currentWave, 2);
+        assert.deepEqual(arena.ctx.enemies.map(enemy => enemy.enemyId), ['shield_drone']);
+        assert.equal(report._timedOut, true);
+        assert.equal(report._won, false);
+        assert.equal(report._simulationVersion, 4);
+        assert.equal(Math.round(report.battle_time), BATTLE_TIME_LIMIT_SECONDS);
+        assert(report.death_hp > 0);
+        assert.equal(GameManager.state, 'report');
+        assert.equal(GameState.selectedNodeId, node);
+        assert.equal(GameState.runStats.battlesWon, previousWins);
+        assert.equal(GameState.persistentHp, previousHp);
+        assert(!GameState.hasPendingBattleResolution());
+
+        // Apply the same fallback offered by the report and retry the encounter.
+        const advice = buildReport(report, GameState.availableActionIds(), GameState.availableConditionIds());
+        assert.match(advice.outcome, /Time limit reached/);
+        assert.match(advice.logic_lines.at(-1), /At timeout/);
+        const { conditionId, conditionValue, actionId, priority } = advice.suggestions[0].rule;
+        assert(GameState.addRule(conditionId, conditionValue, actionId, priority));
+        assert(GameState.removeRule(attack.id));
+      }
+      playBattle(battle);
+      assert.equal(GameState.lastReport._won, true, battleId);
+      if (reward) {
+        assert.equal(GameManager.state, 'reward');
+        assert(GameState.hasPendingBattleResolution());
+        claim(buildRewardOptions(battle), reward);
+      }
+    }
+    assert.equal(GameManager.state, 'victory');
+    assert(GameState.isDemoCleared());
+    assert.equal(GameState.runStats.battlesWon, 7);
+    assert.equal(allBattles().length, nullBranch ? 8 : 7);
+    const [entry] = runArchiveSnapshot().entries;
+    assert.equal(entry.seed, CAMPAIGN_SEED);
+    assert.equal(entry.difficulty, difficulty);
+    assert.equal(entry.battlesWon, 7);
+    assert(entry.finalHp > 0);
+    assert(GameState.loadFromStorage());
+    assert(GameState.isDemoCleared());
+    GameState.recordRunCompletion();
+    assert.equal(runArchiveSnapshot().entries.length, 1);
+  });
+}
 
 test('stale arenas cannot publish a report or record progression after import or restore', () => {
   for (const method of ['import', 'restore']) {

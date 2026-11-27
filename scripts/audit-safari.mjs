@@ -5,13 +5,15 @@ import { execFileSync } from 'node:child_process';
 import { readFile, readdir } from 'node:fs/promises';
 import { createServer } from 'node:http';
 import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { CAMPAIGN_SEED, campaignRoute } from './campaign-fixture.mjs';
 
-async function play(frame, locale, width, height) {
+async function play(frame, locale, width, height, campaignDifficulty) {
   const win = frame.contentWindow;
   let doc = win.document;
   const errors = [];
   function watchErrors() {
-    win.addEventListener('error', event => errors.push(event.error?.stack || event.message));
+    win.addEventListener('error', event => errors.push([event.message, event.error?.stack].filter(Boolean).join('\n')));
     win.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
   }
   watchErrors();
@@ -39,7 +41,7 @@ async function play(frame, locale, width, height) {
     const el = find(selector);
     check(el.scrollWidth <= el.clientWidth + 1, selector + ' overflows horizontally');
   };
-  async function finishBattle({ shield = false } = {}) {
+  async function finishBattle({ shield = false, timeout = false } = {}) {
     await wait(() => onScreen('combat'), 'enter combat');
     if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') await click('#btn-pause');
     check(!errors.length, errors.join('\\n'));
@@ -65,11 +67,22 @@ async function play(frame, locale, width, height) {
         'cooldown did not erase last executed action');
     }
     const step = find('#btn-step');
-    for (let i = 0; i < 800 && onScreen('combat'); i++) {
+    let countdown = '';
+    let showedPursuit = false;
+    for (let i = 0; i < (timeout ? 1800 : 800) && onScreen('combat'); i++) {
       step.click();
+      if (timeout && !countdown && /left|剩[余餘]/.test(find('#combat-timer').textContent)) {
+        countdown = find('#combat-timer').textContent;
+        fits('#screen-combat');
+      }
+      if (timeout && !showedPursuit) showedPursuit = Boolean(find('.diag-pursuing .diag-status-badge')?.textContent);
       if (i % 32 === 0) await pause(0);
     }
     check(!onScreen('combat'), 'battle did not finish');
+    if (timeout) {
+      check(countdown.includes('30'), 'visible final 30-second countdown');
+      check(showedPursuit, 'out-of-range attacks show pursuit diagnostics');
+    }
   }
   const ready = () => Boolean(find('#btn-start')?.offsetWidth) &&
     !doc.documentElement.classList.contains('booting') && win.getComputedStyle(find('#screen-combat')).display === 'none';
@@ -77,6 +90,10 @@ async function play(frame, locale, width, height) {
   check(win.innerWidth === width && win.innerHeight === height, 'unexpected viewport');
   await click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
+  if (campaignDifficulty) {
+    return playCampaign({ win, find, check, click, save, onScreen, fits, finishBattle, errors,
+      locale, width, height, difficulty: campaignDifficulty });
+  }
   check(find('#home-run').hidden && find('.rule-preview').offsetWidth, 'first visit shield preview');
   const stage = find('.home-stage');
   for (const selector of ['.home-masthead', '.home-frame', '.home-stage']) fits(selector);
@@ -280,6 +297,142 @@ async function play(frame, locale, width, height) {
   return { locale, width, height, shields, outcome, release: find('#app-version').textContent };
 }
 
+async function playCampaign({ win, find, check, click, save, onScreen, fits, finishBattle, errors,
+  locale, width, height, difficulty }) {
+  const nullBranch = difficulty === 'standard';
+  const setField = (selector, value) => {
+    const el = find(selector);
+    check(el?.offsetWidth && !el.disabled, 'field unavailable: ' + selector);
+    el.value = value;
+    check(el.value === String(value), 'value unavailable: ' + value);
+    el.dispatchEvent(new win.Event('change', { bubbles: true }));
+  };
+  const ruleRow = action => '.rule-row[data-id="' + save().rules.find(rule => rule.actionId === action).id + '"]';
+  const expandRule = async row => {
+    const disclosure = row + ' .rule-readable-summary';
+    if (find(disclosure).getAttribute('aria-expanded') !== 'true') await click(disclosure);
+  };
+  const chooseReward = async reward => {
+    check(onScreen('reward'), 'visible reward screen');
+    fits('#screen-reward');
+    await click('.reward-card[data-reward-id="' + reward + '"]');
+    check(onScreen('editor') && save().runStats.rewardsChosen.at(-1) === reward, 'claimed ' + reward);
+  };
+
+  check(save().runConfig.seed === CAMPAIGN_SEED && save().runConfig.difficulty === difficulty &&
+    save().runStats.battlesWon === 0, 'fresh seeded campaign');
+  await click('#btn-settings');
+  if (!find('#setting-mute').checked) await click('label[for="setting-mute"]');
+  await click('#btn-settings-save');
+  await click('#btn-start');
+  await click('#btn-coach');
+  check(save().rules.find(rule => rule.actionId === 'shield').conditionValue === 0.5, 'shield at 50% HP');
+  const wins = [];
+  let timeoutHp = null;
+
+  for (const [node, battle, reward] of campaignRoute(difficulty)) {
+    check(onScreen('editor'), 'editor before ' + node);
+    if (node !== save().selectedNodeId || !battle) {
+      if (!find('.editor-prep').open) await click('.editor-prep > summary');
+      await click('.map-node.unlocked[data-node-id="' + node + '"]');
+      if (onScreen('editor') && find('.editor-prep').open) await click('.editor-prep > summary');
+    }
+    if (node === '3_b') {
+      check(save().persistentHp === 125 && save().stats.max_hp === 125, 'repair point restores HP');
+      continue;
+    }
+    if (node === '5_upgrade') {
+      await chooseReward(reward);
+      continue;
+    }
+    if (node === '1_a') {
+      const row = ruleRow('dash_toward');
+      await expandRule(row);
+      setField(row + ' [data-focus-field="parameter-primary"]', 8);
+    }
+    if (node === '2_a') {
+      await click('#btn-add-rule');
+      setField('#f-cond', 'hp_low');
+      setField('#fp-pct', 75);
+      setField('#f-act', 'repair');
+      setField('#f-prio', 99);
+      await click('#f-add');
+      check(save().rules.at(-1).conditionValue === 0.75 && save().rules.at(-1).actionId === 'repair', 'repair rule');
+    }
+    if (node === (nullBranch ? '8_singularity' : '7_relay')) {
+      if (!find('.editor-library').open) await click('.editor-library > summary');
+      setField('#rule-template', 'support_focus');
+      await click('#btn-apply-template');
+      check(save().rules.some(rule => rule.actionId === 'basic_attack' &&
+        rule.conditionId === 'support_present' && rule.targetPriority === 'support'), 'support targeting');
+      await click('.editor-library > summary');
+    }
+    if (node === '7_null') {
+      const row = ruleRow('basic_attack');
+      await expandRule(row);
+      setField(row + ' [data-focus-field="condition-primary"]', 'support_present');
+      await click(row + ' [data-focus-field="negate-primary"]');
+      check(save().rules.find(rule => rule.actionId === 'basic_attack').negateCondition1, 'narrow attack rule');
+      const previous = save();
+      await click('#btn-run');
+      await finishBattle({ timeout: true });
+      const timed = save();
+      timeoutHp = Math.round(timed.lastReport.death_hp);
+      check(onScreen('report') && timed.lastReport._timedOut && timeoutHp > 0 &&
+        timed.lastReport._battleId === battle && timed.lastReport.enemy_kills.boss_warden === 1 &&
+        !timed.lastReport.enemy_kills.shield_drone, 'timeout after the final relay survives');
+      check(timed.selectedNodeId === node && timed.persistentHp === previous.persistentHp &&
+        timed.runStats.battlesWon === previous.runStats.battlesWon, 'time limit preserves campaign');
+      const outcome = find('#report-outcome').textContent;
+      check(outcome.includes('240') && /Time limit|时限|時限/.test(outcome), 'localized timeout explanation');
+      fits('#screen-report');
+      await click('#rep-suggest button');
+      await click('#btn-edit');
+      const added = save().rules.at(-1);
+      const focused = win.document.activeElement;
+      check(added.actionId === 'basic_attack' && added.conditionValue === 8 &&
+        focused.matches('.rule-readable-summary[aria-expanded="true"]') &&
+        focused.closest('.rule-row').dataset.id === added.id, 'report adds and focuses fallback attack');
+      await expandRule(row);
+      await click(row + ' [data-focus-field="delete"]');
+    }
+    await click('#btn-run');
+    await finishBattle();
+    const report = save().lastReport;
+    check(report._battleId === battle && report._won, battle + ' victory');
+    wins.push({ battle, hp: Math.round(report._endHp) });
+    if (reward) await chooseReward(reward);
+  }
+  check(onScreen('victory') && save().runStats.battlesWon === 7, 'campaign victory screen');
+  fits('#screen-victory');
+  const archive = () => JSON.parse(win.localStorage.getItem('overlogic_run_archive')).entries;
+  check(archive().length === 1 && archive()[0].seed === CAMPAIGN_SEED &&
+    archive()[0].difficulty === difficulty && archive()[0].finalHp > 0, 'completed run recorded');
+  const runId = save().runStats.runId;
+  await click('#btn-victory-menu');
+  check(onScreen('main') && find('#home-route-progress').value === find('#home-route-progress').max, 'completed run on home');
+  await click('#btn-start');
+  check(onScreen('editor') && save().runStats.runId !== runId && save().runStats.battlesWon === 0 &&
+    archive().length === 1 && archive()[0].id === runId, 'new run preserves the completed record');
+  check(!errors.length, errors.join('\n'));
+  return { locale, width, height, difficulty, wins, timeoutHp, release: find('#app-version').textContent };
+}
+
+const campaign = process.argv.includes('--campaign');
+const cases = campaign
+  ? [['en', 1280, 776, 'standard'], ['zh-CN', 390, 844, 'casual'], ['zh-TW', 375, 812, 'standard']]
+  : [['en', 320, 568], ['zh-CN', 390, 844], ['zh-TW', 375, 812], ['en', 844, 390], ['zh-CN', 1280, 776]];
+const caseOption = process.argv.find(arg => arg.startsWith('--case='));
+if (!caseOption) {
+  // A fresh port and page per case isolate Safari's storage and frame lifecycle.
+  for (const [index] of cases.entries()) {
+    execFileSync(process.execPath, [fileURLToPath(import.meta.url), ...process.argv.slice(2),
+      `--case=${index + 1}`], { stdio: 'inherit' });
+  }
+  process.exit(0);
+}
+const selectedCase = cases[Number(caseOption.slice(7)) - 1];
+assert(selectedCase, 'Invalid Safari case number');
 const mime = { '.js': 'text/javascript', '.css': 'text/css', '.html': 'text/html',
   '.json': 'application/json', '.svg': 'image/svg+xml', '.webmanifest': 'application/manifest+json' };
 const assets = await Promise.all((await readdir('dist', { recursive: true, withFileTypes: true }))
@@ -298,23 +451,25 @@ const server = createServer(async (req, res) => {
       res.end(`<!doctype html><meta charset="utf-8"><title>Overlogic Safari test</title>
         <pre></pre><script type="module">
         const results = [];
+        const CAMPAIGN_SEED = ${CAMPAIGN_SEED};
+        const campaignRoute = ${campaignRoute};
+        const playCampaign = ${playCampaign};
         const play = ${play};
         let error;
         try {
-          for (const [locale, width, height] of [['en', 320, 568], ['zh-CN', 390, 844], ['zh-TW', 375, 812], ['en', 844, 390], ['zh-CN', 1280, 776]]) {
-            for (const key of Object.keys(localStorage)) {
-              if (key.startsWith('overlogic_')) localStorage.removeItem(key);
-            }
-            const frame = document.createElement('iframe');
-            frame.style.cssText = 'border:0;width:' + width + 'px;height:' + height + 'px';
-            frame.src = '/game/index.html?seed=136';
-            document.body.prepend(frame);
-            for (let attempt = 0; !frame.contentDocument?.getElementById('app') && attempt < 300; attempt++) {
-              await new Promise(resolve => setTimeout(resolve, 50));
-            }
-            results.push(await play(frame, locale, width, height));
-            frame.remove();
+          const [locale, width, height, difficulty] = ${JSON.stringify(selectedCase)};
+          for (const key of Object.keys(localStorage)) {
+            if (key.startsWith('overlogic_')) localStorage.removeItem(key);
           }
+          const frame = document.createElement('iframe');
+          frame.style.cssText = 'border:0;width:' + width + 'px;height:' + height + 'px';
+          frame.src = '/game/index.html?mode=standard&seed=' + CAMPAIGN_SEED + '&difficulty=' + (difficulty || 'standard');
+          document.body.prepend(frame);
+          for (let attempt = 0; !frame.contentDocument?.getElementById('app') && attempt < 300; attempt++) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
+          results.push(await play(frame, locale, width, height, difficulty));
+          frame.remove();
         } catch (e) { error = String(e) + '\\n' + e.stack; }
         const report = { results, error, browser: navigator.userAgent };
         document.querySelector('pre').textContent = JSON.stringify(report, null, 2);
@@ -341,7 +496,7 @@ try {
   const report = await promise;
   assert(!report.error, report.error);
   assert.match(report.browser, /Version\/.* Safari\//);
-  assert.equal(report.results.length, 5);
+  assert.equal(report.results.length, 1);
   console.log('SAFARI_FLOW_OK', JSON.stringify(report));
 } finally {
   clearTimeout(timeout);

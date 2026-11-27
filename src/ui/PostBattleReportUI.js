@@ -154,6 +154,7 @@ export class PostBattleReportUI {
         addBtn.textContent = t('report.autoAdd');
         const existing = GameState.rules.some(rule => rule.enabled !== false && !rule.operator &&
           !rule.negateCondition1 && rule.conditionId === sug.rule.conditionId && rule.actionId === sug.rule.actionId &&
+          (rule.targetPriority || 'nearest') === 'nearest' &&
           rule.priority >= sug.rule.priority && JSON.stringify(rule.conditionValue) === JSON.stringify(sug.rule.conditionValue));
         if (existing) {
           addBtn.disabled = true;

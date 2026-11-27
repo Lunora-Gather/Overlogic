@@ -266,7 +266,8 @@ export class BattleHUD {
     for (const [ruleId, state] of Object.entries(diagnostics)) {
       const li = document.getElementById(`combat-rule-${ruleId}`);
       if (!li) continue;
-      const signature = state + '/' + (diagnosticReasons[ruleId] || '');
+      const reasonCode = diagnosticReasons?.[ruleId];
+      const signature = state + '/' + (reasonCode || '');
       if (li.dataset.diagnostic === signature) continue;
       li.dataset.diagnostic = signature;
       li.classList.remove('diag-disabled', 'diag-cooldown', 'diag-energy', 'diag-condition_false', 'diag-overridden', 'diag-executing', 'diag-pursuing', 'diag-action_unavailable');
@@ -283,7 +284,7 @@ export class BattleHUD {
         condition_false: 'combat.conditionUnmet',
         overridden: 'combat.lowerPriority',
         pursuing: 'combat.pursuing',
-        action_unavailable: `diagnostic.reason.${diagnosticReasons[ruleId] || 'unknown'}`,
+        action_unavailable: `diagnostic.reason.${reasonCode || 'unknown'}`,
       }[state];
       if (reason) {
         const badge = document.createElement('span');
@@ -307,7 +308,13 @@ export class BattleHUD {
     });
     this.waveInfo.classList.add('incoming');
   }
-  setTimer(t) { this.timerEl.textContent = `${Math.max(0, t).toFixed(1)}s`; }
+  setTimer(elapsed, limit) {
+    const remaining = Math.max(0, Math.ceil(limit - elapsed));
+    const label = remaining <= 30
+      ? t('combat.timeRemaining', { seconds: remaining })
+      : `${Math.max(0, elapsed).toFixed(1)}s`;
+    if (this.timerEl.textContent !== label) this.timerEl.textContent = label;
+  }
 
   showBossBar(name) { this.bossName.textContent = name; this.bossWrap.classList.remove('hidden'); }
   hideBossBar() { this.bossWrap.classList.add('hidden'); }

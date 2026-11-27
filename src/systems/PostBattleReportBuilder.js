@@ -11,6 +11,7 @@ export function damageSourceLabel(source) {
 export function buildReport(report, availableActionIds, availableConditionIds = []) {
   const damageBySource = report.damage_by_source || {};
   const actionUsage = report.action_usage || {};
+  const timedOut = report._timedOut === true;
   const shieldActivatedAtHp = report.shield_activated_at_hp ?? -1;
   const energyOverflowTime = report.energy_overflow_time ?? 0;
   const deathHp = report.death_hp ?? 0;
@@ -61,15 +62,17 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
   }
 
   const energyLine = t('report.energyOverflow', { seconds: energyOverflowTime.toFixed(1) });
-  const deathLine = t('report.death', { hp: Math.round(deathHp), energy: Math.round(deathEnergy), count: deathNearbyEnemyCount });
+  const endLine = t(timedOut ? 'report.atTimeLimit' : 'report.death', {
+    hp: Math.round(deathHp), energy: Math.round(deathEnergy), count: deathNearbyEnemyCount,
+  });
 
   // Suggestions (deterministic with auto-add metadata)
   const suggestions = [];
   
   const offense = ['basic_attack', 'interrupt_shot', 'dash_through', 'drop_mine'];
-  if (equipped && !equipped.some(id => offense.includes(id)) &&
+  if ((timedOut || (equipped && !equipped.some(id => offense.includes(id)))) &&
       hasAction('basic_attack') && hasCondition('enemy_nearby')) {
-    suggestions.push({ text: t('report.suggestAttack'),
+    suggestions.push({ text: t(timedOut ? 'report.suggestFallbackAttack' : 'report.suggestAttack'),
       rule: { conditionId: 'enemy_nearby', conditionValue: 8, actionId: 'basic_attack', priority: 10 } });
   }
   if (interruptMisses >= 2 && hasCondition('enemy_casting') && hasAction('interrupt_shot')) {
@@ -107,13 +110,16 @@ export function buildReport(report, availableActionIds, availableConditionIds = 
     });
   }
 
-  return {
-    damage_lines: damageLines,
-    logic_lines: [mostUsedLine, neverUsedLine, shieldLine, energyLine, deathLine],
-    suggestions,
-    outcome: sources.length && Number.isFinite(report.battle_time)
+  const outcome = timedOut
+    ? t('report.timedOut', { seconds: Math.round(report.battle_time) })
+    : sources.length && Number.isFinite(report.battle_time)
       ? t('report.damageSummary', { seconds: report.battle_time.toFixed(1),
         source: damageSourceLabel(sources[0]), amount: Math.round(damageBySource[sources[0]]) })
-      : t('report.subtitle'),
+      : t('report.subtitle');
+  return {
+    damage_lines: damageLines,
+    logic_lines: [mostUsedLine, neverUsedLine, shieldLine, energyLine, endLine],
+    suggestions,
+    outcome,
   };
 }
