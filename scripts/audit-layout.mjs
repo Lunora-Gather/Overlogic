@@ -80,15 +80,22 @@ try {
     ctx.font = css.font; return el.clientWidth >= ctx.measureText(el.selectedOptions[0].text).width + parseFloat(css.paddingLeft) + 16;
   })()`), 'Desktop condition label clipped');
   await viewport(1024, 600);
-  await click('.editor-library summary'); await click('.editor-prep summary');
+  await click('.editor-library > summary'); await click('.editor-prep > summary');
+  await click('#synergy-panel > summary');
+  assert(await evaluate(`
+    ${rect('#synergy-panel')}.bottom <= ${rect('.editor-header')}.bottom + 1 &&
+    ${rect('.editor-header')}.bottom <= ${rect('.editor-grid')}.top + 1 &&
+    ${rect('.brief-score')}.right <= ${rect('.brief-copy')}.left
+  `), 'Expanded prep overlaps the editor at 1024×600');
   assert(await evaluate("document.querySelector('#rule-list').clientHeight >= 44"), 'Expanded sections collapse rule list');
-  for (const selector of ['#btn-save-1', first]) {
+  for (const selector of ['#synergy-list .synergy-chip:last-child', '#btn-save-1', first]) {
     assert(await evaluate(`(() => {
       const el = document.querySelector('${selector}'); el.scrollIntoView({ block: 'center', behavior: 'instant' });
       const r = el.getBoundingClientRect(); return el.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
     })()`), `Expanded sections obstruct ${selector}`);
   }
-  await click('.editor-library summary'); await click('.editor-prep summary');
+  await click('#synergy-panel > summary');
+  await click('.editor-library > summary'); await click('.editor-prep > summary');
   for (const [width, height] of [[320, 568], [844, 390], [1024, 600]]) {
     await viewport(width, height);
     await evaluate("document.querySelector('#screen-editor').scrollTop = document.querySelector('#screen-editor').scrollHeight");

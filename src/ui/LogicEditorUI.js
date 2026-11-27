@@ -131,6 +131,9 @@ export class LogicEditorUI {
 
     this.lastSavedSlot = 1;
     this._bind();
+    this.mapNodesContainer?.closest('.editor-prep')?.addEventListener('toggle', event => {
+      if (event.currentTarget.open) this._followCurrentMapColumn();
+    });
     // re-render when state changes
     GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); this.renderCoach(); });
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); this.renderSynergies(); });
@@ -185,7 +188,8 @@ export class LogicEditorUI {
       const target = Math.max(0, Math.min(maxScroll,
         current.offsetLeft - (this.mapNodesContainer.clientWidth - current.offsetWidth) / 2));
       if (Math.abs(this.mapNodesContainer.scrollLeft - target) < 4) return;
-      const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
+      const reducedMotion = GameState.settings.reduceMotion ||
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
       this.mapNodesContainer.scrollTo({ left: target, behavior: reducedMotion ? 'auto' : 'smooth' });
     });
   }
@@ -249,11 +253,9 @@ export class LogicEditorUI {
     this.edTeach.textContent = GameState.teachNode;
     const routeCurrent = Math.min(GameState.currentMapColumn + 1, GameState.mapNodes.length);
     const routeTotal = GameState.mapNodes.length;
-    const routeProgress = `${String(routeCurrent).padStart(2, '0')} / ${String(routeTotal).padStart(2, '0')}`;
-    if (this.mapRouteLabel) this.mapRouteLabel.textContent = `${t('editor.chooseRoute')} · ${routeProgress}`;
-    this.mapNodesContainer.setAttribute('aria-label', `${t('editor.routeMap')} · ${t('editor.routeProgress', {
-      current: routeCurrent, total: routeTotal,
-    })}`);
+    const routeProgress = t('editor.routeProgress', { current: routeCurrent, total: routeTotal });
+    if (this.mapRouteLabel) this.mapRouteLabel.textContent = routeProgress;
+    this.mapNodesContainer.setAttribute('aria-label', `${t('editor.routeMap')} · ${routeProgress}`);
 
     // Render Map Tree
     this.mapNodesContainer.innerHTML = '';
@@ -512,7 +514,7 @@ export class LogicEditorUI {
         description: t(runProtocol.descriptionKey),
       }))}</div>` : ''}
       <div class="brief-actions">
-        ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : `<span class="counter-ready">✓ ${escapeHtml(t('brief.counterLoaded'))}</span>`}
+        ${!hasCounter && advice ? `<button type="button" id="btn-add-counter" class="btn small">${escapeHtml(advice.label)}</button>` : ''}
         ${warnings.size > 0 ? `<button type="button" id="btn-fix-priorities" class="btn small ghost">${escapeHtml(t('brief.spacePriorities'))}</button>` : ''}
         ${battle.id === 'battle_1' ? `<div class="brief-goals"><b>${escapeHtml(t('brief.goals'))}</b><span class="${GameState.tutorialProgress.editedRule ? 'ok' : ''}">${GameState.tutorialProgress.editedRule ? '✓' : '○'} ${escapeHtml(t('brief.goalEdit'))}</span><span class="${GameState.tutorialProgress.sandboxRun ? 'ok' : ''}">${GameState.tutorialProgress.sandboxRun ? '✓' : '○'} ${escapeHtml(t('brief.goalSandbox'))}</span></div>` : ''}
       </div>

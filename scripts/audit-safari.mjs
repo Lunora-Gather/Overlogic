@@ -33,6 +33,7 @@ async function play(frame, locale, width, height, campaignDifficulty) {
       const r = el.getBoundingClientRect();
       return el.contains(doc.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2));
     }, 'control unobstructed: ' + selector);
+    el.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
     el.click();
   };
   const save = () => JSON.parse(win.localStorage.getItem('overlogic_run_save'));
@@ -42,6 +43,43 @@ async function play(frame, locale, width, height, campaignDifficulty) {
     check(el.scrollWidth <= el.clientWidth + 1, selector + ' overflows horizontally');
   };
   const css = element => win.getComputedStyle(element);
+  const keyboardFocus = async (from, key, to) => {
+    const hasMarker = () => doc.activeElement === to && css(to).boxShadow.includes('inset');
+    try {
+      await wait(() => {
+        if (hasMarker()) return true;
+        from.focus({ preventScroll: true });
+        from.dispatchEvent(new win.KeyboardEvent('keydown', { key, bubbles: true }));
+        return hasMarker();
+      }, 'keyboard focus marker on ' + (to.id || to.className));
+    } catch (error) {
+      throw new Error(error.message + ' (keyboard=' + doc.documentElement.classList.contains('keyboard-input') +
+        ', frameFocused=' + doc.hasFocus() + ', active=' + (doc.activeElement?.id || doc.activeElement?.className) +
+        ', focusMatch=' + to.matches(':focus') + ', outline=' + css(to).outlineStyle + ', shadow=' + css(to).boxShadow + ')');
+    }
+  };
+  const checkPrepGeometry = () => {
+    check(rect('#synergy-panel').bottom <= rect('.editor-header').bottom + 1 &&
+      rect('.editor-header').bottom <= rect('.editor-grid').top + 1, 'expanded prep fits above the rule workspace');
+    check(rect('.brief-score').right <= rect('.brief-copy').left, 'readiness score does not overlap the briefing text');
+  };
+  async function inspectPrep() {
+    await click('.editor-prep > summary');
+    check(find('#ed-teach').offsetWidth && find('#map-nodes').offsetWidth, 'route and directive level visible together');
+    check(!find('#synergy-panel').open, 'synergies start folded');
+    checkPrepGeometry();
+    await click('#synergy-panel > summary');
+    checkPrepGeometry();
+    const lastCard = find('#synergy-list .synergy-chip:last-child');
+    lastCard.scrollIntoView({ block: 'center', behavior: 'instant' });
+    await wait(() => {
+      const bounds = lastCard.getBoundingClientRect();
+      return lastCard.contains(doc.elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2));
+    }, 'last synergy card reachable');
+    check(rect('#btn-run').top >= 0 && rect('#btn-run').bottom <= height, 'launch remains visible while reading synergies');
+    await click('#synergy-panel > summary');
+    await click('.editor-prep > summary');
+  }
   async function finishBattle({ shield = false, timeout = false } = {}) {
     await wait(() => onScreen('combat'), 'enter combat');
     if (find('#btn-pause').getAttribute('aria-pressed') !== 'true') await click('#btn-pause');
@@ -92,15 +130,18 @@ async function play(frame, locale, width, height, campaignDifficulty) {
   await click('button[data-locale="' + locale + '"]');
   check(doc.documentElement.dataset.locale === locale, 'language switch');
   if (campaignDifficulty) {
-    return playCampaign({ win, find, check, click, save, onScreen, fits, finishBattle, errors,
+    return playCampaign({ win, find, check, click, wait, rect, save, onScreen, fits, finishBattle, errors,
       locale, width, height, difficulty: campaignDifficulty });
   }
   check(find('#home-run').hidden && find('.rule-preview').offsetWidth, 'first visit shield preview');
   const start = find('#btn-start');
-  start.focus({ preventScroll: true });
+  await wait(() => {
+    start.focus({ preventScroll: true });
+    return doc.activeElement === start;
+  }, 'focus launch button');
   check(css(start).outlineStyle === 'none' && css(start).boxShadow === 'none', 'launcher autofocus is quiet');
-  start.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
-  check(css(start).outlineStyle === 'none' && css(start).boxShadow.includes('inset'), 'keyboard focus is marked inside the launch button');
+  await keyboardFocus(start, 'Tab', start);
+  check(css(start).outlineStyle === 'none', 'launch focus remains inside the button');
   start.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
   check(css(start).boxShadow === 'none', 'pointer input clears the keyboard mark');
   const selectedLanguage = find('#locale-switcher [aria-checked="true"]');
@@ -174,9 +215,7 @@ async function play(frame, locale, width, height, campaignDifficulty) {
     openRow.borderTopColor === closedRow.borderTopColor, 'expanded rule uses fill without a selected border');
   check(expanded()[0].querySelector('.rule-phrase').textContent.includes('≤ 30%'), 'shield threshold reads as an inclusive limit');
   check(find('.rule-detail:not([hidden]) .rule-action-meta').textContent.includes('25'), 'shield cost visible beside the action');
-  await click('.editor-prep > summary');
-  check(find('#ed-teach').offsetWidth && find('#map-nodes').offsetWidth, 'route and directive level visible together');
-  await click('.editor-prep > summary');
+  await inspectPrep();
   await click('.rule-row:nth-child(2) ' + disclosure);
   check(expanded()[0] === find('.rule-row:nth-child(2) ' + disclosure) && !find(threshold).offsetWidth, 'switch rule');
   await click('#btn-coach');
@@ -267,11 +306,9 @@ async function play(frame, locale, width, height, campaignDifficulty) {
   const originalOffers = offers();
   check(originalOffers.length === 3 && find('.r-before') && find('.r-impact strong'), 'visible before and after values');
   const firstReward = find('.reward-card');
-  firstReward.focus({ preventScroll: true });
-  firstReward.dispatchEvent(new win.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
-  const nextReward = doc.activeElement;
-  check(nextReward === firstReward.nextElementSibling && css(nextReward).outlineStyle === 'none' &&
-    css(nextReward).boxShadow.includes('inset'), 'arrow keys move the inset focus marker between rewards');
+  const nextReward = firstReward.nextElementSibling;
+  await keyboardFocus(firstReward, 'ArrowRight', nextReward);
+  check(css(nextReward).outlineStyle === 'none', 'reward focus remains inside the card');
   check(find('#reward-facts dd').textContent.startsWith(String(Math.round(save().lastReport._endHp))), 'ending HP in upgrade header');
   const previousDoc = doc;
   frame.src += '&resume=1';
@@ -309,6 +346,7 @@ async function play(frame, locale, width, height, campaignDifficulty) {
   check(find('#home-route-segments [data-step="completed"]') === find('#home-route-segments').firstElementChild &&
     doc.querySelectorAll('#home-route-segments [data-step="completed"]').length === 1, 'the completed route is marked');
   await click('#btn-start');
+  await inspectPrep();
   await click('.editor-sandbox summary');
   find('#sandbox-preset').value = 'boss';
   await click('#btn-sandbox');
@@ -324,7 +362,7 @@ async function play(frame, locale, width, height, campaignDifficulty) {
   return { locale, width, height, shields, outcome, release: find('#app-version').textContent };
 }
 
-async function playCampaign({ win, find, check, click, save, onScreen, fits, finishBattle, errors,
+async function playCampaign({ win, find, check, click, wait, rect, save, onScreen, fits, finishBattle, errors,
   locale, width, height, difficulty }) {
   const nullBranch = difficulty === 'standard';
   const setField = (selector, value) => {
@@ -361,6 +399,11 @@ async function playCampaign({ win, find, check, click, save, onScreen, fits, fin
     check(onScreen('editor'), 'editor before ' + node);
     if (node !== save().selectedNodeId || !battle) {
       if (!find('.editor-prep').open) await click('.editor-prep > summary');
+      await wait(() => {
+        const map = rect('#map-nodes');
+        const current = rect('.map-node[aria-current="step"]');
+        return current.left >= map.left - 2 && current.right <= map.right + 2;
+      }, 'current route visible when prep opens');
       await click('.map-node.unlocked[data-node-id="' + node + '"]');
       if (onScreen('editor') && find('.editor-prep').open) await click('.editor-prep > summary');
     }
