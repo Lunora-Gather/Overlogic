@@ -159,7 +159,8 @@ async function play(frame, locale, width, height, campaignDifficulty) {
   await keyboardFocus(start, 'Tab', start);
   check(css(start).outlineStyle === 'none', 'launch focus remains inside the button');
   start.dispatchEvent(new win.PointerEvent('pointerdown', { bubbles: true }));
-  check(css(start).boxShadow === 'none', 'pointer input clears the keyboard mark');
+  check(!doc.documentElement.classList.contains('keyboard-input'), 'pointer input exits keyboard mode');
+  await wait(() => css(start).boxShadow === 'none', 'pointer input clears the keyboard mark');
   const selectedLanguage = find('#locale-switcher [aria-checked="true"]');
   check(css(selectedLanguage).backgroundColor !== css(find('#locale-switcher [aria-checked="false"]')).backgroundColor &&
     css(selectedLanguage).borderTopColor === 'rgba(0, 0, 0, 0)', 'language uses a solid selection');
