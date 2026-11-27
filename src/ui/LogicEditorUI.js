@@ -131,9 +131,6 @@ export class LogicEditorUI {
 
     this.lastSavedSlot = 1;
     this._bind();
-    this.mapNodesContainer?.closest('.editor-prep')?.addEventListener('toggle', event => {
-      if (event.currentTarget.open) this._followCurrentMapColumn();
-    });
     // re-render when state changes
     GameState.on('rules', () => { this.renderRules(); this.renderBriefing(); this.renderCoach(); });
     GameState.on('stats', () => { this.renderStats(); this.renderBriefing(); this.renderSynergies(); });
@@ -178,20 +175,15 @@ export class LogicEditorUI {
   }
 
   _followCurrentMapColumn(restoreFocus = false) {
-    window.cancelAnimationFrame(this._mapFollowFrame);
-    this._mapFollowFrame = window.requestAnimationFrame(() => {
-      const current = this.mapNodesContainer.querySelector(`[data-map-column="${GameState.currentMapColumn}"]`);
-      if (!current) return;
+    const map = this.mapNodesContainer;
+    const current = map.querySelector(`[data-map-column="${GameState.currentMapColumn}"]`);
+    if (!current || !current.offsetWidth) return;
+    if (restoreFocus) {
       const selected = current.querySelector('.map-node.selected') || current.querySelector('.map-node.unlocked');
-      if (restoreFocus && selected instanceof HTMLElement) selected.focus({ preventScroll: true });
-      const maxScroll = Math.max(0, this.mapNodesContainer.scrollWidth - this.mapNodesContainer.clientWidth);
-      const target = Math.max(0, Math.min(maxScroll,
-        current.offsetLeft - (this.mapNodesContainer.clientWidth - current.offsetWidth) / 2));
-      if (Math.abs(this.mapNodesContainer.scrollLeft - target) < 4) return;
-      const reducedMotion = GameState.settings.reduceMotion ||
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true;
-      this.mapNodesContainer.scrollTo({ left: target, behavior: reducedMotion ? 'auto' : 'smooth' });
-    });
+      selected?.focus({ preventScroll: true });
+    }
+    const target = current.offsetLeft - (map.clientWidth - current.offsetWidth) / 2;
+    map.scrollTo({ left: target, behavior: 'instant' });
   }
 
   _flashButton(button, label) {
