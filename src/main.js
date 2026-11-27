@@ -40,6 +40,13 @@ let noticeActionKey = null;
 // boot never flashes the wrong language or falls back to English-only copy.
 setLocale(GameState.settings.language, { notify: false });
 
+// Use the last input to style focus when Safari moves it between screens.
+const documentRoot = document.documentElement;
+document.addEventListener('pointerdown', () => documentRoot.classList.remove('keyboard-input'), { capture: true, passive: true });
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Tab' || (!event.metaKey && !event.ctrlKey && !event.altKey)) documentRoot.classList.add('keyboard-input');
+}, true);
+
 function hideBootStatus() {
   bootStatus?.classList.add('hidden');
 }
